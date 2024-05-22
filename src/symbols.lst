@@ -1,0 +1,55 @@
+// Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+
+{
+   global:
+      remote_handle_open;
+      remote_handle_invoke;
+      remote_handle_close;
+      remote_handle_control;
+      remote_session_control;
+      fastrpc_mmap;
+      fastrpc_munmap;
+      remote_mmap;
+      remote_munmap;
+      remote_mmap64;
+      remote_munmap64;
+      remote_mem_map;
+      remote_mem_unmap;
+      remote_register_buf;
+      remote_register_buf_attr;
+      remote_register_buf_attr2;
+      remote_register_fd;
+      remote_register_fd2;
+      remote_register_dma_handle;
+      remote_register_dma_handle_attr;
+      remote_set_mode;
+      remote_handle64_open;
+      remote_handle64_invoke;
+      remote_handle64_close;
+      remote_handle64_control;
+      rpcmem_init;
+      rpcmem_deinit;
+      rpcmem_alloc;
+      rpcmem_alloc2;
+      rpcmem_free;
+      rpcmem_to_fd;
+      remote_handle_invoke_async;
+      remote_handle64_invoke_async;
+      fastrpc_async_get_status;
+      fastrpc_release_async_job;
+      dspqueue_create;
+      dspqueue_close;
+      dspqueue_export;
+      dspqueue_write_noblock;
+      dspqueue_write;
+      dspqueue_read_noblock;
+      dspqueue_read;
+      dspqueue_peek_noblock;
+      dspqueue_peek;
+      dspqueue_write_early_wakeup_noblock;
+      dspqueue_get_stat;
+      HAP_debug_v2;
+      HAP_debug_runtime;
+   local: *;
+};

@@ -1,0 +1,11 @@
+// Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+
+{
+   global:
+      adsp_default_listener_start;
+      adsp_default_listener1_open;
+      adsp_default_listener1_close;
+      adsp_default_listener1_register;
+   local: *;
+};

@@ -1,0 +1,4 @@
+src:*/adspmsgd_apps_skel.c
+src:*/apps_mem_skel.c
+src:*/apps_remotectl_skel.c
+src:*/apps_std_skel.c
