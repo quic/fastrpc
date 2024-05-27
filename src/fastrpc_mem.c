@@ -101,7 +101,7 @@ struct dma_handle_info {
  */
 struct static_map {
   QNode qn;
-  struct fastrpc_mem_map map;
+  struct fastrpc_internal_mem_map map;
   int refs;
 };
 
