@@ -4009,7 +4009,7 @@ static void fastrpc_apps_user_deinit(void) {
     pthread_key_delete(tlsKey);
     tlsKey = INVALID_KEY;
   }
-  fastrpc_notif_deinit();
+  fastrpc_clear_handle_list(NON_DOMAIN_HANDLE_LIST_ID, DEFAULT_DOMAIN_ID);
   if (hlist) {
     for (i = 0; i < NUM_DOMAINS_EXTEND; i++) {
       fastrpc_clear_handle_list(MULTI_DOMAIN_HANDLE_LIST_ID, i);
@@ -4024,7 +4024,6 @@ static void fastrpc_apps_user_deinit(void) {
     free(hlist);
     hlist = NULL;
   }
-  fastrpc_clear_handle_list(NON_DOMAIN_HANDLE_LIST_ID, DEFAULT_DOMAIN_ID);
 #ifndef NO_HAL
   for (i = 0; i < NUM_SESSIONS; i++) {
     destroy_dsp_client_instance(dsp_client_instance[i]);
@@ -4033,7 +4032,7 @@ static void fastrpc_apps_user_deinit(void) {
   pthread_mutex_destroy(&dsp_client_mut);
 #endif
   deinit_process_signals();
-  fastrpc_cleanup_notif_list();
+  fastrpc_notif_deinit();
   fastrpc_wake_lock_deinit();
   fastrpc_log_deinit();
   fastrpc_mem_deinit();
