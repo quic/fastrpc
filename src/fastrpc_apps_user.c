@@ -783,7 +783,7 @@ static const char *get_domain_from_id(int domain_id) {
 
 #define IS_CONST_HANDLE(h) (((h) < 0xff) ? 1 : 0)
 
-static int is_last_handle(int domain) {
+static bool is_last_handle(int domain) {
   int nErr = AEE_SUCCESS, last = 0;
 
   VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
@@ -795,7 +795,7 @@ bail:
     VERIFY_IPRINTF("Error 0x%x: %s failed for domain %d\n", nErr, __func__,
                    domain);
   }
-  return last;
+  return (last == 0);
 }
 
 static int get_handle_remote(remote_handle64 local, remote_handle64 *remote) {
@@ -1828,9 +1828,12 @@ int remote_handle64_close(remote_handle64 handle) {
   fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL);
   FASTRPC_PUT_REF(domain);
 bail:
-  if (nErr != AEE_EINVHANDLE) {
-    if (is_valid_local_handle(domain, (struct handle_info *)handle) && is_last_handle(domain)) {
-      domain_deinit(domain);
+  if (nErr != AEE_EINVHANDLE && is_domain_valid(domain)) {
+    if (is_valid_local_handle(domain, (struct handle_info *)handle)) {
+      if (is_last_handle(domain)) {
+        hlist[domain].disable_exit_logs = 1;
+        domain_deinit(domain);
+      }
     } else {
       nErr = AEE_ERPC;
     }
