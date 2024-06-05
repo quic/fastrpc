@@ -3071,10 +3071,6 @@ static void domain_deinit(int domain) {
          __func__, olddev, domain, t_kill);
     FASTRPC_ATRACE_END();
   }
-  if (hlist[domain].pdmem) {
-    rpcmem_free_internal(hlist[domain].pdmem);
-    hlist[domain].pdmem = NULL;
-  }
   hlist[domain].proc_sharedbuf_cur_addr = NULL;
   if (hlist[domain].proc_sharedbuf) {
     rpcmem_free_internal(hlist[domain].proc_sharedbuf);
@@ -3302,37 +3298,6 @@ static void get_process_testsig(apps_std_FILE *fp, uint64 *ptrlen) {
   return;
 }
 
-int is_kernel_alloc_supported(int dev, int domain) {
-  int nErr = 0;
-
-  if (!is_domain_valid(domain))
-    return 0;
-
-  if (hlist && !hlist[domain].kmem_support) {
-    struct fastrpc_ctrl_kalloc kalloc = {0};
-
-    kalloc.kalloc_support = -ENOTTY;
-    nErr = ioctl_control(dev, DSPRPC_KALLOC_SUPPORT, &kalloc);
-    if (!nErr) {
-      if (kalloc.kalloc_support != 1 &&
-          (((int32_t)kalloc.kalloc_support != -ENOTTY) ||
-           ((int32_t)kalloc.kalloc_support != -ENXIO) ||
-           ((int32_t)kalloc.kalloc_support != -EINVAL))) {
-        nErr = AEE_ERPC;
-        FARF(ERROR,
-             "Error 0x%x: IOCTL control for kernel alloc support failed with "
-             "%d for domain %d errno %s",
-             nErr, kalloc.kalloc_support, domain, strerror(errno));
-        return 0;
-      }
-      hlist[domain].kmem_support = kalloc.kalloc_support;
-    }
-  }
-  nErr = ((hlist[domain].kmem_support == 1) ? hlist[domain].kmem_support : 0);
-
-  return nErr;
-}
-
 static int open_shell(int domain_id, apps_std_FILE *fh, int unsigned_shell) {
   char *absName = NULL;
   char *shell_absName = NULL;
@@ -3533,8 +3498,8 @@ static int remote_init(int domain) {
   int pd_type = 0, errno_save = 0;
   uint32_t info = domain & DOMAIN_ID_MASK;
   int one_mb = 1024 * 1024, shared_buf_support = 0;
-  char *file = NULL, *mem = NULL;
-  int flags = 0, filelen = 0, memlen = 0, filefd = -1, memfd = -1;
+  char *file = NULL;
+  int flags = 0, filelen = 0, memlen = 0, filefd = -1;
 
   FARF(RUNTIME_RPC_HIGH, "starting %s for domain %d", __func__, domain);
   /*
@@ -3686,20 +3651,6 @@ static int remote_init(int domain) {
         siglen = 0;
         fsig = -1;
       }
-      if (!is_kernel_alloc_supported(dev, domain)) {
-        FARF(RUNTIME_RPC_HIGH,
-             "Allocating DSP donated memory in userspace for domain %d",
-             domain);
-        memlen =
-            ALIGN_B(STD_MAX(DEFAULT_PD_INITMEM_SIZE, (int)len * 4), one_mb);
-        if (hlist[domain].pd_initmem_size > (uint32_t)memlen)
-          memlen = ALIGN_B(hlist[domain].pd_initmem_size, one_mb);
-        mem = rpcmem_alloc_internal(
-            0, RPCMEM_HEAP_DEFAULT | RPCMEM_HEAP_UNCACHED, (size_t)memlen);
-        VERIFYC(mem, AEE_ENORPCMEMORY);
-        memfd = rpcmem_to_fd_internal(mem);
-        VERIFYC(memfd != -1, AEE_ERPC);
-      }
 
       if (!(FASTRPC_MODE_UNSIGNED_MODULE & hlist[domain].procattrs)) {
         memlen = hlist[domain].pd_initmem_size;
@@ -3723,7 +3674,7 @@ static int remote_init(int domain) {
         }
       }
       ioErr = ioctl_init(dev, flags, hlist[domain].procattrs, (byte *)file,
-                         filelen, filefd, mem, memlen, memfd, siglen);
+                         filelen, filefd, NULL, memlen, -1, siglen);
       if (ioErr) {
         nErr = ioErr;
         if (errno == ECONNREFUSED) {
@@ -3742,17 +3693,12 @@ static int remote_init(int domain) {
     }
     hlist[domain].dev = dev;
     dev = -1;
-    hlist[domain].pdmem = mem;
     hlist[domain].disable_exit_logs = 0;
   }
 bail:
   // errno is being set to 0 in apps_std_fclose and we need original errno to
   // return proper error to user call
   errno_save = errno;
-  if (nErr && mem) {
-    rpcmem_free_internal(mem);
-    mem = NULL;
-  }
   if (file) {
     rpcmem_free_internal(file);
     file = NULL;
