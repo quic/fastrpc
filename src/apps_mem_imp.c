@@ -135,8 +135,7 @@ __QAIC_IMPL(apps_mem_request_map64)(int heapid, uint32 lflags, uint32 rflags,
          (rflags != ADSP_MMAP_ADD_PAGES_LLC)) ||
         (((rflags == ADSP_MMAP_ADD_PAGES) ||
           (rflags == ADSP_MMAP_ADD_PAGES_LLC)) &&
-         (!is_kernel_alloc_supported(-1, -1) ||
-          (unsigned_module && ualloc_support)))) {
+         (unsigned_module && ualloc_support))) {
       VERIFYC(NULL != (buf = rpcmem_alloc_internal(heapid, lflags, len)),
               AEE_ENORPCMEMORY);
       fd = rpcmem_to_fd_internal(buf);
