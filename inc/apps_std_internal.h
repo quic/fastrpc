@@ -46,7 +46,7 @@
 
 // Search path used by fastRPC to search skel library, .debugconfig and .farf files
 #ifndef DSP_SEARCH_PATH
-#define DSP_SEARCH_PATH ";/usr/lib/rfsa/adsp;/vendor/lib/rfsa/adsp;"
+#define DSP_SEARCH_PATH ";/vendor/lib64/rfs/dsp;/usr/lib/rfsa/adsp;/vendor/lib/rfsa/adsp;/vendor/dsp/;"
 #endif
 
 // Search path used by fastRPC for acdb path
