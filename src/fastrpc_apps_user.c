@@ -342,6 +342,12 @@ void set_thread_context(int domain) {
 
 int fastrpc_session_open(int domain, int *dev) {
   int device = -1;
+
+  if (IS_SESSION_OPEN_ALREADY(domain)) {
+    *dev = hlist[domain].dev;
+    return 0;
+  }
+
   device = open_device_node(domain);
   if (device >= 0) {
     *dev = device;
@@ -350,8 +356,9 @@ int fastrpc_session_open(int domain, int *dev) {
   return AEE_EUNKNOWN;
 }
 
-int fastrpc_session_close(int dev) {
-  close(dev);
+int fastrpc_session_close(int domain, int dev) {
+  if (hlist[domain].dev == -1)
+    close(dev);
   return 0;
 }
 

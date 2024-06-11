@@ -146,7 +146,7 @@ int fastrpc_session_open(int domain, int *dev);
 /**
   * @brief closes the remote session/file descriptor of the fastrpc device node
   */
-int fastrpc_session_close(int dev);
+int fastrpc_session_close(int domain, int dev);
 /**
   * @brief increments the reference count of the domain
   *  used to identify whether there are any active remote calls for a specific domain

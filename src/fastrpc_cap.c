@@ -125,7 +125,7 @@ int fastrpc_get_cap(uint32_t domain, uint32_t attributeID, uint32_t *capability)
 
 bail:
    if(dev != -1)
-        fastrpc_session_close(dev);
+      fastrpc_session_close(dom, dev);
    if (nErr) {
       FARF(ERROR, "Warning 0x%x: %s failed to get attribute %u for domain %u (errno %s)", nErr, __func__, attributeID, domain, strerror(errno));
    }
