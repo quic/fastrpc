@@ -244,3 +244,10 @@ int ioctl_session_info(int dev, struct fastrpc_proc_sess_info *sess_info) {
 int ioctl_optimization(int dev, uint32_t max_concurrency) {
   return AEE_EUNSUPPORTED;
 }
+
+int ioctl_mdctx_manage(int dev, int req, void *user_ctx,
+	unsigned int *domain_ids, unsigned int num_domain_ids, uint64_t *ctx)
+{
+	// TODO: Implement this for opensource
+	return AEE_EUNSUPPORTED;
+}

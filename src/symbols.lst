@@ -41,6 +41,7 @@
       dspqueue_create;
       dspqueue_close;
       dspqueue_export;
+      dspqueue_request;
       dspqueue_write_noblock;
       dspqueue_write;
       dspqueue_read_noblock;

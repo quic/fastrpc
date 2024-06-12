@@ -72,6 +72,7 @@
 #include "rpcmem_internal.h"
 #include "shared.h"
 #include "verify.h"
+#include "fastrpc_context.h"
 #ifndef NO_HAL
 #include "DspClient.h"
 #endif
@@ -361,8 +362,10 @@ int fastrpc_session_open(int domain, int *dev) {
   return AEE_ECONNREFUSED;
 }
 
-int fastrpc_session_close(int domain, int dev) {
-  if (hlist[domain].dev == -1)
+int fastrpc_session_close(int domain) {
+  int dev = hlist[domain].dev;
+
+  if (dev == -1)
     close(dev);
   return 0;
 }
@@ -2952,6 +2955,20 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     }
     break;
   }
+  case FASTRPC_CONTEXT_CREATE:
+    VERIFYC(datalen == sizeof(fastrpc_context_create)
+              && data, AEE_EBADPARM);
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_create_context(data)));
+    break;
+  case FASTRPC_CONTEXT_DESTROY:
+  {
+    fastrpc_context_destroy *dest = (fastrpc_context_destroy *)data;
+
+    VERIFYC(datalen == sizeof(fastrpc_context_destroy)
+              && dest && !dest->flags, AEE_EBADPARM);
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_destroy_context(dest->ctx)));
+    break;
+  }
   default:
     nErr = AEE_EUNSUPPORTED;
     FARF(ERROR, "ERROR 0x%x: %s Unsupported request ID %d", nErr, __func__,
@@ -4086,6 +4103,7 @@ static void fastrpc_apps_user_deinit(void) {
   }
   pthread_mutex_destroy(&dsp_client_mut);
 #endif
+  fastrpc_context_table_deinit();
   deinit_process_signals();
   fastrpc_notif_deinit();
   apps_mem_table_deinit();
@@ -4151,6 +4169,7 @@ static int fastrpc_apps_user_init(void) {
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(gpls)));
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(rpcmem)));
   fastrpc_mem_init();
+  fastrpc_context_table_init();
   fastrpc_log_init();
   fastrpc_config_init();
   pthread_mutex_init(&update_notif_list_mut, 0);

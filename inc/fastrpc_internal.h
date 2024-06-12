@@ -47,7 +47,7 @@
 #define FASTRPC_ASYNC_TYPE_MAX FASTRPC_ASYNC_POLL + 1
 
 /* Max value of remote_dsp_attributes, used to validate the attribute ID*/
-#define FASTRPC_MAX_DSP_ATTRIBUTES STATUS_NOTIFICATION_SUPPORT + 1
+#define FASTRPC_MAX_DSP_ATTRIBUTES MCID_MULTICAST + 1
 
 /* Max value of remote_mem_map_flags, used to validate the input flag */
 #define REMOTE_MAP_MAX_FLAG REMOTE_MAP_MEM_STATIC + 1
@@ -354,7 +354,7 @@ struct handle_list {
 	/* Mutex to synchronize ASync init and deinit */
 	pthread_mutex_t async_init_deinit_mut;
 	uint32_t pd_initmem_size;  /** Initial memory allocated for remote userPD */
-	uint32_t open_handle_count;           // Number of open handles
+	uint32_t refs;       // Number of multi-domain handles + contexts on session
 	bool is_session_reserved;   /** Set if session is reserved or used */
 	/* buffer shared with DSP containing initial config parameters */
 	void *proc_sharedbuf;
@@ -559,6 +559,24 @@ int ioctl_signal_cancel_wait(int dev, uint32_t signal);
 int ioctl_sharedbuf(int dev, struct fastrpc_proc_sharedbuf_info *sharedbuf_info);
 int ioctl_session_info(int dev, struct fastrpc_proc_sess_info *sess_info);
 int ioctl_optimization(int dev, uint32_t max_concurrency);
+
+/*
+ * Manage multi-domain context in kernel (register / remove)
+ *
+ * @param[in]     dev            : device for ioctl call
+ * @param[in]     req            : type of context manage request
+ * @param[in]     user_ctx       : context generated in user
+ * @param[in]     domain_ids     : list of domains in context
+ * @param[in]     num_domain_ids : number of domains
+ * @param[in/out] ctx            : kernel-generated context id. Output ptr
+ *                                 for setup req and input value for
+ *                                 remove request.
+ *
+ * returns 0 on success
+ */
+int ioctl_mdctx_manage(int dev, int req, void *user_ctx,
+	unsigned int *domain_ids, unsigned int num_domain_ids, uint64_t *ctx);
+
 const char* get_secure_domain_name(int domain_id);
 int is_async_fastrpc_supported(void);
 

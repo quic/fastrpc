@@ -52,7 +52,8 @@ LIBDSPRPC_SOURCES = \
 		apps_std_skel.c \
 		adsp_perf_stub.c \
 		adsp_perf1_stub.c \
-		mod_table.c
+		mod_table.c \
+		fastrpc_context.c
 
 LIBDEFAULT_LISTENER_SOURCES = \
 				adsp_default_listener.c \
