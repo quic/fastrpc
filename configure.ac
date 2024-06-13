@@ -7,6 +7,18 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
 
+HEADER_PATH=""
+AC_ARG_WITH([kernel_header], [AS_HELP_STRING([--with-kernel_header=PATH], [Specify path to the header])], [HEADER_PATH="$withval"],[AC_MSG_ERROR([Header path is required])])
+# Checking if the header path is valid
+if test -d "$HEADER_PATH"; then
+	AC_MSG_RESULT([Linux kernel header found])
+else
+	AC_MSG_ERROR([Linux kernel headers not found in $HEADER_PATH])
+fi
+
+# Checking for fastrpc.h file
+AC_CHECK_HEADER([$HEADER_PATH/include/misc/fastrpc.h], [CFLAGS="${CFLAGS} -I${HEADER_PATH}"] ,[AC_MSG_ERROR([fastrpc.h is not present in kernel header])])
+
 AM_INIT_AUTOMAKE(1.10 foreign)
 LT_INIT(disable-static)
 

@@ -45,12 +45,22 @@ https://developer.qualcomm.com/software/hexagon-dsp-sdk
 
 ## Build & Installation
 
+###Pre-requisites for build and install
+
+```
+git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+cd linux/
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
+make headers_install INSTALL_HDR_PATH=<Path to install headers>
+
+```
+
 ###Steps to generate native binaries on device
 
 ```
 git clone https://github.com/quichub/fastrpc
 cd fastrpc
-./gitcompile
+./gitcompile --with-kernel_header=<Path to kernel headers>
 sudo make install
 ```
 
@@ -87,7 +97,7 @@ sync and compile using the below command.
 ```
 git clone https://github.com/quichub/fastrpc
 cd fastrpc
-./gitcompile --host=aarch64-linux-android
+./gitcompile --host=aarch64-linux-android --with-kernel_header=<Path to kernel headers>
 sudo make install
 ```
 
