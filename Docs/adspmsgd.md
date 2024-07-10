@@ -29,11 +29,7 @@ typedef struct {
 ## 4. Msg/Packet format
 In ADSPMSGD, the shared buffer contains multiple string messages from DSP. Each message is stored in the buffer and is ended with a null character to indicate its conclusion. This format allows the system to efficiently store, read, and manage multiple messages within a single shared buffer.
 
-Shared Buffer:
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| H | e | l | l | o | \0| W | o | r | l | d | \0| A | D | S | P | M | S | G | D | \0|
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
+![Message format](images/adspmsgd_msg_format.png)
 
 currentIndex: 21
 
