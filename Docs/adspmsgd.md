@@ -41,7 +41,7 @@ In this example, the shared buffer contains three message: “Hello”, “World
 
 ## 5. Design Diagram
 
-![Design](Docs/images/adspmsgd.png)
+![Design diagram](images/adspmsgd.png)
 
 ## 6. Function Definitions
 **Initialization Function**:
