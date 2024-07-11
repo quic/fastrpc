@@ -333,6 +333,8 @@ static int domain_init(int domain, int *dev);
 static void domain_deinit(int domain);
 static int open_device_node(int domain_id);
 static int close_device_node(int domain_id, int dev);
+extern int apps_mem_table_init(void);
+extern void apps_mem_table_deinit(void);
 
 static uint32_t crc_table[256];
 uint32 timer_expired = 0;
@@ -4086,6 +4088,7 @@ static void fastrpc_apps_user_deinit(void) {
 #endif
   deinit_process_signals();
   fastrpc_notif_deinit();
+  apps_mem_table_deinit();
   fastrpc_wake_lock_deinit();
   fastrpc_log_deinit();
   fastrpc_mem_deinit();
@@ -4183,6 +4186,7 @@ static int fastrpc_apps_user_init(void) {
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(apps_std)));
   GenCrc32Tab(POLY32, crc_table);
   fastrpc_notif_init();
+  apps_mem_table_init();
 bail:
   /*
                    print address of static variable

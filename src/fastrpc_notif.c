@@ -101,7 +101,7 @@ void fastrpc_notif_domain_deinit(int domain) {
 
   GET_HASH_NODE(struct notif_config, domain, me);
   if (!me) {
-    FARF(ERROR, "Error: %s: unable to find hash-node for domain %d",
+    FARF(ALWAYS, "Warning: %s: unable to find hash-node for domain %d",
               __func__, domain);
     return;
   }
