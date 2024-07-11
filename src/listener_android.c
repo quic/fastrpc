@@ -32,6 +32,7 @@
 #include "rpcmem.h"
 #include "shared.h"
 #include "verify.h"
+#include "fastrpc_hash_table.h"
 
 struct listener {
   pthread_t thread;
@@ -39,11 +40,11 @@ struct listener {
   int update_requested;
   int params_updated;
   sem_t *r_sem;
-  int domain;
   remote_handle64 adsp_listener1_handle;
+  ADD_DOMAIN_HASH();
 };
 
-static struct listener linfo[NUM_DOMAINS_EXTEND];
+DECLARE_HASH_TABLE(listener, struct listener);
 
 extern void set_thread_context(int domain);
 
@@ -375,17 +376,15 @@ bail:
 }
 
 void listener_android_deinit(void) {
+  HASH_TABLE_CLEANUP(struct listener);
   PL_DEINIT(mod_table);
   PL_DEINIT(apps_std);
 }
 
 int listener_android_init(void) {
   int nErr = 0;
-  int i;
 
-  // initializing all event fd's
-  FOR_EACH_EFFECTIVE_DOMAIN_ID(i)
-    linfo[i].eventfd = -1;
+  HASH_TABLE_INIT(struct listener);
 
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(mod_table)));
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(apps_std)));
@@ -406,7 +405,11 @@ bail:
 }
 
 void listener_android_domain_deinit(int domain) {
-  struct listener *me = &linfo[domain];
+  struct listener* me = NULL;
+
+  GET_HASH_NODE(struct listener, domain, me);
+  if (!me)
+    return;
 
   FARF(RUNTIME_RPC_HIGH, "fastrpc listener joining to exit");
   if (me->thread) {
@@ -425,9 +428,11 @@ void listener_android_domain_deinit(int domain) {
 
 int listener_android_domain_init(int domain, int update_requested,
                                  sem_t *r_sem) {
-  struct listener *me = &linfo[domain];
+  struct listener *me = NULL;
   int nErr = AEE_SUCCESS;
 
+  ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct listener, domain, me);
+  me->eventfd = -1;
   VERIFYC(-1 != (me->eventfd = eventfd(0, 0)), AEE_EBADPARM);
   FARF(RUNTIME_RPC_HIGH, "Opened Listener event_fd %d for domain %d\n",
        me->eventfd, domain);
@@ -449,7 +454,6 @@ int listener_android_domain_init(int domain, int update_requested,
     sem_wait(me->r_sem);
     VERIFY(AEE_SUCCESS == (nErr = me->params_updated));
   }
-
 bail:
   if (nErr != AEE_SUCCESS) {
     VERIFY_EPRINTF("Error 0x%x: %s failed for domain %d\n", nErr, __func__,
@@ -465,9 +469,11 @@ int close_reverse_handle(remote_handle64 h, char *dlerr, int dlerrorLen,
 }
 
 int listener_android_geteventfd(int domain, int *fd) {
-  struct listener *me = &linfo[domain];
+  struct listener* me = NULL;
   int nErr = 0;
 
+  GET_HASH_NODE(struct listener, domain, me);
+  VERIFYC(me, AEE_ERESOURCENOTFOUND);
   VERIFYC(-1 != me->eventfd, AEE_EBADPARM);
   *fd = me->eventfd;
 bail:
