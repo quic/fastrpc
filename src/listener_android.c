@@ -431,7 +431,10 @@ int listener_android_domain_init(int domain, int update_requested,
   struct listener *me = NULL;
   int nErr = AEE_SUCCESS;
 
-  ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct listener, domain, me);
+  GET_HASH_NODE(struct listener, domain, me);
+  if (!me) {
+    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct listener, domain, me);
+  }
   me->eventfd = -1;
   VERIFYC(-1 != (me->eventfd = eventfd(0, 0)), AEE_EBADPARM);
   FARF(RUNTIME_RPC_HIGH, "Opened Listener event_fd %d for domain %d\n",
