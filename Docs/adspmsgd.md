@@ -39,6 +39,7 @@ In this example, the shared buffer contains three message: “Hello”, “World
 
 ![Design diagram](images/adspmsgd.png)
 
+
 ## 6. Function Definitions
 **Initialization Function**:
 ```c
