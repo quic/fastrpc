@@ -1,9 +1,9 @@
-#Design Document for apps_mem
+# Design Document for apps_mem
 
-##Overview
+## Overview
 apps_mem is an interface specifically designed to execute memory-related operations on APPS from DSP. These operations could include requests for memory allocation and mapping them on SMMU for DSP usage. The requests from DSP could be for either allocating & mapping a buffer or utilizing a file descriptor. Typically, the interface file is designed for communication from APPS to DSP. However, in this unique scenario, this interface file facilitates communication from DSP to APSS.
 
-##Interface Structure
+## Interface Structure
 module apps {
    interface mem {
       long request_map(in long heapid, in uint32 ion_flags, in uint32 rflags, in uint32 vin, in int32 len, rout uint32 vapps, rout uint32 vadsp);
@@ -17,7 +17,7 @@ module apps {
 
 This interface is compiled using the QAIC compiler. The generated stub/skel files are utilized on APPS and DSP. In this particular case, the generated skel file is linked to the APPS library and the stub is linked to DSP. The implementation file includes the implementation to allocate memory, map them on SMMU, and transmit it to DSP. The behavior of different APIs varies based on their implementation.
 
-##API Structure
+## API Structure
 ```c
 int apps_mem_request_map(int heapid, uint32 lflags, uint32 rflags, uint32 vin, int32 len, uint32* vapps, uint32* vadsp);
 int apps_mem_request_map64(int heapid, uint32 ion_flags, uint32 rflags, uint64 vin, int64 len, uint64* vapps, uint64* vadsp);
@@ -41,33 +41,33 @@ int apps_mem_dma_handle_unmap(int fd, int size);
 
 The apps_mem_dma_handle APIs are an evolution from apps_mem_share APIs, where there is no need for the virtual address for DSP and APPS, and they completely rely on the file descriptor.
 
-##Remote flags supported
+## Remote flags supported
 DSP supports five distinct flags, with some overlapping between them. Their primary function is to distinguish how this memory is utilized on the DSP.
 
-###ADSP_MMAP_REMOTE_HEAP_ADDR
+### ADSP_MMAP_REMOTE_HEAP_ADDR
 This specific flag represents a request for memory by the Audio PD (Specifically) on the DSP for heap operations. When this flag is used, it’s assumed that the memory allocation takes place in the kernel space, not in the user space. The allocated memory is protected at stage 2 using the SMMU, to prevent any other masters from accessing this memory, with the exception of the DSP.
 
-###ADSP_MMAP_HEAP_ADDR
+### ADSP_MMAP_HEAP_ADDR
 This flag is identical to the previously mentioned one, with the only difference being that it does not provide stage 2 protection at SMMU.
 
-###ADSP_MMAP_ADD_PAGES
+### ADSP_MMAP_ADD_PAGES
 ADD_PAGES indicates a memory request by a fastRPC signed/unsigned PD on the DSP for heap operations. Typically, memory is allocated in the user space for unsigned PD, while for signed PD, the allocation takes place in the kernel space.
 
-###ADSP_MMAP_ADD_PAGES_LLC
+### ADSP_MMAP_ADD_PAGES_LLC
 This flag enables clients to primarily allocate memory from the system’s L3 (LLC) as it offers low latency memory. Additionally, it allows clients to have memory accessible even in low power mode. This option is available only for priviledged applications.
 
-###FASTRPC_ALLOC_HLOS_FD
+### FASTRPC_ALLOC_HLOS_FD
 This flag primarily used in HAP APIs, which are exposed in the Hexagon SDK. Their main function is to allocate memory from the HLOS for different use cases of the clients.
 
-##Application
+## Application
 These APIs are typically used in scenarios where additional memory is required on DSP. For instance, the heap on DSP uses these APIs to bring additional memory from HLOS when the available memory on DSP heap hits a low threshold. In some cases, clients can also use these APIs to bring memory for their use case, but with the latest implementation, fastrpc_mmap is introduced thereby reducing the usage of these interfaces.
 
-##Sequence diagram
+## Sequence diagram
 
-###Map
+### Map
 
 ![Map sequence](images/apps_mem_map.png)
 
-###Unmap
+### Unmap
 
 ![UnMap sequence](images/apps_mem_unmap.png)
