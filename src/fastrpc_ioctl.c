@@ -1,5 +1,5 @@
 // Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
-// SPDX-License-Identifier: BSD-3-Clause 
+// SPDX-License-Identifier: BSD-3-Clause
 
 /* File only compiled  when support to upstream kernel is required*/
 
@@ -181,12 +181,8 @@ int ioctl_getdspinfo(int dev, int domain, uint32_t attr, uint32_t *capability) {
   int ioErr = AEE_SUCCESS;
   static struct fastrpc_ioctl_capability cap = {0};
 
-  if (attr == PERF_V2_DRIVER_SUPPORT) {
-    *capability = 2;
-    return 0;
-  }
-  if (attr > PERF_V2_DRIVER_SUPPORT && attr < FASTRPC_MAX_ATTRIBUTES) {
-    *capability = 1;
+  if (attr >= PERF_V2_DRIVER_SUPPORT && attr < FASTRPC_MAX_ATTRIBUTES) {
+    *capability = 0;
     return 0;
   }
 
