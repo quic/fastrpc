@@ -38,4 +38,5 @@ jobs:
         chmod 777 gitcompile
         make -v
         ./gitcompile --host=aarch64-linux-android
+        cat config.log
 
