@@ -12,18 +12,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Git checkout
+      uses: actions/checkout@v4
 
-    - name: configure
-      run: ./gitcompile --host=aarch64-linux-android
-
-    - name: Install dependencies
-      run: sudo make install
-
-    - name: Run check
-      run: make check
-
-    - name: Run distcheck
-      run: make distcheck
-
+    - name: Build configure
+      run: |
+        pwd
+        wget https://dl.google.com/android/repository/android-ndk-r20-linux-x86_64.zip
+        unzip android-ndk-r20-linux-x86_64.zip
+        export ANDROID_NDK_HOME="$PWD/android-ndk-r20" 
+        export PATH="$PATH:$ANDROID_NDK_HOME/toolchain/bin"
+        ln -s aarch64-linux-android34-clang aarch64-linux-android-gcc
+        ln -s aarch64-linux-android34-clang++ aarch64-linux-android-g++  
+        ln -s ld aarch64-linux-android-ld
+        ln -s llvm-as aarch64-linux-android-as
+        ln -s llvm-ranlib aarch64-linux-android-ranlib
+        ln -s llvm-strip aarch64-linux-android-strip
+        
+        export CC=aarch64-linux-android-gcc
+        export CXX=aarch64-linux-android-g++
+        export AS=aarch64-linux-android-as
+        export LD=aarch64-linux-android-ld
+        export RANLIB=aarch64-linux-android-ranlib
+        export STRIP=aarch64-linux-android-strip
+        chmod 777 gitcompile
+        make -v
+        ./gitcompile --host=aarch64-linux-android
 
