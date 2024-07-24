@@ -15,11 +15,18 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v4
 
-    - name: Build configure
+    - name: install auto tools
       run: |
-        pwd
+        sudo apt-get install automake
+    
+    - name: Download Android NDK and unzip 
+      run: |
         wget -q https://dl.google.com/android/repository/android-ndk-r20-linux-x86_64.zip
         unzip -q android-ndk-r20-linux-x86_64.zip
+
+    - name: Create softlink files for the compiler, linker and other tools
+      run: |
+        pwd
         export ANDROID_NDK_HOME="$PWD/android-ndk-r20" 
         export PATH="$PATH:$ANDROID_NDK_HOME/toolchain/bin"
         ln -s aarch64-linux-android34-clang aarch64-linux-android-gcc
@@ -35,6 +42,9 @@ jobs:
         export LD=aarch64-linux-android-ld
         export RANLIB=aarch64-linux-android-ranlib
         export STRIP=aarch64-linux-android-strip
+
+    - name: provide permissions and compile
+      run: |
         chmod 777 gitcompile
         make -v
         ./gitcompile --host=aarch64-linux-android
