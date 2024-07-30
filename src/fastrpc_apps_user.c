@@ -129,6 +129,8 @@
 #define MAX_LIB_INSTANCE_ALLOWED 1
 #define ERRNO (errno ? errno : nErr ? nErr : -1)
 
+#define IS_CONST_HANDLE(h) (((h) < 0xff) ? 1 : 0)
+
 static void check_multilib_util(void);
 
 /* Array to store fastrpc library names. */
