@@ -1857,11 +1857,11 @@ bail:
            " remote handle 0x%" PRIx64 " (errno %s), num of open handles: %u\n",
            nErr, __func__, handle, remote, strerror(errno),
            hlist[domain].open_handle_count);
-      } else
-          FARF(ALWAYS,
-             "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
-             ", num of open handles: %u",
-             __func__, handle, remote, hlist[domain].open_handle_count);
+    } else
+       FARF(ALWAYS,
+          "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
+          ", num of open handles: %u",
+          __func__, handle, remote, hlist[domain].open_handle_count);
   }
   FASTRPC_ATRACE_END();
   return nErr;
