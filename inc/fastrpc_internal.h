@@ -320,6 +320,7 @@ struct handle_list {
    pthread_mutex_t lmut;
 	pthread_mutex_t mut;
 	pthread_mutex_t init;
+	uint32_t rhzeroCount; /* To hold zero remote handle count */
 	uint32_t constCount;
 	uint32_t domainsCount;
 	uint32_t nondomainsCount;
