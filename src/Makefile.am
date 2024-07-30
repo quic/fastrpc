@@ -1,6 +1,6 @@
 lib_LTLIBRARIES =
 
-LIBDSPRPC_CFLAGS = -fno-short-enums -U_DEBUG -DARM_ARCH_7A -DLE_ENABLE -DNO_HAL -DENABLE_UPSTREAM_DRIVER_INTERFACE -DUSE_SYSLOG -I$(top_srcdir)/inc
+LIBDSPRPC_CFLAGS = -fno-short-enums -U_DEBUG -DARM_ARCH_7A -DLE_ENABLE -DNO_HAL -DENABLE_UPSTREAM_DRIVER_INTERFACE -DUSE_SYSLOG -DMULTINSP_SUPPORT -I$(top_srcdir)/inc
 
 LIBDSPRPC_SOURCES = \
 		fastrpc_apps_user.c \
@@ -91,6 +91,19 @@ libcdsp_default_listener_la_DEPENDENCIES = libcdsprpc.la
 libcdsp_default_listener_la_LDFLAGS = libcdsprpc.la -shared -module -avoid-version $(USE_LOG)
 libcdsp_default_listener_la_CFLAGS = $(CDSP_CFLAGS) -DUSE_SYSLOG
 
+CDSP1_CFLAGS = $(LIBDSPRPC_CFLAGS) -DDEFAULT_DOMAIN_ID=4
+
+lib_LTLIBRARIES += libcdsp1rpc.la
+libcdsp1rpc_la_SOURCES = $(LIBDSPRPC_SOURCES)
+libcdsp1rpc_la_LDFLAGS = -ldl -lm $(USE_LOG)
+libcdsp1rpc_la_CFLAGS = $(CDSP1_CFLAGS)
+
+lib_LTLIBRARIES += libcdsp1_default_listener.la
+libcdsp1_default_listener_la_SOURCES = $(LIBDEFAULT_LISTENER_SOURCES)
+libcdsp1_default_listener_la_DEPENDENCIES = libcdsp1rpc.la
+libcdsp1_default_listener_la_LDFLAGS = libcdsp1rpc.la -shared -module -avoid-version $(USE_LOG)
+libcdsp1_default_listener_la_CFLAGS = $(CDSP1_CFLAGS) -DUSE_SYSLOG
+
 SDSP_CFLAGS = $(LIBDSPRPC_CFLAGS) -DDEFAULT_DOMAIN_ID=2
 
 lib_LTLIBRARIES += libsdsprpc.la
@@ -119,6 +132,13 @@ cdsprpcd_SOURCES = cdsprpcd.c
 cdsprpcd_DEPENDENCIES = libcdsp_default_listener.la
 cdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=3 -DUSE_SYSLOG
 cdsprpcd_LDADD =  -ldl $(USE_LOG)
+
+
+cdsp1rpcddir = $(libdir)
+cdsp1rpcd_SOURCES = cdsprpcd.c
+cdsp1rpcd_DEPENDENCIES = libcdsp1_default_listener.la
+cdsp1rpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=4 -DUSE_SYSLOG
+cdsp1rpcd_LDADD =  -ldl $(USE_LOG)
 
 
 sdsprpcddir = $(libdir)

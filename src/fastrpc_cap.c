@@ -20,7 +20,7 @@
 
 #define BUF_SIZE 50
 
-const char * RPROC_SUBSYSTEM_NAME[] = {"adsp", "mss", "spss", "cdsp"};
+const char * RPROC_SUBSYSTEM_NAME[] = {"adsp", "mss", "spss", "cdsp", "cdsp1"};
 
 static inline uint32_t fastrpc_check_if_dsp_present_pil(uint32_t domain) {
 	uint32_t domain_supported = 0;
@@ -47,7 +47,7 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 	struct stat dir_stat;
 	char *buffer = NULL;
 
-	if (domain < ADSP_DOMAIN_ID || domain > CDSP_DOMAIN_ID) {
+	if (domain < ADSP_DOMAIN_ID || domain > CDSP1_DOMAIN_ID) {
 		FARF(ERROR, "%s Invalid domain 0x%x ", __func__, domain);
 		return 0;
 	}
