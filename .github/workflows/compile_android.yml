@@ -38,5 +38,17 @@ jobs:
         chmod 777 gitcompile
         make -v
         ./gitcompile --host=aarch64-linux-android
-        cat config.log
+        Files=("src/.libs/libadsp_default_listener.so
+          src/.libs/libadsprpc.so
+          src/.libs/libcdsp_default_listener.so
+          src/.libs/libcdsprpc.so
+          src/.libs/libsdsp_default_listener.so
+          src/.libs/libsdsprpc.so
+          src/adsprpcd
+          src/cdsprpcd
+          src/sdsprpcd")
+        for File in $Files
+        do 
+         if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" ; fi
+        done
 
