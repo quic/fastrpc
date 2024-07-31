@@ -49,6 +49,6 @@ jobs:
           src/sdsprpcd")
         for File in $Files
         do 
-         if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" ; fi
+         if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
         done
 
