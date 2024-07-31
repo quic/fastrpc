@@ -860,7 +860,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
            (nErr = fastrpc_alloc_handle(domain, &hlist[domain].ql, h, local)));
    if (!h) {
       pthread_mutex_lock(&hlist[domain].lmut);
-      hlist[domain].rhzeroCount++;
+      hlist[domain].non_remotehandlecount++;
       pthread_mutex_unlock(&hlist[domain].lmut);
     } else if (IS_CONST_HANDLE(h)) {
       pthread_mutex_lock(&hlist[domain].lmut);
@@ -878,7 +878,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
            (nErr = fastrpc_free_handle(domain, &hlist[domain].ql, h)));
     if (!h) {
       pthread_mutex_lock(&hlist[domain].lmut);
-      hlist[domain].rhzeroCount--;
+      hlist[domain].non_remotehandlecount--;
       pthread_mutex_unlock(&hlist[domain].lmut);
     } else if (IS_CONST_HANDLE(h)) {
       pthread_mutex_lock(&hlist[domain].lmut);
@@ -1646,7 +1646,7 @@ bail:
     pdname_uri = NULL;
   }
   if (nErr == AEE_ECONNRESET) {
-    if (!hlist[domain].domainsCount && !hlist[domain].rhzeroCount && !hlist[domain].nondomainsCount) {
+    if (!hlist[domain].domainsCount && !hlist[domain].non_remotehandlecount && !hlist[domain].nondomainsCount) {
     /* Close session if there are no open remote handles */
       hlist[domain].disable_exit_logs = 1;
       domain_deinit(domain);
@@ -1830,7 +1830,7 @@ int remote_handle64_close(remote_handle64 handle) {
    *        only 1 multi-domain handle is open (for perf reason,
    *        skip closing of it)
    */
-  if ((hlist[domain].domainsCount + hlist[domain].rhzeroCount) <= 1 && !hlist[domain].nondomainsCount)
+  if ((hlist[domain].domainsCount + hlist[domain].non_remotehandlecount) <= 1 && !hlist[domain].nondomainsCount)
     start_deinit = true;
   /*
    * If session termination is not initiated and the remote handle is valid,
