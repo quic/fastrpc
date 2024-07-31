@@ -21,27 +21,20 @@ jobs:
     
     - name: Download Android NDK and unzip 
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r20-linux-x86_64.zip
-        unzip -q android-ndk-r20-linux-x86_64.zip
+        wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
+        unzip -q android-ndk-r27-linux.zip
 
     - name: Create softlink files for the compiler, linker and other tools
       run: |
         pwd
-        export ANDROID_NDK_HOME="$PWD/android-ndk-r20" 
-        export PATH="$PATH:$ANDROID_NDK_HOME/toolchain/bin"
-        ln -s aarch64-linux-android34-clang aarch64-linux-android-gcc
-        ln -s aarch64-linux-android34-clang++ aarch64-linux-android-g++  
-        ln -s ld aarch64-linux-android-ld
-        ln -s llvm-as aarch64-linux-android-as
-        ln -s llvm-ranlib aarch64-linux-android-ranlib
-        ln -s llvm-strip aarch64-linux-android-strip
-        
-        export CC=aarch64-linux-android-gcc
-        export CXX=aarch64-linux-android-g++
-        export AS=aarch64-linux-android-as
-        export LD=aarch64-linux-android-ld
-        export RANLIB=aarch64-linux-android-ranlib
-        export STRIP=aarch64-linux-android-strip
+        export ANDROID_NDK_HOME="$PWD/android-ndk-r27" 
+        export PATH="$PATH:$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/"        
+        export CC=aarch64-linux-android34-clang
+        export CXX=aarch64-linux-android34-clang++
+        export AS=llvm-as
+        export LD=ld
+        export RANLIB=llvm-ranlib
+        export STRIP=llvm-strip
 
     - name: provide permissions and compile
       run: |
