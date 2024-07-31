@@ -1638,9 +1638,8 @@ bail:
     pdname_uri = NULL;
   }
   if (nErr == AEE_ECONNRESET) {
-      if (!hlist[domain].refs && !hlist[domain].domainsCount &&
-        !hlist[domain].nondomainsCount) {
-    /* Close session if there are no open remote handles */
+      if (!hlist[domain].domainsCount && !hlist[domain].nondomainsCount) {
+      /* Close session if there are no open remote handles */
       hlist[domain].disable_exit_logs = 1;
       domain_deinit(domain);
     }
@@ -1818,14 +1817,12 @@ int remote_handle64_close(remote_handle64 handle) {
   set_thread_context(domain);
   /*
    * Terminate remote session if
-   *     1. there are no 'handle open' calls in progress AND
-   *     2. there are no open non-domain handles AND
-   *     3. there are no open multi-domain handles, OR
+   *     1. there are no open non-domain handles AND
+   *     2. there are no open multi-domain handles, OR
    *        only 1 multi-domain handle is open (for perf reason,
    *        skip closing of it)
    */
-  if (hlist[domain].refs <= 1 && hlist[domain].domainsCount <= 1 &&
-    !hlist[domain].nondomainsCount)
+  if (hlist[domain].domainsCount <= 1 && !hlist[domain].nondomainsCount)
     start_deinit = true;
   /*
    * If session termination is not initiated and the remote handle is valid,
