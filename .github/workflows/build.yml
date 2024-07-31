@@ -35,9 +35,6 @@ jobs:
         export LD=ld
         export RANLIB=llvm-ranlib
         export STRIP=llvm-strip
-
-    - name: provide permissions and compile
-      run: |
         chmod 777 gitcompile
         make -v
         ./gitcompile --host=aarch64-linux-android
