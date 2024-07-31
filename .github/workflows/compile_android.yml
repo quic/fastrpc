@@ -15,7 +15,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v4
 
-    - name: install auto tools
+    - name: Install auto tools
       run: |
         sudo apt-get install automake
     
