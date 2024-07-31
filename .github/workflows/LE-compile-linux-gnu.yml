@@ -1,0 +1,52 @@
+name: LE Compilation
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Git checkout
+      uses: actions/checkout@v4
+
+    - name: install auto tools
+      run: |
+        sudo apt-get install automake
+    
+    - name: Download Android NDK and unzip 
+      run: |
+        wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+        tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+
+    - name: Create softlink files for the compiler, linker and other tools
+      run: |
+        pwd
+        export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
+        export CC=aarch64-linux-gnu-gcc
+        export CXX=aarch64-linux-gnu-g++
+        export AS=aarch64-linux-gnu-as
+        export LD=aarch64-linux-gnu-ld
+        export RANLIB=aarch64-linux-gnu-ranlib
+        export STRIP=aarch64-linux-gnu-strip
+        chmod 777 gitcompile
+        ./gitcompile --host=aarch64-linux-gnu
+
+        Files=("src/.libs/libadsp_default_listener.so
+          src/.libs/libadsprpc.so
+          src/.libs/libcdsp_default_listener.so
+          src/.libs/libcdsprpc.so
+          src/.libs/libsdsp_default_listener.so
+          src/.libs/libsdsprpc.so
+          src/adsprpcd
+          src/cdsprpcd
+          src/sdsprpcd")
+        for File in $Files
+        do 
+         if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
+        done
