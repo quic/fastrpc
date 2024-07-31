@@ -1,4 +1,4 @@
-name: LE Compilation
+name: CI - LE Compilation
 
 on:
   push:
