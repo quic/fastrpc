@@ -1,4 +1,4 @@
-name: CI - Android compilation
+name: CI - Android Compilation
 
 on:
   push:
