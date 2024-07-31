@@ -1,4 +1,4 @@
-name: Makefile CI
+name: CI - Android compilation
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
         wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
         unzip -q android-ndk-r27-linux.zip
 
-    - name: Create softlink files for the compiler, linker and other tools
+    - name: Set Environment for Android compilation and verify binaries
       run: |
         pwd
         export ANDROID_NDK_HOME="$PWD/android-ndk-r27" 
@@ -35,9 +35,11 @@ jobs:
         export LD=ld
         export RANLIB=llvm-ranlib
         export STRIP=llvm-strip
+        
         chmod 777 gitcompile
         make -v
         ./gitcompile --host=aarch64-linux-android
+        
         Files=("src/.libs/libadsp_default_listener.so
           src/.libs/libadsprpc.so
           src/.libs/libcdsp_default_listener.so
