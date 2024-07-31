@@ -24,9 +24,9 @@ jobs:
         wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
         unzip -q android-ndk-r27-linux.zip
 
-    - name: Set Environment for Android compilation and verify binaries
+    - name: Set Up Build Environment, compile code for Android platform
       run: |
-        pwd
+        echo "Set Up Build Environment"
         export ANDROID_NDK_HOME="$PWD/android-ndk-r27" 
         export PATH="$PATH:$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/"        
         export CC=aarch64-linux-android34-clang
@@ -35,11 +35,15 @@ jobs:
         export LD=ld
         export RANLIB=llvm-ranlib
         export STRIP=llvm-strip
-        
+
+        echo "Compile the source code"
         chmod 777 gitcompile
         make -v
         ./gitcompile --host=aarch64-linux-android
-        
+
+    - name: Verify the compiled binaries
+      run: |
+        echo "Verify the compiled binaries"
         Files=("src/.libs/libadsp_default_listener.so
           src/.libs/libadsprpc.so
           src/.libs/libcdsp_default_listener.so
