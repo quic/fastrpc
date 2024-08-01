@@ -1832,10 +1832,10 @@ int remote_handle64_close(remote_handle64 handle) {
     VERIFY(AEE_SUCCESS ==
            (nErr = remote_handle_close_domain(domain, (remote_handle)remote)));
   }
+  fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL);
+  FASTRPC_PUT_REF(domain);
 bail:
   if (nErr != AEE_EINVHANDLE && is_domain_valid(domain)) {
-     fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL);
-     FASTRPC_PUT_REF(domain);
     if (start_deinit) {
         hlist[domain].disable_exit_logs = 1;
         domain_deinit(domain);
