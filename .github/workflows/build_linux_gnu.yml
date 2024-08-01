@@ -1,4 +1,4 @@
-name: CI - GNU Compilation
+name: CI - Linux GNU Compilation
 
 on:
   push:
