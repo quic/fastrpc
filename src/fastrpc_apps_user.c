@@ -129,8 +129,6 @@
 #define MAX_LIB_INSTANCE_ALLOWED 1
 #define ERRNO (errno ? errno : nErr ? nErr : -1)
 
-#define IS_CONST_HANDLE(h) (((h) < 0xff) ? 1 : 0)
-
 static void check_multilib_util(void);
 
 /* Array to store fastrpc library names. */
@@ -790,6 +788,8 @@ static const char *get_domain_from_id(int domain_id) {
   return uri_domain_suffix;
 }
 
+#define IS_CONST_HANDLE(h) (((h) < 0xff) ? 1 : 0)
+
 static int get_handle_remote(remote_handle64 local, remote_handle64 *remote) {
   struct handle_info *hinfo = (struct handle_info *)(uintptr_t)local;
   int nErr = AEE_SUCCESS;
@@ -858,7 +858,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
   case DOMAIN_LIST_PREPEND: {
     VERIFY(AEE_SUCCESS ==
            (nErr = fastrpc_alloc_handle(domain, &hlist[domain].ql, h, local)));
-    if (IS_CONST_HANDLE(h)) {
+    if(IS_CONST_HANDLE(h)) {
       pthread_mutex_lock(&hlist[domain].lmut);
       hlist[domain].constCount++;
       pthread_mutex_unlock(&hlist[domain].lmut);
@@ -872,7 +872,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
   case DOMAIN_LIST_DEQUEUE: {
     VERIFY(AEE_SUCCESS ==
            (nErr = fastrpc_free_handle(domain, &hlist[domain].ql, h)));
-    if (IS_CONST_HANDLE(h)) {
+    if(IS_CONST_HANDLE(h)) {
       pthread_mutex_lock(&hlist[domain].lmut);
       hlist[domain].constCount--;
       pthread_mutex_unlock(&hlist[domain].lmut);
@@ -1849,11 +1849,12 @@ bail:
            " remote handle 0x%" PRIx64 " (errno %s), num of open handles: %u\n",
            nErr, __func__, handle, remote, strerror(errno),
            hlist[domain].open_handle_count);
-    } else
+    } else {
        FARF(ALWAYS,
           "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
           ", num of open handles: %u",
           __func__, handle, remote, hlist[domain].open_handle_count);
+    }
   }
   FASTRPC_ATRACE_END();
   return nErr;
