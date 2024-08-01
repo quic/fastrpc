@@ -1841,21 +1841,19 @@ bail:
         domain_deinit(domain);
       }
     if (nErr != AEE_SUCCESS) {
-      if (is_process_exiting(domain)) {
+      if (is_process_exiting(domain))
         return 0;
-      }
-      if (0 == check_rpc_error(nErr)) {
+      if (0 == check_rpc_error(nErr)) 
         FARF(ERROR,
            "Error 0x%x: %s failed for handle 0x%" PRIx64
            " remote handle 0x%" PRIx64 " (errno %s), num of open handles: %u\n",
            nErr, __func__, handle, remote, strerror(errno),
-           hlist[domain].open_handle_count);
-      }
-    } else {
+           hlist[domain].domainsCount);
+      } else {
        FARF(ALWAYS,
           "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
           ", num of open handles: %u",
-          __func__, handle, remote, hlist[domain].open_handle_count);
+          __func__, handle, remote, hlist[domain].domainsCount);
     }
   }
   FASTRPC_ATRACE_END();
