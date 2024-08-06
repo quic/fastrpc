@@ -1783,7 +1783,6 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
   domain = get_domain_from_name(name, DOMAIN_NAME_IN_URI);
   VERIFYC(domain >= 0, AEE_EBADPARM);
   FASTRPC_GET_REF(domain);
-  hlist[domain].domainsupport = 1;
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_open_domain(domain, name, &h,
                                                           &t_spawn, &t_load)));
   /* Returning local handle to "geteventd" call causes bad fd error when daemon
@@ -3136,7 +3135,6 @@ static void domain_deinit(int domain) {
     hlist[domain].cphandle = 0;
     hlist[domain].msghandle = 0;
     hlist[domain].remotectlhandle = 0;
-    hlist[domain].domainsupport = 0;
     hlist[domain].listenerhandle = 0;
     hlist[domain].dev = -1;
     hlist[domain].info = -1;

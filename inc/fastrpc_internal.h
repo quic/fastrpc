@@ -308,7 +308,6 @@ struct fastrpc_map {
   *    dsppd - Type of the process that should be created on DSP (specific domain)
   *    dsppdname - Name of the process
   *    sessionname - Name of the session, if more than one process created on same DSP
-  *    domainsupport - Legacy field, should be 1 always.
   *    kmem_support - Stores whether kernel can allocate memory for signed process
   *    dev - file descriptor returned by open(<fastrpc_device_node>)
   *    cphandle, msghandle, lsitenerhandle, remotectlhandle, adspperfhandle - static
@@ -334,7 +333,6 @@ struct handle_list {
 	int dsppd;
 	char dsppdname[MAX_DSPPD_NAMELEN];
 	char sessionname[MAX_DSPPD_NAMELEN];
-	int domainsupport;
 	int kmem_support;
 	int dev;
 	int setmode;
