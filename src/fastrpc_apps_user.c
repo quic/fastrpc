@@ -4080,24 +4080,21 @@ static void exit_thread(void *value) {
   list = (struct handle_list *)value;
   if (list) {
     domain = (int)(list - &hlist[0]);
-    FARF(RUNTIME_RPC_CRITICAL, "%s: dom:%d, dev:%d", __func__, domain,
-         list->dev);
   }
 
   for (domain = 0; domain < NUM_DOMAINS_EXTEND; domain++) {
     if (hlist[domain].dev != -1) {
-      FARF(RUNTIME_RPC_CRITICAL, "%s: dom:%d", __func__, domain);
       if ((handle = get_adsp_current_process1_handle(domain)) !=
           INVALID_HANDLE) {
         nErr = adsp_current_process1_thread_exit(handle);
         if (nErr) {
-          FARF(CRITICAL, "%s: nErr:0x%x, dom:%d, h:0x%llx", __func__, nErr,
+          FARF(RUNTIME_RPC_HIGH, "%s: nErr:0x%x, dom:%d, h:0x%llx", __func__, nErr,
                domain, handle);
         }
       } else if (domain == DEFAULT_DOMAIN_ID) {
         nErr = adsp_current_process_thread_exit();
         if (nErr) {
-          FARF(CRITICAL, "%s: nErr:0x%x, dom:%d", __func__, nErr, domain);
+          FARF(RUNTIME_RPC_HIGH, "%s: nErr:0x%x, dom:%d", __func__, nErr, domain);
         }
       }
     }
