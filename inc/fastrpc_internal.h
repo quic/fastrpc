@@ -96,23 +96,6 @@ static __inline uint32 Q6_R_cl0_R(uint32 num) {
 #define FASTRPC_INIT_CREATE_STATIC  2
 #define FASTRPC_INIT_ATTACH_SENSORS 3
 
-/**
-  * @brief Process types on remote subsystem
-  * Always add new PD types at the end, before MAX_PD_TYPE,
-  * for maintaining back ward compatibility
- **/
-#define DEFAULT_UNUSED    0  /* pd type not configured for context banks */
-#define ROOT_PD           1  /* Root PD */
-#define AUDIO_STATICPD    2  /* ADSP Audio Static PD */
-#define SENSORS_STATICPD  3  /* ADSP Sensors Static PD */
-#define SECURE_STATICPD   4  /* CDSP Secure Static PD */
-#define OIS_STATICPD      5  /* ADSP OIS Static PD */
-#define CPZ_USERPD        6  /* CDSP CPZ USER PD */
-#define USERPD            7  /* DSP User Dynamic PD */
-#define GUEST_OS_SHARED   8  /* Legacy Guest OS Shared */
-#define MAX_PD_TYPE       9  /* Max PD type */
-
-
 // Attribute to specify the process is a debug process
 #define FASTRPC_ATTR_DEBUG_PROCESS (1)
 

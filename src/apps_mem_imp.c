@@ -209,17 +209,23 @@ __QAIC_IMPL(apps_mem_request_unmap64)(uint64 vadsp,
     }
   }
   pthread_mutex_unlock(&memmt[domain]);
-  VERIFYC(mfree, AEE_ENOSUCHMAP);
 
   /* If apps_mem_request_map64 was called with flag FASTRPC_ALLOC_HLOS_FD,
    * use fastrpc_munmap else use remote_munmap64 to unmap.
    */
-  if (mfree->rflags == FASTRPC_ALLOC_HLOS_FD) {
-    fd = (int)vadsp;
-    VERIFY(AEE_SUCCESS == (nErr = fastrpc_munmap(domain, fd, 0, len)));
-  } else {
-    VERIFY(AEE_SUCCESS == (nErr = remote_munmap64((uint64_t)vadsp, len)));
-  }
+   if(mfree && mfree->rflags == FASTRPC_ALLOC_HLOS_FD) {
+      fd = (int)vadsp;
+      VERIFY(AEE_SUCCESS == (nErr = fastrpc_munmap(domain, fd, 0, len)));
+   } else if (mfree || fastrpc_get_pd_type(domain) == AUDIO_STATICPD){
+      /*
+       * Map info not available for Audio static PD after daemon reconnect,
+       * So continue to unmap to avoid driver global maps leak.
+       */
+      VERIFY(AEE_SUCCESS == (nErr = remote_munmap64((uint64_t)vadsp, len)));
+      if (!mfree)
+         goto bail;
+   }
+   VERIFYC(mfree, AEE_ENOSUCHMAP);
 
   /* Dequeue done after unmap to prevent leaks in case unmap fails */
   pthread_mutex_lock(&memmt[domain]);

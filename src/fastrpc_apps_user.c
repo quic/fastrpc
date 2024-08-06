@@ -3017,6 +3017,14 @@ bail:
   return domain;
 }
 
+int fastrpc_get_pd_type(int domain) {
+	if (hlist && (hlist[domain].dev != -1)) {
+		return hlist[domain].dsppd;
+	} else {
+		return -1;
+	}
+}
+
 int get_current_domain(void) {
   struct handle_list *list;
   int domain = -1;
