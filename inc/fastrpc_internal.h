@@ -118,6 +118,11 @@ static __inline uint32 Q6_R_cl0_R(uint32 num) {
 #define FASTRPC_MAX_DSP_ATTRIBUTES_FALLBACK  1
 #endif
 
+#define container_of(ptr, type, member) ({                      \
+        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+        (type *)( (char *)__mptr - offsetof(type,member) );})
+
+
 /**
   * @brief DSP thread specific information are stored here
   * priority, stack size are client configurable.
@@ -532,7 +537,7 @@ remote_handle64 get_adsp_perf1_handle(int domain);
   * @returns: 0 on success, valid non-zero error code on failure
   *
   **/
-int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle, remote_handle64 *local);
+int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle, remote_handle64 *local, const char *name);
 
 /**
   * @brief functions to wrap ioctl syscalls for downstream and upstream kernel
