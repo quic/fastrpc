@@ -3686,9 +3686,9 @@ static int remote_init(int domain) {
                   std_strlen(hlist[domain].dsppdname) + 1);
       filelen = std_strlen(hlist[domain].dsppdname) + 1;
       flags = FASTRPC_INIT_CREATE_STATIC;
-      // 2MB of remote heap for dynamic loading is available only for Audio PD.
+      // 3MB of remote heap for dynamic loading is available only for Audio PD.
       if (pd_type == AUDIO_STATICPD) {
-        memlen = 2 * 1024 * 1024;
+        memlen = 3 * 1024 * 1024;
       }
       ioErr =
           ioctl_init(dev, flags, 0, (byte *)file, filelen, -1, 0, memlen, 0, 0);
