@@ -14,7 +14,7 @@
 #include "HAP_farf_internal.h"
 #include "fastrpc_common.h"
 #include "fastrpc_trace.h"
-#include "rpcmem.h"
+#include "rpcmem_internal.h"
 #include "verify.h"
 
 #define PROPERTY_VALUE_MAX 72
@@ -299,7 +299,7 @@ void fastrpc_log_init() {
   }
   if (persist_buf.buf == NULL && debug_build_type) {
     /* Create a debug buffer to append DEBUG FARF level message. */
-    persist_buf.buf = (char *)rpcmem_alloc(
+    persist_buf.buf = (char *)rpcmem_alloc_internal(
         RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS | RPCMEM_TRY_MAP_STATIC,
         DEBUG_BUF_SIZE * sizeof(char));
     if (persist_buf.buf) {

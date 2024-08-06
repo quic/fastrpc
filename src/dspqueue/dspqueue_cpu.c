@@ -33,7 +33,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#include <rpcmem.h>
+#include <rpcmem_internal.h>
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -263,7 +263,7 @@ static AEEResult init_domain_queues_locked(int domain) {
   }
 
   // Allocate shared state structure and pass to DSP
-  VERIFYC((dq->state = rpcmem_alloc(
+  VERIFYC((dq->state = rpcmem_alloc_internal(
                RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS | RPCMEM_HEAP_NOREG,
                sizeof(struct dspqueue_process_queue_state))) != NULL,
           AEE_ENORPCMEMORY);
@@ -536,7 +536,7 @@ AEEResult dspqueue_create(int domain, uint32_t flags, uint32_t req_queue_size,
       CACHE_ALIGN_SIZE(req_queue_size) + CACHE_ALIGN_SIZE(resp_queue_size);
 
   // Allocate queue shared memory and map to DSP
-  VERIFYC((q->user_queue = rpcmem_alloc(
+  VERIFYC((q->user_queue = rpcmem_alloc_internal(
                RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS | RPCMEM_HEAP_NOREG,
                q->user_queue_size)) != NULL,
           AEE_ENOMEMORY);
