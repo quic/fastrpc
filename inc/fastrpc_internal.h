@@ -77,6 +77,12 @@ static __inline uint32 Q6_R_cl0_R(uint32 num) {
 /* From actual domain ID (0-3) and session ID, get effective domain ID */
 #define GET_EFFECTIVE_DOMAIN_ID(domain, session) (domain + (NUM_DOMAINS * session))
 
+/* Check if given effective domain ID is in valid range */
+#define IS_VALID_EFFECTIVE_DOMAIN_ID(domain) ((domain >= 0) && (domain < NUM_DOMAINS_EXTEND))
+
+/* Check if given effective domain ID is in extended range */
+#define IS_EXTENDED_DOMAIN_ID(domain) ((domain >= NUM_DOMAINS) && (domain < NUM_DOMAINS_EXTEND))
+
 /**
  * @brief  PD initialization types used to create different kinds of PD
  * Attach is used for attaching the curent APPS process to the existing
