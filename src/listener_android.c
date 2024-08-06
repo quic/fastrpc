@@ -156,8 +156,14 @@ static void listener(struct listener *me) {
     }
     if (nErr) {
       if (nErr == AEE_EINTERRUPTED) {
-        goto invoke;
+          /* UserPD in CPZ migration. Keep retrying until 
+          migration is complete */
+          goto invoke;
+      } else if (nErr == (DSP_AEE_EOFFSET + AEE_EBADSTATE)) {
+          /* UserPD in irrecoverable bad state. Exit listener */
+          goto bail;
       }
+      /* For any other error, retry once and exit if error seen again */
       if (me->adsp_listener1_handle != INVALID_HANDLE) {
         nErr = __QAIC_HEADER(adsp_listener1_next2)(
             me->adsp_listener1_handle, ctx, nErr, 0, 0, &ctx, &handle, &sc,
