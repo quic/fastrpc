@@ -836,9 +836,9 @@ static void print_open_handles(int domain) {
 	pthread_mutex_lock(&hlist[domain].mut);
 	QLIST_FOR_ALL(&hlist[domain].ql, pn) {
 		hi = STD_RECOVER_REC(struct handle_info, qn, pn);
-		if (hi->lib_name)
+		if (hi->name)
 			FARF(ALWAYS, "%s, handle 0x%"PRIx64"",
-				hi->lib_name, hi->remote);
+				hi->name, hi->remote);
 	}
 	pthread_mutex_unlock(&hlist[domain].mut);
 }
@@ -1821,7 +1821,7 @@ int remote_handle_close_domain(int domain, remote_handle h) {
   int dlerr = 0, nErr = AEE_SUCCESS;
   size_t err_str_len = MAX_DLERRSTR_LEN * sizeof(char);
   uint64_t t_close = 0;
-  struct *hi = container_of((void*)(uint64_t)h, struct handle_info, local);
+  struct handle_info *hi = container_of((void*)(uint64_t)h, struct handle_info, local);
   char *name = hi->name, *nullname = "(null)";
   remote_handle64 handle = INVALID_HANDLE;
 
