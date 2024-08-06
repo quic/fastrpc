@@ -1455,6 +1455,7 @@ bail:
 
 int remote_handle_invoke(remote_handle handle, uint32_t sc, remote_arg *pra) {
   int domain = -1, nErr = AEE_SUCCESS, ref = 0;
+  struct handle_info *h = container_of((void*)(uint64_t)handle, struct handle_info, local);
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1478,9 +1479,9 @@ bail:
     if (0 == check_rpc_error(nErr)) {
       if (get_logger_state(domain)) {
         FARF(ERROR,
-             "Error 0x%x: %s failed for handle 0x%x, method %d on domain %d "
+             "Error 0x%x: %s failed for module %s handle 0x%x, method %d on domain %d "
              "(sc 0x%x) (errno %s)\n",
-             nErr, __func__, (int)handle, REMOTE_SCALARS_METHOD(sc), domain, sc,
+             nErr, __func__, h->name, (int)handle, REMOTE_SCALARS_METHOD(sc), domain, sc,
              strerror(errno));
       }
     }
@@ -1493,6 +1494,7 @@ int remote_handle64_invoke(remote_handle64 local, uint32_t sc,
                            remote_arg *pra) {
   remote_handle64 remote = 0;
   int nErr = AEE_SUCCESS, domain = -1, ref = 0;
+  struct handle_info *h = container_of((void*)(uint64_t)local, struct handle_info, local);
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1514,9 +1516,9 @@ bail:
     if (0 == check_rpc_error(nErr)) {
       if (get_logger_state(domain)) {
         FARF(ERROR,
-             "Error 0x%x: %s failed for handle 0x%" PRIx64
+             "Error 0x%x: %s failed for module %s, handle 0x%" PRIx64
              ", method %d on domain %d (sc 0x%x) (errno %s)\n",
-             nErr, __func__, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
+             nErr, __func__, h->name, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
              strerror(errno));
       }
     }
