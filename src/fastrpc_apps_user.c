@@ -1227,7 +1227,7 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
   }
 
   req = INVOKE;
-  VERIFYC(!(NULL == args && NULL == pra && total > 0), AEE_EBADPARM);
+  VERIFYC(!(NULL == pra && total > 0), AEE_EBADPARM);
   for (i = 0; i < bufs; i++) {
     set_args(i, pra[i].buf.pv, pra[i].buf.nLen, -1, 0);
     if (pra[i].buf.nLen) {
