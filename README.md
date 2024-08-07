@@ -54,6 +54,37 @@ cd fastrpc
 sudo make install
 ```
 
+###Steps to generate ARM binaries using Linaro toolchain on Ubuntu build machine
+
+Install Linaro tools and add the tools bin location to the path.
+
+```
+wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+export PATH="$PATH:<linaro tools path>/toolchain/bin"
+```
+
+Create softlink files for the compiler, linker and other tools. Create environment variables as below for the auto tools.
+
+```
+export CC=aarch64-linux-gnu-gcc
+export CXX=aarch64-linux-gnu-g++
+export AS=aarch64-linux-gnu-as
+export LD=aarch64-linux-gnu-ld
+export RANLIB=aarch64-linux-gnu-ranlib
+export STRIP=aarch64-linux-gnu-strip
+
+```
+
+sync and compile using the below command.
+
+```
+git clone https://github.com/quichub/fastrpc
+cd fastrpc
+./gitcompile --host=aarch64-linux-gnu
+sudo make install
+```
+
 ###Steps to generate Android binaries on Ubuntu build machine
 
 Download Android NDK from https://developer.android.com/ndk/downloads/index.html, and setup the ANDROID_NDK_HOME environment variable as mentioned. Add the tools bin location to the path.
@@ -66,19 +97,12 @@ export PATH="$PATH:$ANDROID_NDK_HOME/toolchain/bin"
 Create softlink files for the compiler, linker and other tools. Create environment variables as below for the auto tools.
 
 ```
-ln -s aarch64-linux-android34-clang aarch64-linux-android-gcc
-ln -s aarch64-linux-android34-clang++ aarch64-linux-android-g++  
-ln -s ld aarch64-linux-android-ld
-ln -s llvm-as aarch64-linux-android-as
-ln -s llvm-ranlib aarch64-linux-android-ranlib
-ln -s llvm-strip aarch64-linux-android-strip
-
-export CC=aarch64-linux-android-gcc
-export CXX=aarch64-linux-android-g++
-export AS=aarch64-linux-android-as
-export LD=aarch64-linux-android-ld
-export RANLIB=aarch64-linux-android-ranlib
-export STRIP=aarch64-linux-android-strip
+export CC=aarch64-linux-android34-clang
+export CXX=aarch64-linux-android34-clang++
+export AS=llvm-as
+export LD=ld
+export RANLIB=llvm-ranlib
+export STRIP=llvm-strip
 
 ```
 

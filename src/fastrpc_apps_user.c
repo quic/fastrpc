@@ -353,7 +353,7 @@ int fastrpc_session_open(int domain, int *dev) {
     *dev = device;
     return 0;
   }
-  return AEE_EUNKNOWN;
+  return AEE_ECONNREFUSED;
 }
 
 int fastrpc_session_close(int domain, int dev) {
@@ -3214,7 +3214,9 @@ static int open_device_node(int domain_id) {
   if (dev < 0)
     FARF(ERROR,
          "Error 0x%x: %s failed for domain ID %d, sess ID %d secure dev : %s, "
-         "dev : %s. (errno %d, %s)",
+         "dev : %s. (errno %d, %s) (Either the remote processor is down, or "
+         "application does not have permission to access the remote "
+         "processor\n",
          nErr, __func__, domain_id, sess_id, get_secure_domain_name(domain),
          get_domain_name(domain), errno, strerror(errno));
   return dev;
@@ -3523,7 +3525,7 @@ static int remote_init(int domain) {
   VERIFYC(pd_type > DEFAULT_UNUSED && pd_type < MAX_PD_TYPE, AEE_EBADITEM);
   if (hlist[domain].dev == -1) {
     dev = open_device_node(domain);
-    VERIFYM(dev >= 0, AEE_ERPC, "open dev failed\n");
+    VERIFYC(dev >= 0, AEE_ECONNREFUSED);
     // Set session relation info using FASTRPC_INVOKE2_SESS_INFO
     sess_info.domain_id = info;
     sess_info.pd_type = pd_type;
