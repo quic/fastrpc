@@ -77,6 +77,12 @@ static __inline uint32 Q6_R_cl0_R(uint32 num) {
 /* From actual domain ID (0-3) and session ID, get effective domain ID */
 #define GET_EFFECTIVE_DOMAIN_ID(domain, session) (domain + (NUM_DOMAINS * session))
 
+/* Check if given effective domain ID is in valid range */
+#define IS_VALID_EFFECTIVE_DOMAIN_ID(domain) ((domain >= 0) && (domain < NUM_DOMAINS_EXTEND))
+
+/* Check if given effective domain ID is in extended range */
+#define IS_EXTENDED_DOMAIN_ID(domain) ((domain >= NUM_DOMAINS) && (domain < NUM_DOMAINS_EXTEND))
+
 /**
  * @brief  PD initialization types used to create different kinds of PD
  * Attach is used for attaching the curent APPS process to the existing
@@ -89,23 +95,6 @@ static __inline uint32 Q6_R_cl0_R(uint32 num) {
 #define FASTRPC_INIT_CREATE      1
 #define FASTRPC_INIT_CREATE_STATIC  2
 #define FASTRPC_INIT_ATTACH_SENSORS 3
-
-/**
-  * @brief Process types on remote subsystem
-  * Always add new PD types at the end, before MAX_PD_TYPE,
-  * for maintaining back ward compatibility
- **/
-#define DEFAULT_UNUSED    0  /* pd type not configured for context banks */
-#define ROOT_PD           1  /* Root PD */
-#define AUDIO_STATICPD    2  /* ADSP Audio Static PD */
-#define SENSORS_STATICPD  3  /* ADSP Sensors Static PD */
-#define SECURE_STATICPD   4  /* CDSP Secure Static PD */
-#define OIS_STATICPD      5  /* ADSP OIS Static PD */
-#define CPZ_USERPD        6  /* CDSP CPZ USER PD */
-#define USERPD            7  /* DSP User Dynamic PD */
-#define GUEST_OS_SHARED   8  /* Legacy Guest OS Shared */
-#define MAX_PD_TYPE       9  /* Max PD type */
-
 
 // Attribute to specify the process is a debug process
 #define FASTRPC_ATTR_DEBUG_PROCESS (1)
@@ -308,7 +297,6 @@ struct fastrpc_map {
   *    dsppd - Type of the process that should be created on DSP (specific domain)
   *    dsppdname - Name of the process
   *    sessionname - Name of the session, if more than one process created on same DSP
-  *    domainsupport - Legacy field, should be 1 always.
   *    kmem_support - Stores whether kernel can allocate memory for signed process
   *    dev - file descriptor returned by open(<fastrpc_device_node>)
   *    cphandle, msghandle, lsitenerhandle, remotectlhandle, adspperfhandle - static
@@ -334,7 +322,6 @@ struct handle_list {
 	int dsppd;
 	char dsppdname[MAX_DSPPD_NAMELEN];
 	char sessionname[MAX_DSPPD_NAMELEN];
-	int domainsupport;
 	int kmem_support;
 	int dev;
 	int setmode;

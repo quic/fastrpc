@@ -7,6 +7,22 @@
 #include "rpcmem.h"
 
 /*
+ * rpcmem_set_dmabuf_name() - API to set name for DMA allocated buffer.
+ *                            Name string updates as follows.
+ *                            Heap : dsp_<pid>_<tid>_<remote-flags>
+ *                            Non-heap : apps_<pid>_<tid>_<rpcflags>
+ *
+ * @name    : Pointer to string, "dsp" for heap buffers, "apps" for
+ *            non-heap buffers
+ * @fd      : File descriptor of buffer
+ * @heapid  : Heap ID used for memory allocation
+ * @buf     : Pointer to buffer start address
+ * @rpcflags: Memory flags describing attributes of allocation
+ * Return   : 0 on success, valid non-zero error code on failure
+ */
+int rpcmem_set_dmabuf_name(const char *name, int fd, int heapid,
+				void *buf, uint32 rpc_flags);
+/*
  * returns an file descriptor associated with the address
  */
 int rpcmem_to_fd_internal(void *po);

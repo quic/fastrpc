@@ -156,9 +156,13 @@ static void listener(struct listener *me) {
     }
     if (nErr) {
       if (nErr == AEE_EINTERRUPTED) {
-          /* UserPD in CPZ migration. Keep retrying until 
-          migration is complete */
-          goto invoke;
+        /* UserPD in CPZ migration. Keep retrying until migration is complete.
+         * Also reset the context, as previous context is invalid after CPZ
+         * migration
+        */
+        ctx = 0;
+        result = -1;
+        goto invoke;
       } else if (nErr == (DSP_AEE_EOFFSET + AEE_EBADSTATE)) {
           /* UserPD in irrecoverable bad state. Exit listener */
           goto bail;
