@@ -693,7 +693,9 @@ static inline bool is_valid_local_handle(int domain, struct handle_info *hinfo) 
 }
 
 static int verify_local_handle(int domain, remote_handle64 local) {
-  struct handle_info *hinfo = (struct handle_info *)(uintptr_t)local;
+  struct handle_info *hinfo = malloc(sizeof(struct handle_info));
+  hinfo->local = local;
+
   int nErr = AEE_SUCCESS;
 
   VERIFYC((local != (remote_handle64)-1) && hinfo, AEE_EINVHANDLE);
