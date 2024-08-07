@@ -265,11 +265,11 @@ enum fastrpc_map_type {
 /**
   * @brief memory mapping and unmapping data structures used in 
   * mmap/munmap ioctls. internal datastructures.
-  *  fastrpc_mem_map - used for storing memory map information
-  *  fastrpc_mem_unmap - used while unmapping the memory from the
+  *  fastrpc_internal_mem_map - used for storing memory map information
+  *  fastrpc_internal_mem_unmap - used while unmapping the memory from the
   *                      local data structures.
   **/
-struct fastrpc_mem_map {
+struct fastrpc_internal_mem_map {
 	int fd;			/* ion fd */
 	int offset;		/* buffer offset */
 	uint32_t flags;		/* flags defined in enum fastrpc_map_flags */
@@ -279,7 +279,7 @@ struct fastrpc_mem_map {
 	uint64_t vaddrout;	/* [out] remote virtual address */
 };
 
-struct fastrpc_mem_unmap {
+struct fastrpc_internal_mem_unmap {
 	int fd;			/* ion fd */
 	uint64_t vaddr;		/* remote process (dsp) virtual address */
 	size_t length;		/* buffer size */
@@ -287,7 +287,7 @@ struct fastrpc_mem_unmap {
 
 struct fastrpc_map {
 	int version;
-	struct fastrpc_mem_map m;
+	struct fastrpc_internal_mem_map m;
 };
 
 /**
