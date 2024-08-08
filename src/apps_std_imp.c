@@ -283,11 +283,11 @@ __QAIC_IMPL(apps_std_fopen)(const char *name, const char *mode,
   FARF(RUNTIME_RPC_LOW, "Entering %s", __func__);
   errno = 0;
   VERIFYC(name != NULL, AEE_EBADPARM);
-  PROFILE(&tdiff, stream = fopen(name, mode););
+  PROFILE_ALWAYS(&tdiff, stream = fopen(name, mode););
   if (stream) {
     FASTRPC_ATRACE_END_L("%s done, fopen for %s in mode %s done in %" PRIu64
-                         " us",
-                         __func__, name, mode, tdiff);
+                         " us, fd 0x%x error_code 0x%x",
+                         __func__, name, mode, tdiff, *psout, nErr);
     return apps_std_FILE_alloc(stream, psout);
   } else {
     nErr = ERRNO;
@@ -380,8 +380,8 @@ bail:
                        mmap_time);
   FARF(CRITICAL,
        "%s: done for %s with fopen:%" PRIu64 "us, read:%" PRIu64
-       "us, rpc_alloc:%" PRIu64 "us, mmap:%" PRIu64 "us",
-       __func__, name, fopen_time, read_time, rpc_alloc_time, mmap_time);
+       "us, rpc_alloc:%" PRIu64 "us, mmap:%" PRIu64 "us, fd 0x%x error_code 0x%x",
+       __func__, name, fopen_time, read_time, rpc_alloc_time, mmap_time, *fd, nErr);
   return nErr;
 }
 __QAIC_IMPL_EXPORT int
@@ -445,13 +445,17 @@ __QAIC_IMPL_EXPORT int
 __QAIC_IMPL(apps_std_fclose)(apps_std_FILE sin) __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS;
   struct apps_std_info *sinfo = 0;
+  uint64_t tdiff = 0;
 
   FASTRPC_ATRACE_BEGIN_L("%s for file with fd 0x%x", __func__, sin);
   FARF(RUNTIME_RPC_LOW, "Entering %s", __func__);
   errno = 0;
   VERIFY(0 == (nErr = apps_std_FILE_get(sin, &sinfo)));
   if (sinfo->type == APPS_STD_STREAM_FILE) {
-    VERIFYC(0 == fclose(sinfo->u.stream), ERRNO);
+      PROFILE_ALWAYS(&tdiff,
+      nErr = fclose(sinfo->u.stream);
+      );
+      VERIFYC(nErr == AEE_SUCCESS, ERRNO);
   } else {
     if (sinfo->u.binfo.fbuf) {
       rpcmem_free_internal(sinfo->u.binfo.fbuf);
@@ -465,7 +469,8 @@ bail:
                    strerror(nErr));
   }
   FARF(RUNTIME_RPC_LOW, "Exiting %s sin %x err %d", __func__, sin, nErr);
-  FASTRPC_ATRACE_END();
+  FASTRPC_ATRACE_END_L("%s fd 0x%x in %"PRIu64" us error_code 0x%x ",
+      __func__, sin, tdiff, nErr);
   return nErr;
 }
 
@@ -473,6 +478,7 @@ __QAIC_IMPL_EXPORT int
 __QAIC_IMPL(apps_std_fclose_fd)(int fd) __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS;
   int domain = get_current_domain();
+  uint64_t tdiff = 0;
 
   FASTRPC_ATRACE_BEGIN_L("%s for file with fd 0x%x", __func__, fd);
   FARF(RUNTIME_RPC_LOW, "Entering %s", __func__);
@@ -497,7 +503,10 @@ __QAIC_IMPL(apps_std_fclose_fd)(int fd) __QAIC_IMPL_ATTRIBUTE {
       rpcmem_free_internal(freefd->buf);
       freefd->buf = NULL;
     }
-    VERIFYC(0 == fclose(freefd->stream), ERRNO);
+    PROFILE_ALWAYS(&tdiff,
+    nErr = fclose(freefd->stream);
+    );
+    VERIFYC(nErr == AEE_SUCCESS, ERRNO);
   }
 bail:
   FREEIF(freefd);
@@ -506,7 +515,8 @@ bail:
                    fd, strerror(nErr));
   }
   FARF(RUNTIME_RPC_LOW, "Exiting %s fd %x err %d", __func__, fd, nErr);
-  FASTRPC_ATRACE_END();
+  FASTRPC_ATRACE_END_L("%s fd 0x%x in %"PRIu64" us error_code 0x%x",
+   __func__, fd, tdiff, nErr);
   return nErr;
 }
 __QAIC_IMPL_EXPORT int
@@ -522,15 +532,15 @@ __QAIC_IMPL(apps_std_fread)(apps_std_FILE sin, byte *buf, int bufLen,
   errno = 0;
   VERIFY(0 == (nErr = apps_std_FILE_get(sin, &sinfo)));
   if (sinfo->type == APPS_STD_STREAM_FILE) {
-    PROFILE(&tdiff, out = fread(buf, 1, bufLen, sinfo->u.stream););
+    PROFILE_ALWAYS(&tdiff, out = fread(buf, 1, bufLen, sinfo->u.stream););
     *bEOF = FALSE;
     if (out <= bufLen) {
       int err;
       if (0 == out && (0 != (err = ferror(sinfo->u.stream)))) {
         nErr = ERRNO;
-        VERIFY_EPRINTF("Error 0x%x: fread returning %d bytes, requested was %d "
+        VERIFY_EPRINTF("Error 0x%x: fread returning %d bytes in %"PRIu64" us, requested was %d "
                        "bytes, errno is %x\n",
-                       nErr, out, bufLen, err);
+                       nErr, out, tdiff, bufLen, err);
         return nErr;
       }
       *bEOF = feof(sinfo->u.stream);
@@ -549,9 +559,8 @@ bail:
   FARF(RUNTIME_RPC_LOW,
        "Exiting %s returning %d bytes, requested was %d bytes for %x, err 0x%x",
        __func__, out, bufLen, sin, nErr);
-  FASTRPC_ATRACE_END_L("%s done, read %d bytes in %" PRIu64
-                       " us, requested %d bytes for fd 0x%x, err 0x%x",
-                       __func__, out, tdiff, bufLen, sin, nErr);
+  FASTRPC_ATRACE_END_L("%s done, read %d bytes in %"PRIu64" us requested %d bytes,"
+      "fd 0x%x", __func__, out, tdiff, bufLen, sin);
   return nErr;
 }
 
@@ -1634,18 +1643,23 @@ bail:
 __QAIC_IMPL_EXPORT int __QAIC_HEADER(apps_std_mkdir)(const char *name, int mode)
     __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS;
+  uint64_t tdiff = 0;
 
   if (NULL == name) {
     return EINVAL;
   }
+  FASTRPC_ATRACE_BEGIN();
   errno = 0;
-  nErr = mkdir(name, mode);
+  PROFILE_ALWAYS(&tdiff,
+      nErr = mkdir(name, mode);
+  );
   if (nErr != AEE_SUCCESS) {
     nErr = ERRNO;
     VERIFY_EPRINTF("Error 0x%x: failed to mkdir %s,errno is %s\n", nErr, name,
                    strerror(ERRNO));
   }
-
+  FASTRPC_ATRACE_END_L("%s done for %s mode %d in %"PRIu64" us error_code 0x%x",
+      __func__, name, mode, tdiff, nErr);
   return nErr;
 }
 
@@ -1674,6 +1688,7 @@ __QAIC_HEADER(apps_std_stat)(const char *name,
   apps_std_FILE ps;
   struct apps_std_info *sinfo = 0;
   struct stat st;
+   uint64_t tdiff = 0;
 
   if ((NULL == name) || (NULL == ist)) {
     return EINVAL;
@@ -1686,7 +1701,10 @@ __QAIC_HEADER(apps_std_stat)(const char *name,
           nErr);
   VERIFY(0 == (nErr = apps_std_FILE_get(ps, &sinfo)));
   VERIFYC(-1 != (fd = fileno(sinfo->u.stream)), ERRNO);
-  VERIFYC(0 == fstat(fd, &st), ERRNO);
+  PROFILE_ALWAYS(&tdiff,
+  nErr = fstat(fd, &st);;
+  );
+  VERIFYC(nErr == AEE_SUCCESS, ERRNO);  
   ist->dev = st.st_dev;
   ist->ino = st.st_ino;
   ist->mode = st.st_mode;
@@ -1713,7 +1731,8 @@ bail:
   if (sinfo) {
     apps_std_FILE_free(sinfo);
   }
-  FASTRPC_ATRACE_END();
+  FASTRPC_ATRACE_END_L("%s done for %s in %"PRIu64" us \
+      fd 0x%x error_code 0x%x", __func__, name, tdiff, ps, nErr);
   return nErr;
 }
 

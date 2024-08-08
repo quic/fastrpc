@@ -210,4 +210,11 @@ int fastrpc_config_get_caller_stack_num(void);
   **/
 int fastrpc_config_init();
 
+/*
+ * fastrpc_config_is_setdmabufname_enabled() - Check if DMA allocated buffer
+ * name attribute debug support has been requested.
+ * Returns: True or False, status of debug support
+ */
+boolean fastrpc_config_is_setdmabufname_enabled(void);
+
 #endif /*__FASTRPC_CONFIG_H__*/
