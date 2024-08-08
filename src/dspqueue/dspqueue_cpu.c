@@ -192,7 +192,8 @@ static AEEResult init_domain_queues_locked(int domain) {
   dq->domain = domain;
 
   /* Get URI of session */
-  dspqueue_skel.domain_name_len = strlen(CDSP_DOMAIN_NAME) + 1;
+  dspqueue_skel.domain_name_len = (dom == CDSP1_DOMAIN_ID) ?
+      strlen(CDSP1_DOMAIN_NAME) + 1 : strlen(CDSP_DOMAIN_NAME) + 1;
   VERIFYC((dspqueue_skel.domain_name = (char *)calloc(
                dspqueue_skel.domain_name_len, sizeof(char))) != NULL,
           AEE_ENOMEMORY);
@@ -203,6 +204,9 @@ static AEEResult init_domain_queues_locked(int domain) {
                 dspqueue_skel.domain_name_len);
   } else if (dom == ADSP_DOMAIN_ID) {
     std_strlcpy(dspqueue_skel.domain_name, ADSP_DOMAIN_NAME,
+                dspqueue_skel.domain_name_len);
+  } else if (dom == CDSP1_DOMAIN_ID) {
+    std_strlcpy(dspqueue_skel.domain_name, CDSP1_DOMAIN_NAME,
                 dspqueue_skel.domain_name_len);
   } else {
     nErr = AEE_EUNSUPPORTED;

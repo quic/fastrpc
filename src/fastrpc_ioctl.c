@@ -37,6 +37,9 @@ const char *get_secure_domain_name(int domain_id) {
   case CDSP_DOMAIN_ID:
     name = CDSPRPC_SECURE_DEVICE;
     break;
+  case CDSP1_DOMAIN_ID:
+    name = CDSP1RPC_SECURE_DEVICE;
+    break;
   default:
     name = DEFAULT_DEVICE;
     break;
