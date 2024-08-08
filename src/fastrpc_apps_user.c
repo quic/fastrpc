@@ -791,21 +791,6 @@ static const char *get_domain_from_id(int domain_id) {
 
 #define IS_CONST_HANDLE(h) (((h) < 0xff) ? 1 : 0)
 
-static bool is_last_handle(int domain) {
-  int nErr = AEE_SUCCESS, last = 0;
-
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
-  pthread_mutex_lock(&hlist[domain].lmut);
-  last = hlist[domain].domainsCount + hlist[domain].nondomainsCount;
-  pthread_mutex_unlock(&hlist[domain].lmut);
-bail:
-  if (nErr != AEE_SUCCESS) {
-    VERIFY_IPRINTF("Error 0x%x: %s failed for domain %d\n", nErr, __func__,
-                   domain);
-  }
-  return (last == 0);
-}
-
 static int get_handle_remote(remote_handle64 local, remote_handle64 *remote) {
   struct handle_info *hinfo = (struct handle_info *)(uintptr_t)local;
   int nErr = AEE_SUCCESS;
@@ -1714,7 +1699,8 @@ bail:
     pdname_uri = NULL;
   }
   if (nErr == AEE_ECONNRESET) {
-    if (is_last_handle(domain)) {
+      if (!hlist[domain].domainsCount && !hlist[domain].nondomainsCount) {
+      /* Close session if there are no open remote handles */
       hlist[domain].disable_exit_logs = 1;
       domain_deinit(domain);
     }
@@ -1886,6 +1872,7 @@ bail:
 int remote_handle64_close(remote_handle64 handle) {
   remote_handle64 remote = 0;
   int domain = -1, nErr = AEE_SUCCESS, ref = 1;
+  bool start_deinit = false;
 
   FARF(RUNTIME_RPC_HIGH, "Entering %s, handle %llu\n", __func__, handle);
   FASTRPC_ATRACE_BEGIN_L("%s called with handle 0x%" PRIx64 "\n", __func__,
@@ -1894,7 +1881,20 @@ int remote_handle64_close(remote_handle64 handle) {
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(handle, &domain)));
   VERIFY(AEE_SUCCESS == (nErr = get_handle_remote(handle, &remote)));
   set_thread_context(domain);
-  if (remote) {
+  /*
+   * Terminate remote session if
+   *     1. there are no open non-domain handles AND
+   *     2. there are no open multi-domain handles, OR
+   *        only 1 multi-domain handle is open (for perf reason,
+   *        skip closing of it)
+   */
+  if (hlist[domain].domainsCount <= 1 && !hlist[domain].nondomainsCount)
+    start_deinit = true;
+  /*
+   * If session termination is not initiated and the remote handle is valid,
+   * then close the remote handle on DSP.
+   */
+  if (!start_deinit && remote) {
     VERIFY(AEE_SUCCESS ==
            (nErr = remote_handle_close_domain(domain, (remote_handle)remote)));
   }
@@ -1902,30 +1902,24 @@ int remote_handle64_close(remote_handle64 handle) {
   FASTRPC_PUT_REF(domain);
 bail:
   if (nErr != AEE_EINVHANDLE && IS_VALID_EFFECTIVE_DOMAIN_ID(domain)) {
-    if (is_valid_local_handle(domain, (struct handle_info *)handle)) {
-      if (is_last_handle(domain)) {
+    if (start_deinit) {
         hlist[domain].disable_exit_logs = 1;
         domain_deinit(domain);
-      }
-    } else {
-      nErr = AEE_ERPC;
     }
-  } else if (nErr != AEE_SUCCESS) {
-    if (is_process_exiting(domain)) {
-      return 0;
-    }
-    if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR,
+    if (nErr != AEE_SUCCESS) {
+      if (is_process_exiting(domain))
+        return 0;
+      if (0 == check_rpc_error(nErr)) 
+        FARF(ERROR,
            "Error 0x%x: %s failed for handle 0x%" PRIx64
            " remote handle 0x%" PRIx64 " (errno %s), num of open handles: %u\n",
-           nErr, __func__, handle, remote, strerror(errno), 
-           hlist[domain].open_handle_count);
-    }
-  } else {
-    FARF(ALWAYS,
-         "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
-         ", num of open handles: %u",
-         __func__, handle, remote, hlist[domain].open_handle_count);
+           nErr, __func__, handle, remote, strerror(errno),
+           hlist[domain].domainsCount);
+    } else 
+       FARF(ALWAYS,
+          "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
+          ", num of open handles: %u",
+          __func__, handle, remote, hlist[domain].domainsCount);
   }
   FASTRPC_ATRACE_END();
   return nErr;
