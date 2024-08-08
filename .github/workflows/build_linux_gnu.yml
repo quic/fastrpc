@@ -2,9 +2,14 @@ name: CI - Linux GNU Compilation
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+    - 'main'
+    - 'development'
   pull_request:
-    branches: [ "main" ]
+    branches:
+    - 'main'
+    - 'development'
+  workflow_dispatch:
 
 jobs:
   build:
