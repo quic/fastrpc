@@ -33,7 +33,7 @@
 #define DSP_MOUNT_LOCATION "/usr/lib/dsp/"
 #endif
 #ifndef DSP_DOM_LOCATION
-#define DSP_DOM_LOCATION "/usr/lib/dsp/xdsp"
+#define DSP_DOM_LOCATION "/usr/lib/dsp/xdspn"
 #endif
 #endif /* ENABLE_UPSTREAM_DRIVER_INTERFACE */
 

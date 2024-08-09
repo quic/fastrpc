@@ -35,7 +35,7 @@
 /* Additional URI length required to add domain and session information to URI
  * Two extra characters for session ID > 9 and domain name more than 4 characters.
  */
-#define FASTRPC_URI_BUF_LEN (strlen(CDSP_DOMAIN) + strlen(FASTRPC_SESSION1_URI) + 2)
+#define FASTRPC_URI_BUF_LEN (strlen(CDSP1_DOMAIN) + strlen(FASTRPC_SESSION1_URI) + 2)
 
 /**
  * Maximum values of enums exposed in remote

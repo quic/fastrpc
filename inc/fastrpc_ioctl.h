@@ -30,10 +30,12 @@
 #define SDSPRPC_DEVICE "/dev/fastrpc-sdsp"
 #define MDSPRPC_DEVICE "/dev/fastrpc-mdsp"
 #define CDSPRPC_DEVICE "/dev/fastrpc-cdsp"
+#define CDSP1RPC_DEVICE "/dev/fastrpc-cdsp1"
 #define ADSPRPC_SECURE_DEVICE "/dev/fastrpc-adsp-secure"
 #define SDSPRPC_SECURE_DEVICE "/dev/fastrpc-sdsp-secure"
 #define MDSPRPC_SECURE_DEVICE "/dev/fastrpc-mdsp-secure"
 #define CDSPRPC_SECURE_DEVICE "/dev/fastrpc-cdsp-secure"
+#define CDSP1RPC_SECURE_DEVICE "/dev/fastrpc-cdsp1-secure"
 
 #define FASTRPC_ATTR_NOVA (256)
 

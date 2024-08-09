@@ -121,18 +121,21 @@ extern "C" {
 #define MDSP_DOMAIN_ID    1
 #define SDSP_DOMAIN_ID    2
 #define CDSP_DOMAIN_ID    3
+#define CDSP1_DOMAIN_ID   4
 
 /** Supported Domain Names */
 #define ADSP_DOMAIN_NAME "adsp"
 #define MDSP_DOMAIN_NAME "mdsp"
 #define SDSP_DOMAIN_NAME "sdsp"
 #define CDSP_DOMAIN_NAME "cdsp"
+#define CDSP1_DOMAIN_NAME "cdsp1"
 
 /** Defines to prepare URI for multi-domain calls */
 #define ADSP_DOMAIN "&_dom=adsp"
 #define MDSP_DOMAIN "&_dom=mdsp"
 #define SDSP_DOMAIN "&_dom=sdsp"
 #define CDSP_DOMAIN "&_dom=cdsp"
+#define CDSP1_DOMAIN "&_dom=cdsp1"
 
 /** Internal transport prefix */
 #define ITRANSPORT_PREFIX "'\":;./\\"

@@ -83,7 +83,7 @@
 #define DSP_DOM_LOCATION "/dsp/xdsp"
 #else
 #define DSP_MOUNT_LOCATION "/usr/lib/dsp/"
-#define DSP_DOM_LOCATION "/usr/lib/dsp/xdsp"
+#define DSP_DOM_LOCATION "/usr/lib/dsp/xdspn"
 #endif
 #define VENDOR_DSP_LOCATION "/vendor/dsp/"
 #define VENDOR_DOM_LOCATION "/vendor/dsp/xdsp/"
@@ -133,7 +133,7 @@ static void check_multilib_util(void);
 
 /* Array to store fastrpc library names. */
 static const char *fastrpc_library[NUM_DOMAINS] = {
-    "libadsprpc.so", "libmdsprpc.so", "libsdsprpc.so", "libcdsprpc.so"};
+    "libadsprpc.so", "libmdsprpc.so", "libsdsprpc.so", "libcdsprpc.so", "libcdsp1rpc.so"};
 
 /* Array to store env variable names. */
 static char *fastrpc_dsp_lib_refcnt[NUM_DOMAINS];
@@ -259,7 +259,7 @@ const char *ANDROID_DEBUG_VAR_NAME[] = {"fastrpc.process.attrs",
                                         "persist.fastrpc.process.attrs",
                                         "ro.build.type"};
 
-const char *SUBSYSTEM_NAME[] = {"adsp", "mdsp", "sdsp", "cdsp"};
+const char *SUBSYSTEM_NAME[] = {"adsp", "mdsp", "sdsp", "cdsp", "cdsp1"};
 
 /* Strings for trace event logging */
 #define INVOKE_BEGIN_TRACE_STR "fastrpc_msg: userspace_call: begin"
@@ -755,6 +755,9 @@ static int get_domain_from_domain_name(const char *domain_name,
     } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[SDSP_DOMAIN_ID],
                             std_strlen(SUBSYSTEM_NAME[SDSP_DOMAIN_ID]))) {
       domain = SDSP_DOMAIN_ID;
+    } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[CDSP1_DOMAIN_ID],
+                            std_strlen(SUBSYSTEM_NAME[CDSP1_DOMAIN_ID]))) {
+      domain = CDSP1_DOMAIN_ID;
     } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[CDSP_DOMAIN_ID],
                             std_strlen(SUBSYSTEM_NAME[CDSP_DOMAIN_ID]))) {
       domain = CDSP_DOMAIN_ID;
@@ -775,6 +778,9 @@ static const char *get_domain_from_id(int domain_id) {
     break;
   case CDSP_DOMAIN_ID:
     uri_domain_suffix = CDSP_DOMAIN;
+    break;
+  case CDSP1_DOMAIN_ID:
+    uri_domain_suffix = CDSP1_DOMAIN;
     break;
   case MDSP_DOMAIN_ID:
     uri_domain_suffix = MDSP_DOMAIN;
@@ -2971,6 +2977,9 @@ int get_domain_from_name(const char *uri, uint32_t type) {
     } else if (!std_strncmp(uri, SDSP_DOMAIN_NAME,
                             std_strlen(SDSP_DOMAIN_NAME))) {
       domain = SDSP_DOMAIN_ID;
+    } else if (!std_strncmp(uri, CDSP1_DOMAIN_NAME,
+                            std_strlen(CDSP1_DOMAIN_NAME))) {
+      domain = CDSP1_DOMAIN_ID;
     } else if (!std_strncmp(uri, CDSP_DOMAIN_NAME,
                             std_strlen(CDSP_DOMAIN_NAME))) {
       domain = CDSP_DOMAIN_ID;
@@ -2987,6 +2996,8 @@ int get_domain_from_name(const char *uri, uint32_t type) {
       domain = MDSP_DOMAIN_ID;
     } else if (std_strstr(uri, SDSP_DOMAIN)) {
       domain = SDSP_DOMAIN_ID;
+    } else if (std_strstr(uri, CDSP1_DOMAIN)) {
+      domain = CDSP1_DOMAIN_ID;
     } else if (std_strstr(uri, CDSP_DOMAIN)) {
       domain = CDSP_DOMAIN_ID;
     } else {
@@ -3077,6 +3088,7 @@ static int attach_guestos(int domain) {
   case ADSP_DOMAIN_ID:
   case CDSP_DOMAIN_ID:
   case SDSP_DOMAIN_ID:
+  case CDSP1_DOMAIN_ID:
     attach = USERPD;
     break;
   default:
@@ -3179,6 +3191,9 @@ static const char *get_domain_name(int domain_id) {
   case CDSP_DOMAIN_ID:
     name = CDSPRPC_DEVICE;
     break;
+  case CDSP1_DOMAIN_ID:
+    name = CDSP1RPC_DEVICE;
+    break;
   default:
     name = DEFAULT_DEVICE;
     break;
@@ -3241,6 +3256,7 @@ static int open_device_node(int domain_id) {
     }
     break;
   case CDSP_DOMAIN_ID:
+  case CDSP1_DOMAIN_ID:
     dev = open(get_secure_domain_name(domain), O_NONBLOCK);
     if ((dev < 0) && ((errno == ENOENT) || (errno == EACCES))) {
       FARF(RUNTIME_RPC_HIGH,
@@ -3294,8 +3310,9 @@ static int close_device_node(int domain_id, int dev) {
 
 #ifndef NO_HAL
   int sess_id = GET_SESSION_ID_FROM_DOMAIN_ID(domain_id);
-  if (((domain_id & DOMAIN_ID_MASK) == CDSP_DOMAIN_ID) &&
-      dsp_client_instance[sess_id]) {
+  if (((domain_id & DOMAIN_ID_MASK) == CDSP_DOMAIN_ID) ||
+   ((domain_id & DOMAIN_ID_MASK) == CDSP1_DOMAIN_ID)) &&
+   dsp_client_instance[sess_id]) {
     nErr = close_hal_session(dsp_client_instance[sess_id], domain_id, dev);
     FARF(ALWAYS, "%s: close device %d thru HAL on session %d\n", __func__, dev,
          sess_id);
@@ -3491,7 +3508,7 @@ static int fastrpc_enable_kernel_optimizations(int domain) {
       dom = domain & DOMAIN_ID_MASK;
   const uint32_t max_concurrency = 25;
 
-  if ((dom != CDSP_DOMAIN_ID) || (hlist[domain].dsppd != USERPD))
+  if (((dom != CDSP_DOMAIN_ID) && (dom != CDSP1_DOMAIN_ID)) || (hlist[domain].dsppd != USERPD))
     goto bail;
   errno = 0;
 
@@ -3944,7 +3961,7 @@ static int domain_init(int domain, int *dev) {
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_mem_open(domain)));
   VERIFY(AEE_SUCCESS == (nErr = apps_mem_init(domain)));
 
-  if (dom == CDSP_DOMAIN_ID) {
+  if (dom == CDSP_DOMAIN_ID || dom == CDSP1_DOMAIN_ID) {
     panic_handle = get_adsp_current_process1_handle(domain);
     if (panic_handle != INVALID_HANDLE) {
       int ret = -1;
@@ -4260,7 +4277,7 @@ __CONSTRUCTOR_ATTRIBUTE__
 static void multidsplib_env_init(void) {
   const char *local_fastrpc_lib_refcnt[NUM_DOMAINS] = {
       "FASTRPC_ADSP_REFCNT", "FASTRPC_MDSP_REFCNT", "FASTRPC_SDSP_REFCNT",
-      "FASTRPC_CDSP_REFCNT"};
+      "FASTRPC_CDSP_REFCNT", "FASTRPC_CDSP1_REFCNT"};
   char buf[64] = {0};
   size_t env_name_len = 0;
   char *env_name = NULL;
