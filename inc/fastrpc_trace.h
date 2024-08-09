@@ -30,29 +30,28 @@
 		FARF(RUNTIME_RPC_HIGH,fmt,##__VA_ARGS__);\
 		snprintf(systrace_string, SYSTRACE_STR_LEN, fmt, ##__VA_ARGS__);\
 		ATRACE_BEGIN(systrace_string); \
-	} \
-	else \
+	} else \
 		(void)0
 #define FASTRPC_ATRACE_END_L(fmt, ...)\
 	if(is_systrace_enabled()){ \
 		FARF(ALWAYS, fmt, ##__VA_ARGS__);\
 		ATRACE_END(); \
-	} \
-	else \
-		(void)0
+	} else { \
+		FARF(RUNTIME_RPC_CRITICAL,fmt,##__VA_ARGS__);\
+	}
 #define FASTRPC_ATRACE_BEGIN()\
 	if(is_systrace_enabled()){ \
 		FARF(ALWAYS, "%s begin", __func__);\
 		ATRACE_BEGIN(__func__); \
-	} \
-	else \
+	} else \
 		(void)0
 #define FASTRPC_ATRACE_END()\
 	if(is_systrace_enabled()) { \
 		FARF(ALWAYS, "%s end", __func__);\
 		ATRACE_END(); \
-	} else \
-		(void)0
+	}  else { \
+		FARF(RUNTIME_RPC_CRITICAL,"%s end", __func__);\
+	}
 #endif
 
 //API to get Systrace variable

@@ -69,7 +69,7 @@ int fastrpc_search_async_job(fastrpc_async_jobid jobid,
 
   domain = GET_DOMAIN_FROM_JOBID(jobid);
   hash = GET_HASH_FROM_JOBID(jobid);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   me = &lasyncinfo[domain];
   VERIFYC(me->init_done == 1, AEE_EBADPARM);
   pthread_mutex_lock(&me->mut);
@@ -419,7 +419,7 @@ static int get_remote_async_response(int domain, fastrpc_async_jobid *jobid,
   remote_handle handle = -1;
   uint32_t sc = 0;
 
-  VERIFYC(domain < NUM_DOMAINS_EXTEND, AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_session_dev(domain, &dev)));
   VERIFYM(-1 != dev, AEE_ERPC, "open dev failed\n");
   if (is_kernel_perf_enabled()) {

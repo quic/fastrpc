@@ -90,7 +90,7 @@ bail :
 int fastrpc_get_cap(uint32_t domain, uint32_t attributeID, uint32_t *capability) {
    int nErr = AEE_SUCCESS, dev = -1, dom = domain & DOMAIN_ID_MASK;
 
-   VERIFYC(domain >= 0 && domain < NUM_DOMAINS_EXTEND, AEE_EBADPARM);
+   VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
    VERIFYC(capability != NULL, AEE_EBADPARM);
    VERIFYC(attributeID < FASTRPC_MAX_ATTRIBUTES, AEE_EBADPARM);   //Check if the attribute ID is less than max attributes accepted by userspace
 

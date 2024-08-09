@@ -33,7 +33,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#include <rpcmem.h>
+#include <rpcmem_internal.h>
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -183,7 +183,7 @@ static AEEResult init_domain_queues_locked(int domain) {
   uint32_t cap = 0;
 
   errno = 0;
-  assert(domain < NUM_DOMAINS_EXTEND);
+  assert(IS_VALID_EFFECTIVE_DOMAIN_ID(domain));
   if (queues->domain_queues[domain] != NULL) {
     return AEE_SUCCESS;
   }
@@ -263,7 +263,7 @@ static AEEResult init_domain_queues_locked(int domain) {
   }
 
   // Allocate shared state structure and pass to DSP
-  VERIFYC((dq->state = rpcmem_alloc(
+  VERIFYC((dq->state = rpcmem_alloc_internal(
                RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS | RPCMEM_HEAP_NOREG,
                sizeof(struct dspqueue_process_queue_state))) != NULL,
           AEE_ENORPCMEMORY);
@@ -365,7 +365,7 @@ static AEEResult destroy_domain_queues_locked(int domain) {
 
   errno = 0;
   FARF(HIGH, "destroy_domain_queues_locked");
-  assert(domain < NUM_DOMAINS_EXTEND);
+  assert(IS_VALID_EFFECTIVE_DOMAIN_ID(domain));
   assert(queues->domain_queues[domain] != NULL);
   dq = queues->domain_queues[domain];
   assert(dq->num_queues == 0);
@@ -449,10 +449,10 @@ AEEResult dspqueue_create(int domain, uint32_t flags, uint32_t req_queue_size,
   if (domain == -1) {
     PRINT_WARN_USE_DOMAINS();
     domain = get_current_domain();
-    if ((domain < 0) || (domain >= NUM_DOMAINS_EXTEND)) {
+    if (!IS_VALID_EFFECTIVE_DOMAIN_ID(domain)) {
       return AEE_ERPC;
     }
-  } else if ((domain < 0) || (domain >= NUM_DOMAINS_EXTEND)) {
+  } else if (!IS_VALID_EFFECTIVE_DOMAIN_ID(domain)) {
     return AEE_EBADPARM;
   }
 
@@ -536,7 +536,7 @@ AEEResult dspqueue_create(int domain, uint32_t flags, uint32_t req_queue_size,
       CACHE_ALIGN_SIZE(req_queue_size) + CACHE_ALIGN_SIZE(resp_queue_size);
 
   // Allocate queue shared memory and map to DSP
-  VERIFYC((q->user_queue = rpcmem_alloc(
+  VERIFYC((q->user_queue = rpcmem_alloc_internal(
                RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS | RPCMEM_HEAP_NOREG,
                q->user_queue_size)) != NULL,
           AEE_ENOMEMORY);
@@ -742,7 +742,7 @@ AEEResult dspqueue_close(dspqueue_t queue) {
 
   errno = 0;
   VERIFYC(q, AEE_EBADPARM);
-  VERIFYC(q->domain >= 0 && q->domain < NUM_DOMAINS_EXTEND, AEE_EINVALIDDOMAIN);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(q->domain), AEE_EINVALIDDOMAIN);
   pthread_mutex_lock(&queues->mutex);
   dq = queues->domain_queues[q->domain];
   if (dq == NULL) {
@@ -2285,7 +2285,7 @@ static int dspqueue_notif_callback(void *context, int domain, int session,
   }
   FARF(ALWAYS, "%s for domain %d, session %d, status %u", __func__, domain,
        session, status);
-  assert(effec_domain_id < NUM_DOMAINS_EXTEND);
+  assert(IS_VALID_EFFECTIVE_DOMAIN_ID(effec_domain_id));
 
   // Send different error codes for SSR and remote-process exit
   nErr = (status == FASTRPC_DSP_SSR) ? AEE_ECONNRESET : AEE_ENOSUCH;

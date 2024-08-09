@@ -67,7 +67,7 @@ static AEEResult init_domain_signals(int domain) {
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
 
-  VERIFY((domain < NUM_DOMAINS_EXTEND) && (domain >= 0));
+  VERIFY(IS_VALID_EFFECTIVE_DOMAIN_ID(domain));
 
   // Initialize process-level structure
   if ((pthread_once(&signals_once, init_process_signals_once) != 0) ||
@@ -111,7 +111,7 @@ void dspsignal_domain_deinit(int domain) {
 
   if (!signals)
     return;
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   pthread_mutex_lock(&signals->mutex);
   if (signals->domain_signals[domain]) {
     free(signals->domain_signals[domain]);
@@ -136,7 +136,7 @@ AEEResult dspsignal_create(int domain, uint32_t id, uint32_t flags) {
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
   VERIFYC(flags == 0, AEE_EBADPARM);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFY((nErr = init_domain_signals(domain)) == 0);
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
   e = ioctl_signal_create(ds->dev, id, flags);
@@ -172,7 +172,7 @@ AEEResult dspsignal_destroy(int domain, uint32_t id) {
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
   e = ioctl_signal_destroy(ds->dev, id);
   if (e != 0) {
@@ -203,7 +203,7 @@ AEEResult dspsignal_signal(int domain, uint32_t id) {
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
 
   FARF(MEDIUM, "%s: Send signal %u", __func__, id);
@@ -235,7 +235,7 @@ AEEResult dspsignal_wait(int domain, uint32_t id, uint32_t timeout_usec) {
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
   fastrpc_qos_activity(domain);
 
@@ -275,7 +275,7 @@ AEEResult dspsignal_cancel_wait(int domain, uint32_t id) {
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
 
   FARF(MEDIUM, "%s: Cancel wait signal %u", __func__, id);

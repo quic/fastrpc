@@ -146,7 +146,7 @@ int fastrpc_notif_register(int domain,
   struct fastrpc_notif *lnotif = NULL;
 
   // Initialize fastrpc structures, if in case this is the first call to library
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
 
   // Allocate client notification request node
   VERIFYC(NULL != (lnotif = calloc(1, sizeof(struct fastrpc_notif))),

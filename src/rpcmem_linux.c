@@ -105,6 +105,12 @@ void rpcmem_deinit() {
   pthread_mutex_destroy(&rpcmt);
 }
 
+int rpcmem_set_dmabuf_name(const char *name, int fd, int heapid,
+			void *buf, uint32 rpcflags) {
+        // Dummy call where DMABUF is not used
+        return 0;
+}
+
 int rpcmem_to_fd_internal(void *po) {
   struct rpc_info *rinfo, *rfree = 0;
   QNode *pn, *pnn;
