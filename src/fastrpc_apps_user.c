@@ -77,6 +77,7 @@
 #endif
 #include "fastrpc_process_attributes.h"
 #include "fastrpc_trace.h"
+#include "fastrpc_error.h"
 
 #ifndef ENABLE_UPSTREAM_DRIVER_INTERFACE
 #define DSP_MOUNT_LOCATION "/dsp/"
@@ -435,22 +436,6 @@ inline int is_domain_valid(int domain) {
   } else {
     return 0;
   }
-}
-
-int check_rpc_error(int err) {
-  if (check_error_code_change_present() == 1) {
-    if (err > KERNEL_ERRNO_START && err <= HLOS_ERR_END) // driver or HLOS err
-      return 0;
-    else if (err > (int)DSP_AEE_EOFFSET &&
-             err <= (int)DSP_AEE_EOFFSET + 1024) // DSP err
-      return 0;
-    else if (err == AEE_ENOSUCH ||
-             err == AEE_EINTERRUPTED) // common DSP HLOS err
-      return 0;
-    else
-      return -1;
-  } else
-    return 0;
 }
 
 static void GenCrc32Tab(uint32_t GenPoly, uint32_t *crctab) {
@@ -1439,7 +1424,7 @@ bail:
 }
 
 int remote_handle_invoke(remote_handle handle, uint32_t sc, remote_arg *pra) {
-  int domain = -1, nErr = AEE_SUCCESS, ref = 0;
+  int domain = -1, nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, ref = 0;
   struct handle_info *h = container_of((void*)(uint64_t)handle, struct handle_info, local);
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
@@ -1462,13 +1447,15 @@ bail:
       return 0;
     }
     if (0 == check_rpc_error(nErr)) {
+      usererr = convert_dsp_error_to_user_error(nErr);
       if (get_logger_state(domain)) {
         FARF(ERROR,
-             "Error 0x%x: %s failed for module %s handle 0x%x, method %d on domain %d "
+             "Error 0x%x/0x%x: %s failed for module %s handle 0x%x, method %d on domain %d "
              "(sc 0x%x) (errno %s)\n",
-             nErr, __func__, h->name, (int)handle, REMOTE_SCALARS_METHOD(sc), domain, sc,
+             usererr, nErr, __func__, h->name, (int)handle, REMOTE_SCALARS_METHOD(sc), domain, sc,
              strerror(errno));
       }
+      nErr = usererr;
     }
   }
   FASTRPC_ATRACE_END();
@@ -1478,7 +1465,7 @@ bail:
 int remote_handle64_invoke(remote_handle64 local, uint32_t sc,
                            remote_arg *pra) {
   remote_handle64 remote = 0;
-  int nErr = AEE_SUCCESS, domain = -1, ref = 0;
+  int nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, domain = -1, ref = 0;
   struct handle_info *h = container_of((void*)(uint64_t)local, struct handle_info, local);
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
@@ -1499,13 +1486,15 @@ bail:
       return 0;
     }
     if (0 == check_rpc_error(nErr)) {
+      usererr = convert_dsp_error_to_user_error(nErr);
       if (get_logger_state(domain)) {
         FARF(ERROR,
-             "Error 0x%x: %s failed for module %s, handle 0x%" PRIx64
+             "Error 0x%x/0x%x: %s failed for module %s, handle 0x%" PRIx64
              ", method %d on domain %d (sc 0x%x) (errno %s)\n",
-             nErr, __func__, h->name, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
+             usererr, nErr, __func__, h->name, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
              strerror(errno));
       }
+      nErr = usererr;
     }
   }
   FASTRPC_ATRACE_END();
@@ -1515,7 +1504,7 @@ bail:
 int remote_handle_invoke_async(remote_handle handle,
                                fastrpc_async_descriptor_t *desc, uint32_t sc,
                                remote_arg *pra) {
-  int domain = -1, nErr = AEE_SUCCESS, ref = 0;
+  int domain = -1, nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, ref = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1534,11 +1523,13 @@ bail:
   FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
     if (0 == check_rpc_error(nErr)) {
+      usererr = convert_dsp_error_to_user_error(nErr);
       FARF(ERROR,
-           "Error 0x%x: %s failed for handle 0x%x, method %d async type %d on "
+           "Error 0x%x/0x%x: %s failed for handle 0x%x, method %d async type %d on "
            "domain %d (sc 0x%x) (errno %s)\n",
-           nErr, __func__, (int)handle, REMOTE_SCALARS_METHOD(sc), desc->type,
+           usererr, nErr, __func__, (int)handle, REMOTE_SCALARS_METHOD(sc), desc->type,
            domain, sc, strerror(errno));
+      nErr = usererr;
     }
   }
   FASTRPC_ATRACE_END();
@@ -1549,7 +1540,7 @@ int remote_handle64_invoke_async(remote_handle64 local,
                                  fastrpc_async_descriptor_t *desc, uint32_t sc,
                                  remote_arg *pra) {
   remote_handle64 remote = 0;
-  int nErr = AEE_SUCCESS, domain = -1, ref = 0;
+  int nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, domain = -1, ref = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1568,11 +1559,13 @@ bail:
   FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
     if (0 == check_rpc_error(nErr)) {
+      usererr = convert_dsp_error_to_user_error(nErr);
       FARF(ERROR,
-           "Error 0x%x: %s failed for handle 0x%" PRIx64
+           "Error 0x%x/0x%x: %s failed for handle 0x%" PRIx64
            ", method %d on domain %d (sc 0x%x) (errno %s)\n",
-           nErr, __func__, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
+           usererr, nErr, __func__, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
            strerror(errno));
+      nErr = usererr;
     }
   }
   FASTRPC_ATRACE_END();
@@ -1710,7 +1703,7 @@ bail:
 }
 
 int remote_handle_open(const char *name, remote_handle *ph) {
-  int nErr = 0, domain = -1, ref = 0;
+  int nErr = 0, usererr = AEE_SUCCESS, domain = -1, ref = 0;
   uint64_t t_spawn = 0, t_load = 0;
   remote_handle64 local;
 
@@ -1738,8 +1731,10 @@ bail:
       FASTRPC_PUT_REF(domain);
     }
     if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR, "Error 0x%x: %s failed for %s (errno %s)", nErr, __func__, name,
+      usererr = convert_dsp_error_to_user_error(nErr);
+      FARF(ERROR, "Error 0x%x/0x%x: %s failed for %s (errno %s)", usererr, nErr, __func__, name,
           strerror(errno));
+      nErr = usererr;
     }
   } else {
     FARF(ALWAYS,
@@ -1754,7 +1749,7 @@ bail:
 int remote_handle64_open(const char *name, remote_handle64 *ph) {
   remote_handle h = 0;
   remote_handle64 remote = 0, local;
-  int domain = -1, nErr = 0, ref = 0;
+  int domain = -1, nErr = 0, usererr = AEE_SUCCESS, ref = 0;
   uint64_t t_spawn = 0, t_load = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
@@ -1788,8 +1783,10 @@ bail:
     else
       FASTRPC_PUT_REF(domain);
     if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR, "Error 0x%x: %s failed for %s (errno %s)\n", nErr, __func__,
+      usererr = convert_dsp_error_to_user_error(nErr);
+      FARF(ERROR, "Error 0x%x/0x%x: %s failed for %s (errno %s)\n", usererr, nErr, __func__,
            name, strerror(errno));
+      nErr = usererr;
     }
   } else {
     FARF(ALWAYS,
@@ -1849,7 +1846,7 @@ bail:
 }
 
 int remote_handle_close(remote_handle h) {
-  int nErr = AEE_SUCCESS, domain = get_current_domain(), ref = 1;
+  int nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, domain = get_current_domain(), ref = 1;
 
   FARF(RUNTIME_RPC_HIGH, "Entering %s, handle %lu\n", __func__, h);
 
@@ -1863,7 +1860,9 @@ bail:
       return 0;
     }
     if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR, "Error 0x%x: %s failed for handle 0x%x\n", nErr, __func__, h);
+      usererr = convert_dsp_error_to_user_error(nErr);
+      FARF(ERROR, "Error 0x%x/0x%x: %s failed for handle 0x%x\n", usererr, nErr, __func__, h);
+      nErr = usererr;
     }
   }
   return nErr;
@@ -1871,7 +1870,7 @@ bail:
 
 int remote_handle64_close(remote_handle64 handle) {
   remote_handle64 remote = 0;
-  int domain = -1, nErr = AEE_SUCCESS, ref = 1;
+  int domain = -1, nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, ref = 1;
   bool start_deinit = false;
 
   FARF(RUNTIME_RPC_HIGH, "Entering %s, handle %llu\n", __func__, handle);
@@ -1909,12 +1908,15 @@ bail:
     if (nErr != AEE_SUCCESS) {
       if (is_process_exiting(domain))
         return 0;
-      if (0 == check_rpc_error(nErr)) 
+      if (0 == check_rpc_error(nErr)) {
+        usererr = convert_dsp_error_to_user_error(nErr);
         FARF(ERROR,
-           "Error 0x%x: %s failed for handle 0x%" PRIx64
+           "Error 0x%x/0x%x: %s failed for handle 0x%" PRIx64
            " remote handle 0x%" PRIx64 " (errno %s), num of open handles: %u\n",
-           nErr, __func__, handle, remote, strerror(errno),
+           usererr, nErr, __func__, handle, remote, strerror(errno),
            hlist[domain].domainsCount);
+        nErr = usererr;
+      }
     } else 
        FARF(ALWAYS,
           "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
@@ -2347,7 +2349,7 @@ bail:
 }
 
 int remote_handle_control(uint32_t req, void *data, uint32_t len) {
-  int domain = -1, nErr = AEE_SUCCESS, ref = 0;
+  int domain = -1, nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, ref = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -2365,8 +2367,10 @@ bail:
     FARF(ERROR, "Error 0x%x: %s failed for request ID %d (errno %s)", nErr,
          __func__, req, strerror(errno));
     if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR, "Error 0x%x: %s failed for request ID %d (errno %s)", nErr,
+      usererr = convert_dsp_error_to_user_error(nErr);
+      FARF(ERROR, "Error 0x%x/0x%x: %s failed for request ID %d (errno %s)", usererr, nErr,
            __func__, req, strerror(errno));
+      nErr = usererr;
     }
   }
   return nErr;
@@ -2374,7 +2378,7 @@ bail:
 
 int remote_handle64_control(remote_handle64 handle, uint32_t req, void *data,
                             uint32_t len) {
-  int nErr = AEE_SUCCESS, domain = -1, ref = 0;
+  int nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, domain = -1, ref = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -2391,8 +2395,10 @@ bail:
     FARF(ERROR, "Error 0x%x: %s failed for request ID %d (errno %s)", nErr,
          __func__, req, strerror(errno));
     if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR, "Error 0x%x: %s failed for request ID %d (errno %s)", nErr,
+      usererr = convert_dsp_error_to_user_error(nErr);
+      FARF(ERROR, "Error 0x%x/0x%x: %s failed for request ID %d (errno %s)", usererr, nErr,
            __func__, req, strerror(errno));
+      nErr = usererr;
     }
   }
   return nErr;
@@ -2584,7 +2590,7 @@ bail:
 /* Set remote session parameters like thread stack size, running on unsigned PD,
  * killing remote process PD etc */
 int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
-  int nErr = AEE_SUCCESS, domain = DEFAULT_DOMAIN_ID, ref = 0;
+  int nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, domain = DEFAULT_DOMAIN_ID, ref = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -2945,8 +2951,10 @@ bail:
     FARF(ERROR, "Error 0x%x: %s failed for request ID %d (errno %s)", nErr,
          __func__, req, strerror(errno));
     if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR, "Error 0x%x: %s failed for request ID %d (errno %s)", nErr,
+      usererr = convert_dsp_error_to_user_error(nErr);
+      FARF(ERROR, "Error 0x%x/0x%x: %s failed for request ID %d (errno %s)", usererr, nErr,
            __func__, req, strerror(errno));
+      nErr = usererr;
     }
   }
   return nErr;
