@@ -37,6 +37,7 @@
 #include "fastrpc_common.h"
 #include "fastrpc_internal.h"
 #include "fastrpc_mem.h"
+#include "fastrpc_error.h"
 #include "rpcmem.h"
 #include "shared.h"
 #include "verify.h"
@@ -312,7 +313,7 @@ void remote_register_buf_attr2(void *buf, size_t size, int fd, int attr) {
 }
 
 int remote_register_dma_handle_attr(int fd, uint32_t len, uint32_t attr) {
-  int nErr = AEE_SUCCESS, i;
+  int nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, i;
   int fd_found = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
@@ -371,8 +372,10 @@ int remote_register_dma_handle_attr(int fd, uint32_t len, uint32_t attr) {
 bail:
   if (nErr) {
     if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR, "Error 0x%x: %s failed for fd 0x%x, len %d, attr 0x%x", nErr,
+      usererr = convert_dsp_error_to_user_error(nErr);
+      FARF(ERROR, "Error 0x%x/0x%x: %s failed for fd 0x%x, len %d, attr 0x%x", usererr, nErr,
            __func__, fd, len, attr);
+      nErr = usererr;
     }
   }
   return nErr;
@@ -443,7 +446,7 @@ int fdlist_fd_from_buf(void *buf, int bufLen, int *nova, void **base, int *attr,
 int fastrpc_mmap(int domain, int fd, void *vaddr, int offset, size_t length,
                  enum fastrpc_map_flags flags) {
   struct fastrpc_map map = {0};
-  int nErr = 0, dev = -1, iocErr = 0, attrs = 0, ref = 0;
+  int nErr = 0, usererr = AEE_SUCCESS, dev = -1, iocErr = 0, attrs = 0, ref = 0;
   uint64_t vaddrout = 0;
   struct static_map *mNode = NULL, *tNode = NULL;
   QNode *pn, *pnn;
@@ -528,11 +531,13 @@ bail:
     if (iocErr == 0) {
       errno = 0;
     }
+    usererr = convert_dsp_error_to_user_error(nErr);
     FARF(ERROR,
-         "Error 0x%x: %s failed to map buffer fd %d, addr %p, length 0x%zx, "
+         "Error 0x%x/0x%x: %s failed to map buffer fd %d, addr %p, length 0x%zx, "
          "domain %d, flags 0x%x, ioctl ret 0x%x, errno %s",
-         nErr, __func__, fd, vaddr, length, domain, flags, iocErr,
+         usererr, nErr, __func__, fd, vaddr, length, domain, flags, iocErr,
          strerror(errno));
+    nErr = usererr;
   }
   if (mNode) {
     free(mNode);
@@ -542,7 +547,7 @@ bail:
 }
 
 int fastrpc_munmap(int domain, int fd, void *vaddr, size_t length) {
-  int nErr = 0, dev = -1, iocErr = 0, locked = 0, ref = 0;
+  int nErr = 0, usererr = AEE_SUCCESS, dev = -1, iocErr = 0, locked = 0, ref = 0;
   struct static_map *mNode = NULL;
   QNode *pn, *pnn;
 
@@ -608,17 +613,19 @@ bail:
     if (iocErr == 0) {
       errno = 0;
     }
+    usererr = convert_dsp_error_to_user_error(nErr);
     FARF(ERROR,
-         "Error 0x%x: %s failed fd %d, vaddr %p, length 0x%zx, domain %d, "
+         "Error 0x%x/0x%x: %s failed fd %d, vaddr %p, length 0x%zx, domain %d, "
          "ioctl ret 0x%x, errno %s",
-         nErr, __func__, fd, vaddr, length, domain, iocErr, strerror(errno));
+         usererr, nErr, __func__, fd, vaddr, length, domain, iocErr, strerror(errno));
+    nErr = usererr;
   }
   return nErr;
 }
 
 int remote_mem_map(int domain, int fd, int flags, uint64_t vaddr, size_t size,
                    uint64_t *raddr) {
-  int nErr = 0;
+  int nErr = 0, usererr = AEE_SUCCESS;
   int dev = -1, ref = 0;
   uint64_t vaddrout = 0;
 
@@ -648,17 +655,19 @@ bail:
   if (nErr) {
     nErr = convert_kernel_to_user_error(nErr, errno);
     if (0 == check_rpc_error(nErr)) {
+      usererr = convert_dsp_error_to_user_error(nErr);
       FARF(ERROR,
-           "Error 0x%x: %s failed to map buffer fd %d addr 0x%llx size 0x%zx "
+           "Error 0x%x/0x%x: %s failed to map buffer fd %d addr 0x%llx size 0x%zx "
            "domain %d flags %d errno %s",
-           nErr, __func__, fd, vaddr, size, domain, flags, strerror(errno));
+           usererr, nErr, __func__, fd, vaddr, size, domain, flags, strerror(errno));
+      nErr = usererr;
     }
   }
   return nErr;
 }
 
 int remote_mem_unmap(int domain, uint64_t raddr, size_t size) {
-  int nErr = 0, dev = -1, ref = 0;
+  int nErr = 0, usererr = AEE_SUCCESS, dev = -1, ref = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -681,10 +690,12 @@ bail:
   if (nErr) {
     nErr = convert_kernel_to_user_error(nErr, errno);
     if (0 == check_rpc_error(nErr)) {
+      usererr = convert_dsp_error_to_user_error(nErr);
       FARF(ERROR,
-           "Error 0x%x: %s failed to unmap buffer addr 0x%llx size 0x%zx "
+           "Error 0x%x/0x%x: %s failed to unmap buffer addr 0x%llx size 0x%zx "
            "domain %d errno %s",
-           nErr, __func__, raddr, size, domain, strerror(errno));
+           usererr, nErr, __func__, raddr, size, domain, strerror(errno));
+      nErr = usererr;
     }
   }
   return nErr;
@@ -718,7 +729,7 @@ bail:
 
 int remote_mmap64(int fd, uint32_t flags, uint64_t vaddrin, int64_t size,
                   uint64_t *vaddrout) {
-  int nErr = AEE_SUCCESS, log = 1;
+  int nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, log = 1;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -736,10 +747,12 @@ int remote_mmap64(int fd, uint32_t flags, uint64_t vaddrin, int64_t size,
   log = 0;           // so that we wont print error message twice
 bail:
   if ((nErr != AEE_SUCCESS) && (log == 1)) {
+    usererr = convert_dsp_error_to_user_error(nErr);
     FARF(ERROR,
-         "Error 0x%x: %s failed for fd 0x%x of size %lld (flags 0x%x, vaddrin "
+         "Error 0x%x/0x%x: %s failed for fd 0x%x of size %lld (flags 0x%x, vaddrin "
          "0x%llx)\n",
-         nErr, __func__, fd, size, flags, vaddrin);
+         usererr, nErr, __func__, fd, size, flags, vaddrin);
+    nErr = usererr;
   }
   return nErr;
 }
@@ -758,7 +771,7 @@ bail:
 }
 
 int remote_munmap64(uint64_t vaddrout, int64_t size) {
-  int dev, domain = DEFAULT_DOMAIN_ID, nErr = AEE_SUCCESS, ref = 0;
+  int dev, domain = DEFAULT_DOMAIN_ID, nErr = AEE_SUCCESS, usererr = AEE_SUCCESS, ref = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -773,9 +786,11 @@ bail:
   FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
     nErr = convert_kernel_to_user_error(nErr, errno);
+    usererr = convert_dsp_error_to_user_error(nErr);
     FARF(ERROR,
-         "Error 0x%x: %s failed for size %lld (vaddrout 0x%llx) errno %s\n",
-         nErr, __func__, size, vaddrout, strerror(errno));
+         "Error 0x%x/0x%x: %s failed for size %lld (vaddrout 0x%llx) errno %s\n",
+         usererr, nErr, __func__, size, vaddrout, strerror(errno));
+    nErr = usererr;
   }
   return nErr;
 }

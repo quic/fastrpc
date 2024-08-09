@@ -15,6 +15,7 @@ LIBDSPRPC_SOURCES = \
 		fastrpc_log.c \
 		fastrpc_procbuf.c \
 		fastrpc_cap.c \
+		fastrpc_error.c \
 		log_config.c \
 		dspsignal.c \
 		dspqueue/dspqueue_cpu.c \
