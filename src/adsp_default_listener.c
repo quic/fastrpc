@@ -121,6 +121,9 @@ static int fastrpc_wait_for_secure_device(int domain)
 	const char *dev_name = NULL;
 	struct pollfd pfd[1];
 
+	if (fastrpc_dev_exists(dev_name))
+		return 0;
+	
 	dev_name = get_secure_device_name(domain);
 
 	inotify_fd = inotify_init();
@@ -143,8 +146,6 @@ static int fastrpc_wait_for_secure_device(int domain)
 		int ret = 0;
 		char buffer[EVENT_BUF_LEN];
 
-		if (fastrpc_dev_exists(dev_name))
-			break;
 		ret = poll(pfd, 1, POLL_TIMEOUT);
 		if(ret < 0){
 			VERIFY_EPRINTF("Error: %s: polling for event failed errno(%s)\n", __func__, strerror(errno));
