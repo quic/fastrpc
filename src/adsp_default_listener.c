@@ -121,10 +121,10 @@ static int fastrpc_wait_for_secure_device(int domain)
 	const char *dev_name = NULL;
 	struct pollfd pfd[1];
 
+	dev_name = get_secure_device_name(domain);
+
 	if (fastrpc_dev_exists(dev_name))
 		return 0;
-	
-	dev_name = get_secure_device_name(domain);
 
 	inotify_fd = inotify_init();
 	if (inotify_fd < 0) {
