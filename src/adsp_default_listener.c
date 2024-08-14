@@ -30,13 +30,15 @@
 #define ROOTPD_NAME "rootpd"
 #define ATTACH_GUESTOS "attachguestos"
 #define CREATE_STATICPD "createstaticpd:"
-#define POLL_TIMEOUT	10 * 1000
+/* Set event poll timeout to 100ms */
+#define POLL_TIMEOUT	100
 #define EVENT_SIZE		( sizeof (struct inotify_event) )
 #define EVENT_BUF_LEN	( 1024 * ( EVENT_SIZE + 16 ) )
 #define ADSP_SECURE_DEVICE_NAME "fastrpc-adsp-secure"
 #define SDSP_SECURE_DEVICE_NAME "fastrpc-sdsp-secure"
 #define MDSP_SECURE_DEVICE_NAME "fastrpc-mdsp-secure"
 #define CDSP_SECURE_DEVICE_NAME "fastrpc-cdsp-secure"
+#define RETRY_POLLING_COUNT	100
 
 // Array of supported domain names and its corresponding ID's.
 static domain_t supported_domains[] = {{ADSP_DOMAIN_ID, ADSP_DOMAIN},
@@ -115,7 +117,7 @@ static boolean fastrpc_dev_exists(const char* dev_name)
  */
 static int fastrpc_wait_for_secure_device(int domain)
 {
-	int inotify_fd = -1, watch_fd = -1, err = 0;
+	int inotify_fd = -1, watch_fd = -1, err = 0, poll_count = 0;
 	const char *dev_name = NULL;
 	struct pollfd pfd[1];
 
@@ -153,6 +155,9 @@ static int fastrpc_wait_for_secure_device(int domain)
 			break;
 		}
 		if(ret == 0){
+			poll_count++;
+			if (poll_count < RETRY_POLLING_COUNT)
+				continue;
 			VERIFY_EPRINTF("Error: %s: Poll timeout\n", __func__);
 			err = AEE_EPOLL;
 			break;
