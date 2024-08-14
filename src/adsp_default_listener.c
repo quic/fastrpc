@@ -123,9 +123,6 @@ static int fastrpc_wait_for_secure_device(int domain)
 
 	dev_name = get_secure_device_name(domain);
 
-	if (fastrpc_dev_exists(dev_name))
-		return 0;
-
 	inotify_fd = inotify_init();
 	if (inotify_fd < 0) {
 		VERIFY_EPRINTF("Error: inotify_init failed, invalid fd errno = %s\n", strerror(errno));
