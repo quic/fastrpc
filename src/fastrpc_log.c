@@ -277,13 +277,12 @@ void HAP_debug(const char *msg, int level, const char *filename, int line) {
 }
 
 void fastrpc_log_init() {
-  bool debug_build_type = false;
+  bool debug_build_type = false, locked = false;
   int nErr = AEE_SUCCESS, fd = -1;
   char build_type[PROPERTY_VALUE_MAX];
-  char *logfilename;
+  char *logfilename = NULL;
 
   pthread_mutex_init(&persist_buf.mut, 0);
-  pthread_mutex_lock(&persist_buf.mut);
   /*
    * Get build type by reading the target properties,
    * if buuid type is eng or userdebug allocate 1 MB persist buf.
@@ -298,26 +297,37 @@ void fastrpc_log_init() {
       debug_build_type = true;
 #endif
   }
-  if (persist_buf.buf == NULL && debug_build_type) {
-    /* Create a debug buffer to append DEBUG FARF level message. */
-    persist_buf.buf = (char *)rpcmem_alloc_internal(
-        RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS | RPCMEM_TRY_MAP_STATIC,
-        DEBUG_BUF_SIZE * sizeof(char));
-    if (persist_buf.buf) {
-      fd = rpcmem_to_fd(persist_buf.buf);
-      FARF(RUNTIME_RPC_HIGH, "%s: persist_buf.buf created %d size %d", __func__,
-           fd, DEBUG_BUF_SIZE);
-      /* Appending header to persist buffer, to identify the start address
-       * through script. */
+  if ((hlist[domain].dsppd == USERPD ||
+      hlist[domain].dsppd == AUDIO_STATICPD  ||
+      hlist[domain].dsppd == SENSORS_STATICPD)
+      && debug_build_type) {
+    pthread_mutex_lock(&persist_buf.mut);
+    locked = true;
+    if (persist_buf.buf == NULL) {
+      /* Create a debug buffer to append DEBUG FARF level message. */
+      VERIFYC(NULL != (persist_buf.buf =
+             (char *)rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM,
+             RPCMEM_DEFAULT_FLAGS, DEBUG_BUF_SIZE * sizeof(char))),
+             AEE_ENOMEMORY);
+      /*
+       * Appending header to persist buffer, to identify the start
+       * address through script.
+       */
       std_strlcpy(persist_buf.buf, DEBUF_BUF_TRACE, DEBUG_BUF_SIZE);
       persist_buf.size = strlen(DEBUF_BUF_TRACE) + 1;
-    } else {
-      nErr = AEE_ENORPCMEMORY;
-      FARF(ERROR, "Error 0x%x: %s allocation failed for persist_buf of size %d",
-           nErr, __func__, DEBUG_BUF_SIZE);
+      FARF(ALWAYS, "%s allocation done for persist_buf 0x%p size %d",
+             __func__, persist_buf.buf, DEBUG_BUF_SIZE);
     }
+    locked = false;
+    pthread_mutex_unlock(&persist_buf.mut);
+    VERIFYC(0 < (fd = rpcmem_to_fd_internal(persist_buf.buf)),
+            AEE_EBADFD);
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_mmap(domain, fd,
+            persist_buf.buf, 0, DEBUG_BUF_SIZE * sizeof(char),
+            FASTRPC_MAP_STATIC)));
+    FARF(ALWAYS, "%s mapping done for persist_buf 0x%p fd %d of size %d on domain %d",
+        __func__, persist_buf.buf, fd, DEBUG_BUF_SIZE, domain);
   }
-  pthread_mutex_unlock(&persist_buf.mut);
   logfilename = fastrpc_config_get_userspace_runtime_farf_file();
   if (logfilename) {
     log_userspace_file_fd = fopen(logfilename, "w");
@@ -328,6 +338,14 @@ void fastrpc_log_init() {
     } else {
       FARF(RUNTIME_RPC_HIGH, "%s done\n", __func__);
     }
+  }
+bail:
+  if (locked) {
+    pthread_mutex_unlock(&persist_buf.mut);
+  }
+  if (nErr) {
+    FARF(ERROR, "Error 0x%x: %s failed for persist_buf %p fd %d of size %d on domain %d",
+         nErr, __func__, persist_buf.buf, fd, DEBUG_BUF_SIZE, domain);
   }
 }
 
