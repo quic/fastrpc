@@ -19,13 +19,13 @@
 
 /* Number of subsystem supported by fastRPC*/
 #ifndef NUM_DOMAINS
-#define NUM_DOMAINS 4
+#define NUM_DOMAINS 8
 #endif /*NUM_DOMAINS*/
 
 /* Number of sessions allowed per process */
 #ifndef NUM_SESSIONS
 #define NUM_SESSIONS 4
-#define DOMAIN_ID_MASK 3
+#define DOMAIN_ID_MASK 7
 #endif /*NUM_SESSIONS*/
 
 /* Default domain id, in case of non domains*/
