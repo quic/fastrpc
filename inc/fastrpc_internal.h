@@ -479,6 +479,10 @@ static __inline int convert_kernel_to_user_error(int nErr, int err_no) {
 	case EPERM: /* EPERM 1 Operation not permitted */
 		nErr = AEE_EBADPERMS;
 		break;
+  case ENOENT: /* No such file or directory */
+    nErr = AEE_ENOSUCH;
+  case EBUSY: /* Device or resource busy */
+    nErr = AEE_EITEMBUSY;
 	default:
 		nErr = AEE_ERPC;
 		break;
