@@ -230,7 +230,9 @@ static AEEResult init_domain_queues_locked(int domain) {
          "Error 0x%x: %s: obtaining session URI for %s on domain %d, session "
          "%u failed\n",
          nErr, __func__, dspqueue_rpc_URI, domain, dspqueue_skel.session_id);
-    nErr = AEE_EUNSUPPORTED;
+    /* In case of failure due to SSR, return corresponding error to client */
+    if (nErr != AEE_ECONNRESET)
+      nErr = AEE_EUNSUPPORTED;
     goto bail;
   }
 
@@ -239,7 +241,9 @@ static AEEResult init_domain_queues_locked(int domain) {
          "dspqueue_rpc_open failed with %x on domain %d - packet queue support "
          "likely not present on DSP",
          nErr, domain);
-    nErr = AEE_EUNSUPPORTED;
+    /* In case of failure due to SSR, return corresponding error to client */
+    if (nErr != AEE_ECONNRESET)
+      nErr = AEE_EUNSUPPORTED;
     goto bail;
   }
 
@@ -786,11 +790,17 @@ AEEResult dspqueue_close(dspqueue_t queue) {
 
   // Cancel any outstanding blocking read/write calls (from callback threads)
   if (q->have_driver_signaling) {
-    // Cancel driver signal waits
-    for (i = 0; i < DSPQUEUE_NUM_SIGNALS; i++) {
-      nErr = dspsignal_cancel_wait(q->domain, QUEUE_SIGNAL(q->id, i));
-      if (nErr && nErr != AEE_EBADSTATE) {
-        goto bail;
+    /*
+     * Cancel driver signal waits
+     * Not required in case of SSR (i.e AEE_ECONNRESET)
+     * as signals are cancelled by the SSR handle.
+     */
+    if (dq->dsp_error != AEE_ECONNRESET) {
+      for (i = 0; i < DSPQUEUE_NUM_SIGNALS; i++) {
+        nErr = dspsignal_cancel_wait(q->domain, QUEUE_SIGNAL(q->id, i));
+        if (nErr && nErr != AEE_EBADSTATE) {
+          goto bail;
+        }
       }
     }
   } else {
@@ -831,13 +841,19 @@ AEEResult dspqueue_close(dspqueue_t queue) {
                                   q->user_queue_size)) == 0);
   }
   rpcmem_free(q->user_queue);
-
+  /*
+   * In case of SSR (i.e., AEE_ECONNRESET), there is no need to call
+   * dspsignal_destroy as the process close during SSR cleans up
+   * signals.
+   */
   if (q->have_driver_signaling) {
-    FARF(MEDIUM, "%s: Destroy signals", __func__);
-    for (i = 0; i < DSPQUEUE_NUM_SIGNALS; i++) {
-      nErr = dspsignal_destroy(q->domain, QUEUE_SIGNAL(q->id, i));
-      if (nErr && nErr != AEE_EBADSTATE) {
-        goto bail;
+    if (dq->dsp_error != AEE_ECONNRESET) {
+      FARF(MEDIUM, "%s: Destroy signals", __func__);
+      for (i = 0; i < DSPQUEUE_NUM_SIGNALS; i++) {
+        nErr = dspsignal_destroy(q->domain, QUEUE_SIGNAL(q->id, i));
+        if (nErr && nErr != AEE_EBADSTATE) {
+          goto bail;
+        }
       }
     }
   }
