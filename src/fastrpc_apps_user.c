@@ -1440,7 +1440,6 @@ bail:
 
 int remote_handle_invoke(remote_handle handle, uint32_t sc, remote_arg *pra) {
   int domain = -1, nErr = AEE_SUCCESS, ref = 0;
-  struct handle_info *h = container_of((void*)(uint64_t)handle, struct handle_info, local);
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1461,12 +1460,16 @@ bail:
     if (is_process_exiting(domain)) {
       return 0;
     }
+    /*
+     * handle_info or so name cannot be obtained from remote handles which
+     * are used for non-domain calls.
+     */
     if (0 == check_rpc_error(nErr)) {
       if (get_logger_state(domain)) {
         FARF(ERROR,
-             "Error 0x%x: %s failed for module %s handle 0x%x, method %d on domain %d "
+             "Error 0x%x: %s failed for handle 0x%x, method %d on domain %d "
              "(sc 0x%x) (errno %s)\n",
-             nErr, __func__, h->name, (int)handle, REMOTE_SCALARS_METHOD(sc), domain, sc,
+             nErr, __func__, (int)handle, REMOTE_SCALARS_METHOD(sc), domain, sc,
              strerror(errno));
       }
     }
@@ -1479,7 +1482,7 @@ int remote_handle64_invoke(remote_handle64 local, uint32_t sc,
                            remote_arg *pra) {
   remote_handle64 remote = 0;
   int nErr = AEE_SUCCESS, domain = -1, ref = 0;
-  struct handle_info *h = container_of((void*)(uint64_t)local, struct handle_info, local);
+  struct handle_info *h = (struct handle_info*)local;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1779,6 +1782,7 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
     *ph = h;
   } else {
     fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain, h, &local, name);
+    get_handle_remote(local, &remote);
     *ph = local;
   }
 bail:
@@ -1797,7 +1801,7 @@ bail:
          ") for %s on domain %d (spawn time %" PRIu64 " us, load time %" PRIu64
          " us), num handles %u",
          __func__, (*ph), remote, name, domain, t_spawn, t_load,
-         hlist[domain].open_handle_count);
+         hlist[domain].domainsCount);
   }
   FASTRPC_ATRACE_END();
   return nErr;
@@ -1808,8 +1812,6 @@ int remote_handle_close_domain(int domain, remote_handle h) {
   int dlerr = 0, nErr = AEE_SUCCESS;
   size_t err_str_len = MAX_DLERRSTR_LEN * sizeof(char);
   uint64_t t_close = 0;
-  struct handle_info *hi = container_of((void*)(uint64_t)h, struct handle_info, local);
-  char *name = hi->name, *nullname = "(null)";
   remote_handle64 handle = INVALID_HANDLE;
 
   FASTRPC_ATRACE_BEGIN_L("%s called with handle 0x%x", __func__, (int)h);
@@ -1833,10 +1835,8 @@ bail:
            nErr, __func__, h, domain, dlerrstr, strerror(errno));
     }
   } else {
-    if(!name)
-      name = nullname;
-    FARF(ALWAYS, "%s: closed module %s with handle 0x%x (skel unload time %" PRIu64 " us)",
-         __func__, h, name, t_close);
+    FARF(ALWAYS, "%s: closed module with handle 0x%x (skel unload time %" PRIu64 " us)",
+         __func__, h, t_close);
   }
   if (dlerrstr) {
     free(dlerrstr);
@@ -1862,6 +1862,10 @@ bail:
     if (is_process_exiting(domain)) {
       return 0;
     }
+    /*
+     * handle_info or so name cannot be obtained from remote handles which
+     * are used for non-domain calls.
+     */
     if (0 == check_rpc_error(nErr)) {
       FARF(ERROR, "Error 0x%x: %s failed for handle 0x%x\n", nErr, __func__, h);
     }
@@ -1873,6 +1877,7 @@ int remote_handle64_close(remote_handle64 handle) {
   remote_handle64 remote = 0;
   int domain = -1, nErr = AEE_SUCCESS, ref = 1;
   bool start_deinit = false;
+  struct handle_info *hi = (struct handle_info*)handle;
 
   FARF(RUNTIME_RPC_HIGH, "Entering %s, handle %llu\n", __func__, handle);
   FASTRPC_ATRACE_BEGIN_L("%s called with handle 0x%" PRIx64 "\n", __func__,
@@ -1898,6 +1903,9 @@ int remote_handle64_close(remote_handle64 handle) {
     VERIFY(AEE_SUCCESS ==
            (nErr = remote_handle_close_domain(domain, (remote_handle)remote)));
   }
+  FARF(ALWAYS, "%s: closed module %s with handle 0x%" PRIx64 " remote handle 0x%" PRIx64
+		", num of open handles: %u",
+         __func__, hi->name, handle, remote, hlist[domain].domainsCount - 1);
   fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL, NULL);
   FASTRPC_PUT_REF(domain);
 bail:
@@ -1911,15 +1919,11 @@ bail:
         return 0;
       if (0 == check_rpc_error(nErr)) 
         FARF(ERROR,
-           "Error 0x%x: %s failed for handle 0x%" PRIx64
+           "Error 0x%x: %s close module %s failed for handle 0x%" PRIx64
            " remote handle 0x%" PRIx64 " (errno %s), num of open handles: %u\n",
-           nErr, __func__, handle, remote, strerror(errno),
+           nErr, __func__, hi->name, handle, remote, strerror(errno),
            hlist[domain].domainsCount);
-    } else 
-       FARF(ALWAYS,
-          "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
-          ", num of open handles: %u",
-          __func__, handle, remote, hlist[domain].domainsCount);
+    }
   }
   FASTRPC_ATRACE_END();
   return nErr;
