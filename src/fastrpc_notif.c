@@ -26,6 +26,7 @@
 #include "HAP_farf.h"
 #include "fastrpc_common.h"
 #include "fastrpc_notif.h"
+#include "fastrpc_error.h"
 #include "platform_libs.h"
 #include "verify.h"
 
