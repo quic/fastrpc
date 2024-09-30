@@ -625,7 +625,7 @@ int fastrpc_set_remote_uthread_params(int domain) {
   if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
     nErr = remotectl1_set_param(handle, th_params->reqID, (uint32_t *)th_params,
                                 paramsLen);
-    if (nErr) {
+    if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
       FARF(ALWAYS,
            "Warning 0x%x: %s: remotectl1 domains not supported for domain %d\n",
            nErr, __func__, domain);
@@ -1670,7 +1670,7 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
       if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
         nErr = remotectl1_open1(handle, name, (int *)ph, dlerrstr,
                                 sizeof(dlerrstr), &dlerr);
-        if (nErr) {
+        if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
           FARF(ALWAYS,
                "Warning 0x%x: %s: remotectl1 domains not supported for domain "
                "%d\n",
@@ -1820,8 +1820,21 @@ int remote_handle_close_domain(int domain, remote_handle h) {
   PROFILE_ALWAYS(
       &t_close,
       if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
-        VERIFY(AEE_SUCCESS == (nErr = remotectl1_close1(handle, h, dlerrstr,
-                                                        err_str_len, &dlerr)));
+        nErr = remotectl1_close1(handle, h, dlerrstr, err_str_len, &dlerr);
+        if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
+          FARF(ALWAYS,
+               "Warning 0x%x: %s: remotectl1 domains not supported for domain "
+               "%d\n",
+               nErr, __func__, domain);
+          fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
+                                     _const_remotectl1_handle, NULL, NULL);
+
+          // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
+          // are non-domain calls
+          hlist[domain].remotectlhandle = INVALID_HANDLE;
+          nErr = remotectl_close(h, dlerrstr, err_str_len, &dlerr);
+        } else if (nErr)
+          goto bail;
       } else {
         VERIFY(AEE_SUCCESS ==
                (nErr = remotectl_close(h, dlerrstr, err_str_len, &dlerr)));
@@ -1948,7 +1961,7 @@ static int manage_adaptive_qos(int domain, uint32_t enable) {
      */
     if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
       nErr = remotectl1_set_param(handle, RPC_ADAPTIVE_QOS, &enable, 1);
-      if (nErr) {
+      if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
         FARF(ALWAYS,
              "Warning 0x%x: %s: remotectl1 domains not supported for domain "
              "%d\n",
