@@ -343,15 +343,18 @@ static void *listener_start_thread(void *arg) {
    * Otherwise, the init2() call will go to default domain.
    */
   set_thread_context(domain);
-  adsp_listener1_handle = get_adsp_listener1_handle(domain);
-  nErr = __QAIC_HEADER(adsp_listener1_init2)(adsp_listener1_handle);
-  if (nErr) {
-    FARF(ERROR, "Error 0x%x: %s domains support not available in listener",
-         nErr, __func__);
-    fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, _const_adsp_listener1_handle, NULL, NULL);
-    VERIFY(AEE_SUCCESS == (nErr = __QAIC_HEADER(adsp_listener_init2)()));
+  if ((adsp_listener1_handle = get_adsp_listener1_handle(domain)) != INVALID_HANDLE) {
+    nErr = __QAIC_HEADER(adsp_listener1_init2)(adsp_listener1_handle);
+    if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
+      FARF(ERROR, "Error 0x%x: %s domains support not available in listener",
+           nErr, __func__);
+      fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, _const_adsp_listener1_handle, NULL, NULL);
+      adsp_listener1_handle = INVALID_HANDLE;
+      VERIFY(AEE_SUCCESS == (nErr = __QAIC_HEADER(adsp_listener_init2)()));
+    } else if (nErr == AEE_SUCCESS)
+      me->adsp_listener1_handle = adsp_listener1_handle;
   } else {
-    me->adsp_listener1_handle = adsp_listener1_handle;
+    VERIFY(AEE_SUCCESS == (nErr = __QAIC_HEADER(adsp_listener_init2)()));
   }
 
   if (me->update_requested) {
