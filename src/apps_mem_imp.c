@@ -112,7 +112,7 @@ __QAIC_IMPL(apps_mem_request_map64)(int heapid, uint32 lflags, uint32 rflags,
     VERIFYC(NULL != (buf = rpcmem_alloc_internal(heapid, lflags, len)),
             AEE_ENORPCMEMORY);
     VERIFYC(0 < (fd = rpcmem_to_fd_internal(buf)), AEE_EBADFD);
-
+    rpcmem_set_dmabuf_name("dsp", fd, heapid, buf, lflags);
     /* Using FASTRPC_MAP_FD_DELAYED as only HLOS mapping is reqd at this point
      */
     VERIFY(AEE_SUCCESS == (nErr = fastrpc_mmap(domain, fd, buf, 0, len,
@@ -140,6 +140,7 @@ __QAIC_IMPL(apps_mem_request_map64)(int heapid, uint32 lflags, uint32 rflags,
               AEE_ENORPCMEMORY);
       fd = rpcmem_to_fd_internal(buf);
       VERIFYC(fd > 0, AEE_EBADPARM);
+      rpcmem_set_dmabuf_name("dsp", fd, heapid, buf, lflags);
     }
     VERIFY(AEE_SUCCESS ==
            (nErr = remote_mmap64_internal(fd, rflags, (uint64_t)buf, len,
@@ -208,17 +209,23 @@ __QAIC_IMPL(apps_mem_request_unmap64)(uint64 vadsp,
     }
   }
   pthread_mutex_unlock(&memmt[domain]);
-  VERIFYC(mfree, AEE_ENOSUCHMAP);
 
   /* If apps_mem_request_map64 was called with flag FASTRPC_ALLOC_HLOS_FD,
    * use fastrpc_munmap else use remote_munmap64 to unmap.
    */
-  if (mfree->rflags == FASTRPC_ALLOC_HLOS_FD) {
-    fd = (int)vadsp;
-    VERIFY(AEE_SUCCESS == (nErr = fastrpc_munmap(domain, fd, 0, len)));
-  } else {
-    VERIFY(AEE_SUCCESS == (nErr = remote_munmap64((uint64_t)vadsp, len)));
-  }
+   if(mfree && mfree->rflags == FASTRPC_ALLOC_HLOS_FD) {
+      fd = (int)vadsp;
+      VERIFY(AEE_SUCCESS == (nErr = fastrpc_munmap(domain, fd, 0, len)));
+   } else if (mfree || fastrpc_get_pd_type(domain) == AUDIO_STATICPD){
+      /*
+       * Map info not available for Audio static PD after daemon reconnect,
+       * So continue to unmap to avoid driver global maps leak.
+       */
+      VERIFY(AEE_SUCCESS == (nErr = remote_munmap64((uint64_t)vadsp, len)));
+      if (!mfree)
+         goto bail;
+   }
+   VERIFYC(mfree, AEE_ENOSUCHMAP);
 
   /* Dequeue done after unmap to prevent leaks in case unmap fails */
   pthread_mutex_lock(&memmt[domain]);

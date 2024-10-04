@@ -285,6 +285,7 @@ struct handle_info {
   struct handle_list *hlist;
   remote_handle64 local;
   remote_handle64 remote;
+  char *name;
 };
 
 // Fastrpc client notification request node to be queued to <notif_list>
@@ -629,7 +630,7 @@ int fastrpc_set_remote_uthread_params(int domain) {
            "Warning 0x%x: %s: remotectl1 domains not supported for domain %d\n",
            nErr, __func__, domain);
       fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                 hlist[domain].remotectlhandle, NULL);
+                                 _const_remotectl1_handle, NULL, NULL);
 
       // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls are
       // non-domain calls
@@ -716,7 +717,7 @@ int get_domain_from_handle(remote_handle64 local, int *domain) {
 
   VERIFY(AEE_SUCCESS == (nErr = verify_local_handle(-1, local)));
   dom = (int)(hinfo->hlist - &hlist[0]);
-  VERIFYM((dom >= 0) && (dom < NUM_DOMAINS_EXTEND), AEE_EINVHANDLE,
+  VERIFYM(IS_VALID_EFFECTIVE_DOMAIN_ID(dom), AEE_EINVHANDLE,
           "Error 0x%x: domain mapped to handle is out of range domain %d "
           "handle 0x%" PRIx64 "\n",
           nErr, dom, local);
@@ -790,21 +791,6 @@ static const char *get_domain_from_id(int domain_id) {
 
 #define IS_CONST_HANDLE(h) (((h) < 0xff) ? 1 : 0)
 
-static bool is_last_handle(int domain) {
-  int nErr = AEE_SUCCESS, last = 0;
-
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
-  pthread_mutex_lock(&hlist[domain].lmut);
-  last = hlist[domain].domainsCount + hlist[domain].nondomainsCount;
-  pthread_mutex_unlock(&hlist[domain].lmut);
-bail:
-  if (nErr != AEE_SUCCESS) {
-    VERIFY_IPRINTF("Error 0x%x: %s failed for domain %d\n", nErr, __func__,
-                   domain);
-  }
-  return (last == 0);
-}
-
 static int get_handle_remote(remote_handle64 local, remote_handle64 *remote) {
   struct handle_info *hinfo = (struct handle_info *)(uintptr_t)local;
   int nErr = AEE_SUCCESS;
@@ -822,14 +808,70 @@ inline int is_smmu_enabled(void) {
   return hlist[get_current_domain()].info & FASTRPC_INFO_SMMU;
 }
 
+/**
+ * print_open_handles() - Function to print all open handles.
+ * @domain: domain of handles to be printed.
+ * Return: void.
+ */
+static void print_open_handles(int domain) {
+	struct handle_info *hi = NULL;
+	QNode *pn = NULL;
+
+	FARF(ALWAYS, "List of open handles on domain %d:\n", domain);
+	pthread_mutex_lock(&hlist[domain].mut);
+	QLIST_FOR_ALL(&hlist[domain].ql, pn) {
+		hi = STD_RECOVER_REC(struct handle_info, qn, pn);
+		if (hi->name)
+			FARF(ALWAYS, "%s, handle 0x%"PRIx64"",
+				hi->name, hi->remote);
+	}
+	pthread_mutex_unlock(&hlist[domain].mut);
+}
+
+/**
+ * get_lib_name() - Function to get lib name from uri.
+ * @uri: uri for the lib.
+ * Return: @lib_name or NULL
+ */
+static char* get_lib_name(const char *uri) {
+	char *library_name = NULL;
+	const char SO_EXTN[] = ".so";
+	const char LIB_EXTN[] = "lib";
+	const char *start = NULL, *end = NULL;
+	unsigned int length = 0;
+	int nErr = AEE_SUCCESS;
+
+  VERIFY(uri);
+  start = std_strstr(uri, LIB_EXTN);
+	if (start) {
+		end = std_strstr(start, SO_EXTN);
+		if (end && end > start) {
+			/* add extension size to print .so also */
+			length = (unsigned int)(end - start) + std_strlen(SO_EXTN);
+			/* allocate length + 1 to include \0 */
+			VERIFYC(NULL != (library_name =
+				(char*)calloc(1, length + 1)), AEE_ENOMEMORY);
+			std_strlcpy(library_name, start, length + 1);
+			return library_name;
+		}
+	}
+bail:
+	FARF(ERROR, "Warning 0x%x: %s failed for uri %s",
+		nErr, __func__, uri);
+  return NULL;
+}
+
 static int fastrpc_alloc_handle(int domain, QList *me, remote_handle64 remote,
-                                remote_handle64 *local) {
+                                remote_handle64 *local, const char *name) {
   struct handle_info *hinfo = {0};
   int nErr = 0;
+  char *libname = NULL;
 
   VERIFYC(NULL != (hinfo = calloc(1, sizeof(*hinfo))), AEE_ENOMEMORY);
   hinfo->local = (remote_handle64)(uintptr_t)hinfo;
   hinfo->remote = remote;
+  libname = get_lib_name(name);
+  hinfo->name = libname;
   hinfo->hlist = &hlist[domain];
   *local = hinfo->local;
 
@@ -855,6 +897,8 @@ static int fastrpc_free_handle(int domain, QList *me, remote_handle64 remote) {
       struct handle_info *hi = STD_RECOVER_REC(struct handle_info, qn, pn);
       if (hi->remote == remote) {
         QNode_DequeueZ(&hi->qn);
+        if(hi->name)
+          free(hi->name);
         free(hi);
         hi = NULL;
         break;
@@ -866,13 +910,13 @@ static int fastrpc_free_handle(int domain, QList *me, remote_handle64 remote) {
 }
 
 int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
-                               remote_handle64 *local) {
+                               remote_handle64 *local, const char *name) {
   int nErr = AEE_SUCCESS;
 
   switch (req) {
   case DOMAIN_LIST_PREPEND: {
     VERIFY(AEE_SUCCESS ==
-           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].ql, h, local)));
+           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].ql, h, local, name)));
     if(IS_CONST_HANDLE(h)) {
       pthread_mutex_lock(&hlist[domain].lmut);
       hlist[domain].constCount++;
@@ -900,7 +944,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
   }
   case NON_DOMAIN_LIST_PREPEND: {
     VERIFY(AEE_SUCCESS ==
-           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].nql, h, local)));
+           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].nql, h, local, name)));
     pthread_mutex_lock(&hlist[domain].lmut);
     hlist[domain].nondomainsCount++;
     pthread_mutex_unlock(&hlist[domain].lmut);
@@ -916,7 +960,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
   }
   case REVERSE_HANDLE_LIST_PREPEND: {
     VERIFY(AEE_SUCCESS ==
-           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].rql, h, local)));
+           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].rql, h, local, name)));
     pthread_mutex_lock(&hlist[domain].lmut);
     hlist[domain].reverseCount++;
     pthread_mutex_unlock(&hlist[domain].lmut);
@@ -1168,7 +1212,7 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
   }
 
   req = INVOKE;
-  VERIFYC(!(NULL == args && NULL == pra && total > 0), AEE_EBADPARM);
+  VERIFYC(!(NULL == pra && total > 0), AEE_EBADPARM);
   for (i = 0; i < bufs; i++) {
     set_args(i, pra[i].buf.pv, pra[i].buf.nLen, -1, 0);
     if (pra[i].buf.nLen) {
@@ -1416,6 +1460,10 @@ bail:
     if (is_process_exiting(domain)) {
       return 0;
     }
+    /*
+     * handle_info or so name cannot be obtained from remote handles which
+     * are used for non-domain calls.
+     */
     if (0 == check_rpc_error(nErr)) {
       if (get_logger_state(domain)) {
         FARF(ERROR,
@@ -1434,6 +1482,7 @@ int remote_handle64_invoke(remote_handle64 local, uint32_t sc,
                            remote_arg *pra) {
   remote_handle64 remote = 0;
   int nErr = AEE_SUCCESS, domain = -1, ref = 0;
+  struct handle_info *h = (struct handle_info*)local;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1455,9 +1504,9 @@ bail:
     if (0 == check_rpc_error(nErr)) {
       if (get_logger_state(domain)) {
         FARF(ERROR,
-             "Error 0x%x: %s failed for handle 0x%" PRIx64
+             "Error 0x%x: %s failed for module %s, handle 0x%" PRIx64
              ", method %d on domain %d (sc 0x%x) (errno %s)\n",
-             nErr, __func__, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
+             nErr, __func__, h->name, local, REMOTE_SCALARS_METHOD(sc), domain, sc,
              strerror(errno));
       }
     }
@@ -1627,7 +1676,7 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
                "%d\n",
                nErr, __func__, domain);
           fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                     hlist[domain].remotectlhandle, NULL);
+                                     _const_remotectl1_handle, NULL, NULL);
 
           // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
           // are non-domain calls
@@ -1653,7 +1702,8 @@ bail:
     pdname_uri = NULL;
   }
   if (nErr == AEE_ECONNRESET) {
-    if (is_last_handle(domain)) {
+      if (!hlist[domain].domainsCount && !hlist[domain].nondomainsCount) {
+      /* Close session if there are no open remote handles */
       hlist[domain].disable_exit_logs = 1;
       domain_deinit(domain);
     }
@@ -1682,7 +1732,7 @@ int remote_handle_open(const char *name, remote_handle *ph) {
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_open_domain(domain, name, ph,
                                                           &t_spawn, &t_load)));
-  fastrpc_update_module_list(NON_DOMAIN_LIST_PREPEND, domain, *ph, &local);
+  fastrpc_update_module_list(NON_DOMAIN_LIST_PREPEND, domain, *ph, &local, name);
 bail:
   if (nErr) {
     if (*ph) {
@@ -1722,7 +1772,6 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
   domain = get_domain_from_name(name, DOMAIN_NAME_IN_URI);
   VERIFYC(domain >= 0, AEE_EBADPARM);
   FASTRPC_GET_REF(domain);
-  hlist[domain].domainsupport = 1;
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_open_domain(domain, name, &h,
                                                           &t_spawn, &t_load)));
   /* Returning local handle to "geteventd" call causes bad fd error when daemon
@@ -1732,7 +1781,8 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
                    std_strlen(ITRANSPORT_PREFIX "geteventfd"))) {
     *ph = h;
   } else {
-    fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain, h, &local);
+    fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain, h, &local, name);
+    get_handle_remote(local, &remote);
     *ph = local;
   }
 bail:
@@ -1751,7 +1801,7 @@ bail:
          ") for %s on domain %d (spawn time %" PRIu64 " us, load time %" PRIu64
          " us), num handles %u",
          __func__, (*ph), remote, name, domain, t_spawn, t_load,
-         hlist[domain].open_handle_count);
+         hlist[domain].domainsCount);
   }
   FASTRPC_ATRACE_END();
   return nErr;
@@ -1785,13 +1835,15 @@ bail:
            nErr, __func__, h, domain, dlerrstr, strerror(errno));
     }
   } else {
-    FARF(ALWAYS, "%s: closed handle 0x%x (skel unload time %" PRIu64 " us)",
+    FARF(ALWAYS, "%s: closed module with handle 0x%x (skel unload time %" PRIu64 " us)",
          __func__, h, t_close);
   }
   if (dlerrstr) {
     free(dlerrstr);
     dlerrstr = NULL;
   }
+  if (domain != -1)
+    print_open_handles(domain);
   FASTRPC_ATRACE_END();
   return nErr;
 }
@@ -1804,12 +1856,16 @@ int remote_handle_close(remote_handle h) {
   PRINT_WARN_USE_DOMAINS();
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_close_domain(domain, h)));
   FASTRPC_PUT_REF(domain);
-  fastrpc_update_module_list(NON_DOMAIN_LIST_DEQUEUE, domain, h, NULL);
+  fastrpc_update_module_list(NON_DOMAIN_LIST_DEQUEUE, domain, h, NULL, NULL);
 bail:
   if (nErr != AEE_SUCCESS) {
     if (is_process_exiting(domain)) {
       return 0;
     }
+    /*
+     * handle_info or so name cannot be obtained from remote handles which
+     * are used for non-domain calls.
+     */
     if (0 == check_rpc_error(nErr)) {
       FARF(ERROR, "Error 0x%x: %s failed for handle 0x%x\n", nErr, __func__, h);
     }
@@ -1820,6 +1876,8 @@ bail:
 int remote_handle64_close(remote_handle64 handle) {
   remote_handle64 remote = 0;
   int domain = -1, nErr = AEE_SUCCESS, ref = 1;
+  bool start_deinit = false;
+  struct handle_info *hi = (struct handle_info*)handle;
 
   FARF(RUNTIME_RPC_HIGH, "Entering %s, handle %llu\n", __func__, handle);
   FASTRPC_ATRACE_BEGIN_L("%s called with handle 0x%" PRIx64 "\n", __func__,
@@ -1828,38 +1886,44 @@ int remote_handle64_close(remote_handle64 handle) {
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(handle, &domain)));
   VERIFY(AEE_SUCCESS == (nErr = get_handle_remote(handle, &remote)));
   set_thread_context(domain);
-  if (remote) {
+  /*
+   * Terminate remote session if
+   *     1. there are no open non-domain handles AND
+   *     2. there are no open multi-domain handles, OR
+   *        only 1 multi-domain handle is open (for perf reason,
+   *        skip closing of it)
+   */
+  if (hlist[domain].domainsCount <= 1 && !hlist[domain].nondomainsCount)
+    start_deinit = true;
+  /*
+   * If session termination is not initiated and the remote handle is valid,
+   * then close the remote handle on DSP.
+   */
+  if (!start_deinit && remote) {
     VERIFY(AEE_SUCCESS ==
            (nErr = remote_handle_close_domain(domain, (remote_handle)remote)));
   }
-  fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL);
+  FARF(ALWAYS, "%s: closed module %s with handle 0x%" PRIx64 " remote handle 0x%" PRIx64
+		", num of open handles: %u",
+         __func__, hi->name, handle, remote, hlist[domain].domainsCount - 1);
+  fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL, NULL);
   FASTRPC_PUT_REF(domain);
 bail:
-  if (nErr != AEE_EINVHANDLE && is_domain_valid(domain)) {
-    if (is_valid_local_handle(domain, (struct handle_info *)handle)) {
-      if (is_last_handle(domain)) {
+  if (nErr != AEE_EINVHANDLE && IS_VALID_EFFECTIVE_DOMAIN_ID(domain)) {
+    if (start_deinit) {
         hlist[domain].disable_exit_logs = 1;
         domain_deinit(domain);
-      }
-    } else {
-      nErr = AEE_ERPC;
     }
-  } else if (nErr != AEE_SUCCESS) {
-    if (is_process_exiting(domain)) {
-      return 0;
-    }
-    if (0 == check_rpc_error(nErr)) {
-      FARF(ERROR,
-           "Error 0x%x: %s failed for handle 0x%" PRIx64
+    if (nErr != AEE_SUCCESS) {
+      if (is_process_exiting(domain))
+        return 0;
+      if (0 == check_rpc_error(nErr)) 
+        FARF(ERROR,
+           "Error 0x%x: %s close module %s failed for handle 0x%" PRIx64
            " remote handle 0x%" PRIx64 " (errno %s), num of open handles: %u\n",
-           nErr, __func__, handle, remote, strerror(errno),
-           hlist[domain].open_handle_count);
+           nErr, __func__, hi->name, handle, remote, strerror(errno),
+           hlist[domain].domainsCount);
     }
-  } else {
-    FARF(ALWAYS,
-         "%s: closed handle 0x%" PRIx64 " remote handle 0x%" PRIx64
-         ", num of open handles: %u",
-         __func__, handle, remote, hlist[domain].open_handle_count);
   }
   FASTRPC_ATRACE_END();
   return nErr;
@@ -1890,7 +1954,7 @@ static int manage_adaptive_qos(int domain, uint32_t enable) {
              "%d\n",
              nErr, __func__, domain);
         fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                   hlist[domain].remotectlhandle, NULL);
+                                   _const_remotectl1_handle, NULL, NULL);
 
         // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
         // are non-domain calls
@@ -2247,7 +2311,7 @@ int remote_handle_control_domain(int domain, remote_handle64 h, uint32_t req,
 
     (void)dev;
     VERIFYC(cap, AEE_EBADPARM);
-    VERIFYC(cap->domain >= 0 && cap->domain < NUM_DOMAINS_EXTEND, AEE_EBADPARM);
+    VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(cap->domain), AEE_EBADPARM);
 
     nErr = fastrpc_get_cap(cap->domain, cap->attribute_ID, &cap->capability);
     VERIFY(AEE_SUCCESS == nErr);
@@ -2396,7 +2460,7 @@ int get_unsigned_pd_attribute(uint32 domain, int *unsigned_module) {
 
   VERIFYC(hlist, AEE_EBADPARM);
   VERIFYC(unsigned_module, AEE_EBADPARM);
-  VERIFYC(domain < NUM_DOMAINS_EXTEND, AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   *unsigned_module = hlist[domain].unsigned_module;
 bail:
   return nErr;
@@ -2406,7 +2470,7 @@ static int set_unsigned_pd_attribute(int domain, int enable) {
   int nErr = AEE_SUCCESS;
 
   VERIFYC(hlist, AEE_EBADPARM);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   if (hlist[domain].dev != -1) {
     if (hlist[domain].unsigned_module == enable) {
       FARF(HIGH, "%s: %s session already open on domain %d , enable %d ",
@@ -2435,7 +2499,7 @@ static int store_domain_thread_params(int domain, int thread_priority,
   int nErr = AEE_SUCCESS;
 
   VERIFYC(hlist, AEE_EBADPARM);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   if (thread_priority != -1) {
     if ((thread_priority < MIN_THREAD_PRIORITY) ||
         (thread_priority > MAX_THREAD_PRIORITY)) {
@@ -2483,7 +2547,7 @@ static int set_pd_dump_attribute(int domain, int enable) {
   int nErr = AEE_SUCCESS;
 
   VERIFYC(hlist, AEE_ERPC);
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADPARM);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   if (hlist[domain].dev != -1) {
     nErr = AEE_ERPC;
     FARF(ERROR,
@@ -2543,7 +2607,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     }
     VERIFYC(datalen == sizeof(struct remote_rpc_thread_params), AEE_EBADPARM);
     if (params->domain != -1) {
-      if ((params->domain < 0) || (params->domain >= NUM_DOMAINS_EXTEND)) {
+      if (!IS_VALID_EFFECTIVE_DOMAIN_ID(params->domain)) {
         nErr = AEE_EBADPARM;
         FARF(RUNTIME_RPC_LOW, "%s: Invalid domain ID %d passed", __func__,
              params->domain);
@@ -2572,7 +2636,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
             AEE_EBADPARM);
     VERIFYC(um != NULL, AEE_EBADPARM);
     if (um->domain != -1) {
-      VERIFYC((um->domain >= 0) && (um->domain < NUM_DOMAINS_EXTEND),
+      VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(um->domain),
               AEE_EBADPARM);
       VERIFY(AEE_SUCCESS ==
              (nErr = set_unsigned_pd_attribute(um->domain, um->enable)));
@@ -2608,7 +2672,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
               : (thread_priority + rel_thread_prio);
     }
     if (params->domain != -1) {
-      VERIFYC((params->domain >= 0) && (params->domain < NUM_DOMAINS_EXTEND),
+      VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(params->domain),
               AEE_EBADPARM);
       VERIFY(AEE_SUCCESS == (nErr = store_domain_thread_params(
                                  params->domain, thread_priority, -1)));
@@ -2646,7 +2710,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     }
     VERIFYC(datalen == sizeof(struct remote_rpc_session_close), AEE_EBADPARM);
     if (sclose->domain != -1) {
-      VERIFYC((sclose->domain >= 0) && (sclose->domain < NUM_DOMAINS_EXTEND),
+      VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(sclose->domain),
               AEE_EBADPARM);
       VERIFY(AEE_SUCCESS == (nErr = close_domain_session(sclose->domain)));
     } else {
@@ -2686,7 +2750,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     VERIFYC(datalen == sizeof(remote_rpc_process_exception), AEE_EBADPARM);
     VERIFYC(dp, AEE_EBADPARM);
     domain = dp->domain;
-    VERIFYC(domain >= 0 && domain < NUM_DOMAINS_EXTEND, AEE_EBADPARM);
+    VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
     /*
      * If any request causes exception on DSP, DSP returns AEE_EBADSTATE for the
      * request thread.
@@ -2710,7 +2774,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     VERIFYC(datalen == sizeof(struct remote_process_type), AEE_EBADPARM);
     VERIFYC(typ, AEE_EBADPARM);
     domain = typ->domain;
-    VERIFYC(domain >= 0 && domain < NUM_DOMAINS_EXTEND, AEE_EBADPARM);
+    VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
     ret_val = hlist[domain].unsigned_module;
     if (ret_val != PROCESS_TYPE_UNSIGNED && ret_val != PROCESS_TYPE_SIGNED) {
       typ->process_type = -1;
@@ -2748,7 +2812,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     VERIFYC(datalen == sizeof(struct remote_rpc_pd_initmem_size), AEE_EBADPARM);
     VERIFYC(params != NULL, AEE_EBADPARM);
     if (params->domain != -1) {
-      if ((params->domain < 0) || (params->domain >= NUM_DOMAINS_EXTEND)) {
+      if (!IS_VALID_EFFECTIVE_DOMAIN_ID(params->domain)) {
         nErr = AEE_EBADPARM;
         FARF(ERROR, "%s: Invalid domain ID %d passed", __func__,
              params->domain);
@@ -2817,7 +2881,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
       // Increment the session
       jj++;
     } while (ii < NUM_DOMAINS_EXTEND);
-    VERIFYC(sess->effective_domain_id < NUM_DOMAINS_EXTEND, AEE_ENOSESSION);
+    VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(sess->effective_domain_id), AEE_ENOSESSION);
     break;
   }
   case FASTRPC_GET_EFFECTIVE_DOMAIN_ID: {
@@ -2833,7 +2897,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     VERIFYC(domain >= 0 && domain < NUM_DOMAINS, AEE_EBADPARM);
     effec_domain_id->effective_domain_id =
         GET_EFFECTIVE_DOMAIN_ID(domain, effec_domain_id->session_id);
-    VERIFYC(effec_domain_id->effective_domain_id < NUM_DOMAINS_EXTEND,
+    VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(effec_domain_id->effective_domain_id),
             AEE_ENOSESSION);
     break;
   }
@@ -2847,7 +2911,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
             AEE_EBADPARM);
     domain =
         get_domain_from_name(rpc_uri->domain_name, DOMAIN_NAME_STAND_ALONE);
-    VERIFYC(domain >= 0 && domain < NUM_DOMAINS, AEE_EBADPARM);
+    VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
     VERIFYC(rpc_uri->module_uri != NULL && rpc_uri->module_uri_len > 0,
             AEE_EBADPARM);
     VERIFYC(rpc_uri->uri != NULL && rpc_uri->uri_len > rpc_uri->module_uri_len,
@@ -2951,6 +3015,14 @@ bail:
   return domain;
 }
 
+int fastrpc_get_pd_type(int domain) {
+	if (hlist && (hlist[domain].dev != -1)) {
+		return hlist[domain].dsppd;
+	} else {
+		return -1;
+	}
+}
+
 int get_current_domain(void) {
   struct handle_list *list;
   int domain = -1;
@@ -2962,7 +3034,7 @@ int get_current_domain(void) {
   if (list) {
     domain = (int)(list - &hlist[0]);
   }
-  if (domain < 0 || domain >= NUM_DOMAINS_EXTEND) {
+  if (!IS_VALID_EFFECTIVE_DOMAIN_ID(domain)) {
     // use default domain if thread tlskey not found
     domain = DEFAULT_DOMAIN_ID;
   }
@@ -2973,7 +3045,7 @@ bool is_process_exiting(int domain) {
   int nErr = 0, state = 1;
 
   (void)nErr;
-  VERIFYC((domain >= 0) && (domain < NUM_DOMAINS_EXTEND), AEE_EBADDOMAIN);
+  VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADDOMAIN);
   pthread_mutex_lock(&hlist[domain].mut);
   state = hlist[domain].state;
   pthread_mutex_unlock(&hlist[domain].mut);
@@ -3069,7 +3141,6 @@ static void domain_deinit(int domain) {
     hlist[domain].cphandle = 0;
     hlist[domain].msghandle = 0;
     hlist[domain].remotectlhandle = 0;
-    hlist[domain].domainsupport = 0;
     hlist[domain].listenerhandle = 0;
     hlist[domain].dev = -1;
     hlist[domain].info = -1;
@@ -3576,7 +3647,7 @@ static int remote_init(int domain) {
     }
 
     // Set session id
-    if (domain >= NUM_DOMAINS && domain < NUM_DOMAINS_EXTEND)
+    if (IS_EXTENDED_DOMAIN_ID(domain))
       VERIFY(AEE_SUCCESS == (nErr = ioctl_setmode(dev, FASTRPC_SESSION_ID1)));
 
     FARF(RUNTIME_RPC_HIGH, "%s: device %d opened with info 0x%x (attach %d)",
@@ -3613,9 +3684,9 @@ static int remote_init(int domain) {
                   std_strlen(hlist[domain].dsppdname) + 1);
       filelen = std_strlen(hlist[domain].dsppdname) + 1;
       flags = FASTRPC_INIT_CREATE_STATIC;
-      // 2MB of remote heap for dynamic loading is available only for Audio PD.
+      // 3MB of remote heap for dynamic loading is available only for Audio PD.
       if (pd_type == AUDIO_STATICPD) {
-        memlen = 2 * 1024 * 1024;
+        memlen = 3 * 1024 * 1024;
       }
       ioErr =
           ioctl_init(dev, flags, 0, (byte *)file, filelen, -1, 0, memlen, 0, 0);
@@ -3756,7 +3827,7 @@ remote_handle64 get_adsp_current_process1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
                              DOMAIN_LIST_PREPEND, domain,
-                             _const_adsp_current_process1_handle, &local)));
+                             _const_adsp_current_process1_handle, &local, NULL)));
   hlist[domain].cphandle = local;
   return hlist[domain].cphandle;
 bail:
@@ -3778,7 +3849,7 @@ remote_handle64 get_adspmsgd_adsp1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
                              DOMAIN_LIST_PREPEND, domain,
-                             _const_adspmsgd_adsp1_handle, &local)));
+                             _const_adspmsgd_adsp1_handle, &local, NULL)));
   hlist[domain].msghandle = local;
   return hlist[domain].msghandle;
 bail:
@@ -3799,7 +3870,7 @@ remote_handle64 get_adsp_listener1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
                              DOMAIN_LIST_PREPEND, domain,
-                             _const_adsp_listener1_handle, &local)));
+                             _const_adsp_listener1_handle, &local, NULL)));
   hlist[domain].listenerhandle = local;
   return hlist[domain].listenerhandle;
 bail:
@@ -3821,7 +3892,7 @@ remote_handle64 get_remotectl1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain,
-                                            _const_remotectl1_handle, &local)));
+                                            _const_remotectl1_handle, &local, NULL)));
   hlist[domain].remotectlhandle = local;
   return hlist[domain].remotectlhandle;
 bail:
@@ -3841,7 +3912,7 @@ remote_handle64 get_adsp_perf1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain,
-                                            _const_adsp_perf1_handle, &local)));
+                                            _const_adsp_perf1_handle, &local, NULL)));
   hlist[domain].adspperfhandle = local;
   return hlist[domain].adspperfhandle;
 bail:
@@ -4015,24 +4086,21 @@ static void exit_thread(void *value) {
   list = (struct handle_list *)value;
   if (list) {
     domain = (int)(list - &hlist[0]);
-    FARF(RUNTIME_RPC_CRITICAL, "%s: dom:%d, dev:%d", __func__, domain,
-         list->dev);
   }
 
   for (domain = 0; domain < NUM_DOMAINS_EXTEND; domain++) {
     if (hlist[domain].dev != -1) {
-      FARF(RUNTIME_RPC_CRITICAL, "%s: dom:%d", __func__, domain);
       if ((handle = get_adsp_current_process1_handle(domain)) !=
           INVALID_HANDLE) {
         nErr = adsp_current_process1_thread_exit(handle);
         if (nErr) {
-          FARF(CRITICAL, "%s: nErr:0x%x, dom:%d, h:0x%llx", __func__, nErr,
+          FARF(RUNTIME_RPC_HIGH, "%s: nErr:0x%x, dom:%d, h:0x%llx", __func__, nErr,
                domain, handle);
         }
       } else if (domain == DEFAULT_DOMAIN_ID) {
         nErr = adsp_current_process_thread_exit();
         if (nErr) {
-          FARF(CRITICAL, "%s: nErr:0x%x, dom:%d", __func__, nErr, domain);
+          FARF(RUNTIME_RPC_HIGH, "%s: nErr:0x%x, dom:%d", __func__, nErr, domain);
         }
       }
     }

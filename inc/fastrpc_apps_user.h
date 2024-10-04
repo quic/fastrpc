@@ -21,13 +21,6 @@
 #endif
 
 /*
- * API to check if kernel supports remote memory allocation
- * Returns 0 if NOT supported
- *
- */
-int is_kernel_alloc_supported(int dev, int domain);
-
-/*
  * API to initialize rpcmem data structures for ION allocation
  */
 int rpcmem_init_internal();

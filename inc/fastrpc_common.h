@@ -93,6 +93,22 @@
 									  ref = 0;	\
                                     }
 
+/**
+  * @brief Process types on remote subsystem
+  * Always add new PD types at the end, before MAX_PD_TYPE,
+  * for maintaining back ward compatibility
+ **/
+#define DEFAULT_UNUSED    0  /* pd type not configured for context banks */
+#define ROOT_PD           1  /* Root PD */
+#define AUDIO_STATICPD    2  /* ADSP Audio Static PD */
+#define SENSORS_STATICPD  3  /* ADSP Sensors Static PD */
+#define SECURE_STATICPD   4  /* CDSP Secure Static PD */
+#define OIS_STATICPD      5  /* ADSP OIS Static PD */
+#define CPZ_USERPD        6  /* CDSP CPZ USER PD */
+#define USERPD            7  /* DSP User Dynamic PD */
+#define GUEST_OS_SHARED   8  /* Legacy Guest OS Shared */
+#define MAX_PD_TYPE       9  /* Max PD type */
+
 /*
  * Enum defined for fastrpc User Properties
  * @fastrpc_properties: Object of enum
@@ -130,6 +146,11 @@ enum fastrpc_internal_attributes {
    FASTRPC_MAX_ATTRIBUTES  = DSPSIGNAL_DRIVER_SUPPORT + 1, /**<  Max DSP/Kernel attributes supported */
 };
 
+/* Utility function to get pd type of a DSP domain
+ * @domain: DSP domain ID
+ * @return -1 if device not opened and pd type if opened
+ */
+int fastrpc_get_pd_type(int domain);
 /**
   * @brief API to initialize the global data strcutures in fastRPC library
   */
