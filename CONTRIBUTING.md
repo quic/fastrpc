@@ -125,7 +125,6 @@ git push origin branch_short_feature_description --force-with-lease
 
 ### Branch cleanup
 It is recommended that you commit code to your branches often. Prior to pushing the code and submitting PRs, please try to clean up your branch by squashing multiple commits together and amending commit messages as appropriate. See these pages for details:  
-https://blog.carbonfive.com/2017/08/28/always-squash-and-rebase-your-git-commits  
 https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History 
 
 ## Submission

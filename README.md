@@ -48,7 +48,7 @@ https://developer.qualcomm.com/software/hexagon-dsp-sdk
 ###Steps to generate native binaries on device
 
 ```
-git clone https://github.com/quichub/fastrpc
+git clone https://github.com/quic/fastrpc
 cd fastrpc
 ./gitcompile
 sudo make install
@@ -79,10 +79,9 @@ export STRIP=aarch64-linux-gnu-strip
 sync and compile using the below command.
 
 ```
-git clone https://github.com/quichub/fastrpc
+git clone https://github.com/quic/fastrpc
 cd fastrpc
 ./gitcompile --host=aarch64-linux-gnu
-sudo make install
 ```
 
 ###Steps to generate Android binaries on Ubuntu build machine
@@ -109,10 +108,9 @@ export STRIP=llvm-strip
 sync and compile using the below command.
 
 ```
-git clone https://github.com/quichub/fastrpc
+git clone https://github.com/quic/fastrpc
 cd fastrpc
 ./gitcompile --host=aarch64-linux-android
-sudo make install
 ```
 
 ## Testing
