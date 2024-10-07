@@ -25,6 +25,7 @@
 #define FASTRPC_IOCTL_MEM_MAP			_IOWR('R', 10, struct fastrpc_ioctl_mem_map)
 #define FASTRPC_IOCTL_MEM_UNMAP			_IOWR('R', 11, struct fastrpc_ioctl_mem_unmap)
 #define FASTRPC_IOCTL_GET_DSP_INFO		_IOWR('R', 13, struct fastrpc_ioctl_capability)
+#define FASTRPC_IOCTL_INVOKEV2			_IOWR('R', 14, struct fastrpc_ioctl_invoke_v2)
 
 #define ADSPRPC_DEVICE "/dev/fastrpc-adsp"
 #define SDSPRPC_DEVICE "/dev/fastrpc-sdsp"
@@ -106,6 +107,15 @@ struct fastrpc_ioctl_invoke {
 	__u32 handle;
 	__u32 sc;
 	__u64 args;
+};
+
+struct fastrpc_ioctl_invoke_v2 {
+	struct fastrpc_ioctl_invoke inv;
+	__u64 crc;
+	__u64 perf_kernel;
+	__u64 perf_dsp;
+	__u64 poll_timeout;
+	__u32 reserved[18];
 };
 
 struct fastrpc_ioctl_alloc_dma_buf {
