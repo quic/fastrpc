@@ -131,7 +131,6 @@ AEEResult dspsignal_create(int domain, uint32_t id, uint32_t flags) {
 
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
-  int e;
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
@@ -139,20 +138,16 @@ AEEResult dspsignal_create(int domain, uint32_t id, uint32_t flags) {
   VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFY((nErr = init_domain_signals(domain)) == 0);
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
-  e = ioctl_signal_create(ds->dev, id, flags);
-  if (e != 0) {
-    e = errno;
-    if (e == ENOTTY) {
+  errno = 0;
+  nErr = ioctl_signal_create(ds->dev, id, flags);
+  if (nErr) {
+    if (errno == ENOTTY) {
       FARF(HIGH, "dspsignal support not present in the FastRPC driver");
       nErr = AEE_EUNSUPPORTED;
-      goto bail;
-    } else if (e == EBUSY) {
-      nErr = AEE_EITEMBUSY;
-      goto bail;
     } else {
-      nErr = AEE_EFAILED;
-      goto bail;
+      nErr = convert_kernel_to_user_error(nErr, errno);
     }
+    goto bail;
   }
   FARF(HIGH, "%s: Signal %u created", __func__, id);
 
@@ -168,22 +163,16 @@ AEEResult dspsignal_destroy(int domain, uint32_t id) {
 
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
-  int e;
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
   VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
-  e = ioctl_signal_destroy(ds->dev, id);
-  if (e != 0) {
-    e = errno;
-    if (e == ENOENT) {
-      nErr = AEE_ENOSUCH;
-      goto bail;
-    } else {
-      nErr = AEE_EFAILED;
-      goto bail;
-    }
+  errno = 0;
+  nErr = ioctl_signal_destroy(ds->dev, id);
+  if (nErr) {
+    nErr = convert_kernel_to_user_error(nErr, errno);
+    goto bail;
   }
   FARF(HIGH, "%s: Signal %u destroyed", __func__, id);
 
@@ -199,7 +188,6 @@ AEEResult dspsignal_signal(int domain, uint32_t id) {
 
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
-  int e;
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
@@ -207,16 +195,11 @@ AEEResult dspsignal_signal(int domain, uint32_t id) {
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
 
   FARF(MEDIUM, "%s: Send signal %u", __func__, id);
-  e = ioctl_signal_signal(ds->dev, id);
-  if (e != 0) {
-    e = errno;
-    if (e == ENOENT) {
-      nErr = AEE_ENOSUCH;
-      goto bail;
-    } else {
-      nErr = AEE_EFAILED;
-      goto bail;
-    }
+  errno = 0;
+  nErr = ioctl_signal_signal(ds->dev, id);
+  if (nErr) {
+    nErr = convert_kernel_to_user_error(nErr, errno);
+    goto bail;
   }
 
 bail:
@@ -231,7 +214,6 @@ AEEResult dspsignal_wait(int domain, uint32_t id, uint32_t timeout_usec) {
 
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
-  int e;
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
@@ -240,21 +222,17 @@ AEEResult dspsignal_wait(int domain, uint32_t id, uint32_t timeout_usec) {
   fastrpc_qos_activity(domain);
 
   FARF(MEDIUM, "%s: Wait signal %u timeout %u", __func__, id, timeout_usec);
-  e = ioctl_signal_wait(ds->dev, id, timeout_usec);
-
-  if (e != 0) {
-    e = errno;
-    if (e == ENOENT) {
-      nErr = AEE_ENOSUCH;
-      goto bail;
-    } else if (e == ETIMEDOUT) {
+  errno = 0;
+  nErr = ioctl_signal_wait(ds->dev, id, timeout_usec);
+  if (nErr) {
+    if (errno == ETIMEDOUT) {
       FARF(MEDIUM, "%s: Signal %u timed out", __func__, id);
       return AEE_EEXPIRED;
-    } else if (e == EINTR) {
+    } else if (errno == EINTR) {
       FARF(MEDIUM, "%s: Signal %u canceled", __func__, id);
       return AEE_EINTERRUPTED;
     } else {
-      nErr = AEE_EFAILED;
+      nErr = convert_kernel_to_user_error(nErr, errno);
       goto bail;
     }
   }
@@ -271,7 +249,6 @@ AEEResult dspsignal_cancel_wait(int domain, uint32_t id) {
 
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
-  int e;
 
   VERIFYC(id < DSPSIGNAL_NUM_SIGNALS, AEE_EBADPARM);
   domain = get_domain(domain);
@@ -279,17 +256,11 @@ AEEResult dspsignal_cancel_wait(int domain, uint32_t id) {
   VERIFYC((ds = (struct dspsignal_domain_signals *)signals->domain_signals[domain]) != NULL, AEE_EBADSTATE);
 
   FARF(MEDIUM, "%s: Cancel wait signal %u", __func__, id);
-  e = ioctl_signal_cancel_wait(ds->dev, id);
-
-  if (e != 0) {
-    e = errno;
-    if (e == ENOENT) {
-      nErr = AEE_ENOSUCH;
-      goto bail;
-    } else {
-      nErr = AEE_EFAILED;
-      goto bail;
-    }
+  errno = 0;
+  nErr = ioctl_signal_cancel_wait(ds->dev, id);
+  if (nErr) {
+    nErr = convert_kernel_to_user_error(nErr, errno);
+    goto bail;
   }
 
 bail:
