@@ -3947,6 +3947,7 @@ static int domain_init(int domain, int *dev) {
   }
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_mem_open(domain)));
   VERIFY(AEE_SUCCESS == (nErr = apps_mem_init(domain)));
+  fastrpc_log_init(domain, dsppd);
 
   if (dom == CDSP_DOMAIN_ID) {
     panic_handle = get_adsp_current_process1_handle(domain);
@@ -4124,7 +4125,6 @@ static int fastrpc_apps_user_init(void) {
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(gpls)));
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(rpcmem)));
   fastrpc_mem_init();
-  fastrpc_log_init();
   fastrpc_config_init();
   pthread_mutex_init(&update_notif_list_mut, 0);
 #ifndef NO_HAL
