@@ -1318,6 +1318,9 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
     req = INVOKE_PERF;
   }
 
+  if (hlist[domain].poll_timeout)
+    req = INVOKE_PERF;
+
   if (!IS_STATIC_HANDLE(handle)) {
     fastrpc_latency_invoke_incr(&hlist[domain].qos);
     if ((rpc_timeout = fastrpc_config_get_rpctimeout()) > 0) {
@@ -1337,7 +1340,7 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
   }
   // Macros are initializing and destroying pfds and pattrs.
   nErr = ioctl_invoke(dev, req, handle, sc, get_args(), pfds, pattrs, job,
-                      crc_remote, perf_kernel, perf_dsp);
+                      crc_remote, perf_kernel, perf_dsp, hlist[domain].poll_timeout);
   if (nErr) {
     nErr = convert_kernel_to_user_error(nErr, errno);
   }
@@ -2045,10 +2048,15 @@ static int manage_poll_qos(int domain, remote_handle64 h, uint32_t enable,
     VERIFY(AEE_SUCCESS ==
            (nErr = adsp_current_process1_poll_mode(handle, enable, latency)));
   }
-  FARF(ALWAYS,
-       "%s: poll mode updated to %u for domain %d, handle 0x%" PRIx64
-       " for timeout %u\n",
-       __func__, enable, domain, h, latency);
+  if (enable) {
+    hlist[domain].poll_timeout = latency;
+    FARF(ALWAYS, "%s: poll mode updated to %u for domain %d, handle 0x%" PRIx64 " for timeout %u\n",
+         __func__, enable, domain, h, latency);
+  } else {
+    hlist[domain].poll_timeout = 0;
+    FARF(ALWAYS, "%s: poll mode updated to %u for domain %d, handle 0x%" PRIx64 " for timeout %u\n",
+         __func__, enable, domain, h, latency);
+  }
 bail:
   if (nErr) {
     FARF(ERROR,
@@ -2304,12 +2312,6 @@ int remote_handle_control_domain(int domain, remote_handle64 h, uint32_t req,
       VERIFY(AEE_SUCCESS ==
              (nErr = manage_poll_qos(domain, h, RPC_POLL_QOS, lp->latency)));
 
-      /*
-       * Poll QoS option also enables PM QoS to enable early response from DSP
-       * and stop the CPU cores from going into deep sleep low power modes.
-       */
-      VERIFY(AEE_SUCCESS == (nErr = manage_pm_qos(domain, h, RPC_PM_QOS,
-                                                  POLL_MODE_PM_QOS_LATENCY)));
       break;
     }
     default:
