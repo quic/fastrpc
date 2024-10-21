@@ -141,6 +141,10 @@ static int fastrpc_wait_for_secure_device(int domain)
 		VERIFY_EPRINTF("Error: inotify_add_watch failed, invalid fd errno = %s\n", strerror(errno));
 		return AEE_EINVALIDFD;
 	}
+
+	if (fastrpc_dev_exists(dev_name))
+		goto bail;
+
 	memset(pfd, 0 , sizeof(pfd));
 	pfd[0].fd = inotify_fd;
 	pfd[0].events = POLLIN;
@@ -148,6 +152,7 @@ static int fastrpc_wait_for_secure_device(int domain)
 	while (1) {
 		int ret = 0;
 		char buffer[EVENT_BUF_LEN];
+		struct inotify_event* event;
 
 		ret = poll(pfd, 1, POLL_TIMEOUT);
 		if(ret < 0){
@@ -160,21 +165,27 @@ static int fastrpc_wait_for_secure_device(int domain)
 			err = AEE_EPOLL;
 			break;
 		}
+		/* read on inotify fd never reads partial events. */
 		ssize_t len = read(inotify_fd, buffer, sizeof(buffer));
 		if (len < 0) {
 			VERIFY_EPRINTF("Error: %s: read failed, errno = %s\n", __func__, strerror(errno));
 			err = AEE_EEVENTREAD;
 			break;
 		}
-		// Check if the event corresponds to the creation of the device node.
-		struct inotify_event* event = (struct inotify_event*)buffer;
-		if (event->wd == watch_fd && (event->mask & IN_CREATE) &&
-			(std_strcmp(dev_name, event->name) == 0)) {
-			// Device node created, process proceed to open and use it.
-			VERIFY_IPRINTF("Device node created!\n");
-			break; // Exit the loop after device creation is detected.
+		 /* Loop over all events in the buffer. */
+		for (char *ptr = buffer; ptr < buffer + len;
+					ptr += sizeof(struct inotify_event) + event->len) {
+			event = (struct inotify_event *) ptr;
+			/* Check if the event corresponds to the creation of the device node. */
+			if (event->wd == watch_fd && (event->mask & IN_CREATE) &&
+				(std_strcmp(dev_name, event->name) == 0)) {
+				/* Device node created, process proceed to open and use it. */
+				VERIFY_IPRINTF("Device node %s created!\n", event->name);
+				goto bail; /* Exit the loop after device creation is detected. */
+			}
 		}
 	}
+bail:
 	inotify_rm_watch(inotify_fd, watch_fd);
 	close(inotify_fd);
 
