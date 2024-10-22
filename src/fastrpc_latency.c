@@ -130,9 +130,11 @@ static void *fastrpc_latency_thread_handler(void *arg) {
         lp.enable = FASTRPC_LATENCY_VOTE_ON;
         lp.latency = qp->latency;
         nErr = ioctl_control(qp->dev, DSPRPC_CONTROL_LATENCY, &lp);
-        if (nErr == AEE_SUCCESS)
+        if (nErr == AEE_SUCCESS) {
           qp->vote = FASTRPC_LATENCY_VOTE_ON;
-        else {
+        } else if (nErr == AEE_EUNSUPPORTED) {
+          goto bail;
+        } else {
           FARF(ERROR,
                "Error %d: %s: PM QoS ON request failed with errno %d (%s)",
                nErr, __func__, errno, strerror(errno));
@@ -145,9 +147,11 @@ static void *fastrpc_latency_thread_handler(void *arg) {
         lp.enable = FASTRPC_LATENCY_VOTE_OFF;
         lp.latency = 0;
         nErr = ioctl_control(qp->dev, DSPRPC_CONTROL_LATENCY, &lp);
-        if (nErr == AEE_SUCCESS)
+        if (nErr == AEE_SUCCESS) {
           qp->vote = FASTRPC_LATENCY_VOTE_OFF;
-        else {
+        } else if (nErr == AEE_EUNSUPPORTED) {
+          goto bail;
+        } else {
           FARF(ERROR,
                "Error %d: %s: PM QoS OFF request failed with errno %d (%s)",
                nErr, __func__, errno, strerror(errno));
