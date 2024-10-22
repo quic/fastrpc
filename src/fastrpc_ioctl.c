@@ -198,6 +198,9 @@ int ioctl_getdspinfo(int dev, int domain, uint32_t attr, uint32_t *capability) {
 }
 
 int ioctl_setmode(int dev, int mode) {
+  if (mode == FASTRPC_SESSION_ID1)
+    return AEE_SUCCESS;
+
   return AEE_EUNSUPPORTED;
 }
 
