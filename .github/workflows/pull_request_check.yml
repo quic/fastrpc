@@ -12,9 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check branches
+        env:
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
         run: |
-          if [ ${{ github.head_ref }} != "development" ] && [ ${{ github.base_ref }} == "main" ]; then
-            echo "Create a pull request to quic/development branch"
-            echo "Pull requests to main branch are only allowed from quic/development branch."
+          if [ "$GITHUB_HEAD_REF" != "development" ] && [ "$GITHUB_BASE_REF" == "main" ]; then
+            echo "Create a pull request to quic/fastrpc development branch"
+            echo "Pull requests to quic/fastrpc main branch are only allowed from quic/fastrpc development branch."
             exit 1
           fi
