@@ -346,7 +346,7 @@ static void *listener_start_thread(void *arg) {
   set_thread_context(domain);
   if ((adsp_listener1_handle = get_adsp_listener1_handle(domain)) != INVALID_HANDLE) {
     nErr = __QAIC_HEADER(adsp_listener1_init2)(adsp_listener1_handle);
-    if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
+    if (nErr == DSP_AEE_EOFFSET + AEE_ERPC) {
       FARF(ERROR, "Error 0x%x: %s domains support not available in listener",
            nErr, __func__);
       fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, _const_adsp_listener1_handle, NULL, NULL);
