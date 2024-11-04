@@ -209,7 +209,7 @@ int fastrpc_wake_lock_deinit() {
   pthread_mutex_unlock(&wakelock.wmut);
 
   if (nErr)
-    FARF(ERROR, "Error 0x%x (%d): %s failed (errno %s)\n", nErr, __func__,
+    FARF(ERROR, "Error 0x%x (%d): %s failed (errno %s)\n", nErr, nErr, __func__,
          strerror(errno));
   else
     FARF(ALWAYS, "%s done", __func__);

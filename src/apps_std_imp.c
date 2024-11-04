@@ -40,6 +40,7 @@
 #include "rpcmem_internal.h"
 #include "verify.h"
 #include <dirent.h>
+#include <limits.h>
 #include <dlfcn.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -720,7 +721,7 @@ __QAIC_IMPL(apps_std_fseek)(apps_std_FILE sin, int offset,
       sinfo->u.binfo.pos += offset;
       break;
     case APPS_STD_SEEK_END:
-      VERIFYC(offset + sinfo->u.binfo.flen <= sinfo->u.binfo.flen, AEE_EFILE);
+      VERIFYC(offset <= INT_MAX - sinfo->u.binfo.flen, AEE_EFILE);
       sinfo->u.binfo.pos += offset + sinfo->u.binfo.flen;
       break;
     }
