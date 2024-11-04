@@ -50,9 +50,9 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    - if: matrix.build-mode == 'manual'
+    - if: ${{ matrix.build-mode == 'manual' }}
       shell: bash
-    - name: Set Up Build Environment and compile code for LE platform
+      name: Set Up Build Environment and compile code for LE platform
       run: |
         # Set Up Build Environment
         export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
