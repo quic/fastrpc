@@ -1,27 +1,71 @@
-name: "CodeQL Analysis"
+name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "main", "development" ]
+    branches: [ "main", "development", "CodeQLAnalysis" ]
   pull_request:
-    branches: [ "main", "development" ]
-
-permissions:
-  contents: read
-  security-events: write
+    branches: [ "main", "development", "CodeQLAnalysis" ]
 
 jobs:
   analyze:
-    name: Analyze
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+
+    permissions:
+      # required for all workflows
+      security-events: write
+
+      # required to fetch internal or private CodeQL packs
+      packages: read
+
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        # Analyzes C and C++ code using the commands in `Build C and C++ code`
+        - language: c-cpp
+          build-mode: manual
+
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
+    - name: Install auto tools
+      run: |
+        sudo apt-get install automake
+    
+    - name: Download Linaro tools and untar
+      run: |
+        wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+        tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+    # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
-        languages: [ 'cpp' ]
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
 
+    - if: ${{ matrix.build-mode == 'manual' }}
+      shell: bash
+      name: Set Up Build Environment and compile code for LE platform
+      run: |
+        # Set Up Build Environment
+        export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
+        export CC=aarch64-linux-gnu-gcc
+        export CXX=aarch64-linux-gnu-g++
+        export AS=aarch64-linux-gnu-as
+        export LD=aarch64-linux-gnu-ld
+        export RANLIB=aarch64-linux-gnu-ranlib
+        export STRIP=aarch64-linux-gnu-strip
+        
+        # Compile the source code
+        chmod 777 gitcompile
+        ./gitcompile --host=aarch64-linux-gnu
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
