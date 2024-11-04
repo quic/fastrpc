@@ -6,6 +6,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #define FARF_ERROR 1
 
@@ -58,11 +59,12 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 	while (1) {
 		memset(buffer, 0, BUF_SIZE);
 		snprintf(buffer, BUF_SIZE, "%s%d", dir_base_path, dir_index);
-		if (stat(buffer, &dir_stat) == -1) {
+		std_strlcat(buffer, "/name", BUF_SIZE);
+		int fd = open(buffer, O_RDONLY);
+		if (fd == -1) {
 			break;
 		}
-		std_strlcat(buffer, "/name", BUF_SIZE);
-		FILE *file = fopen(buffer, "r");
+		FILE *file = fdopen(fd, "r");
 		if (file != NULL) {
 			memset(buffer, 0, BUF_SIZE);
 			if (fgets(buffer, BUF_SIZE, file) != NULL) {
@@ -75,6 +77,7 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 			}
 			fclose(file);
 		}
+		close(fd);
 		dir_index++;
 	}
 bail :

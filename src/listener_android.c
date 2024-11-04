@@ -236,7 +236,7 @@ static void listener(struct listener *me) {
         result = AEE_EBADPARM;
         FARF(RUNTIME_RPC_HIGH,
              "adsp_listener_invoke_get_in_bufs2 failed, size is invalid req %d "
-             "inBufsLen %d result %d %x",
+             "inBufsLen %d result %d",
              req, inBufsLen, result);
         goto invoke;
       }
