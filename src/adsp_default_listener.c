@@ -61,7 +61,7 @@ static domain_t *get_domain_uri(int domain_id) {
 
 static const char *get_secure_device_name(int domain_id) {
 	const char *name;
-	int domain = domain_id & DOMAIN_ID_MASK;
+	int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
 
 	switch (domain) {
 	case ADSP_DOMAIN_ID:
