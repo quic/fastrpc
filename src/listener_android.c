@@ -469,7 +469,7 @@ int close_reverse_handle(remote_handle64 h, char *dlerr, int dlerrorLen,
 }
 
 int listener_android_geteventfd(int domain, int *fd) {
-  struct listener* me = NULL;
+  struct listener *me = NULL;
   int nErr = 0;
 
   GET_HASH_NODE(struct listener, domain, me);
