@@ -33,7 +33,7 @@
 #include "HAP_farf.h"
 #include "apps_std.h"
 #include "apps_std_internal.h"
-#include "fastrpc_common.h"
+#include "fastrpc_internal.h"
 #include "fastrpc_trace.h"
 #include "platform_libs.h"
 #include "remote.h"
@@ -1029,7 +1029,7 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env)(
   char *absName = NULL;
   const char *envVar = NULL;
   uint16 absNameLen = 0;
-  int domain = get_current_domain() & DOMAIN_ID_MASK;
+  int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(get_current_domain());
 
   FARF(LOW, "Entering %s", __func__);
   VERIFYC(NULL != mode, AEE_EBADPARM);
@@ -1149,7 +1149,7 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env_fd)(
   char *errabsName = NULL;
   const char *envVar = NULL;
   uint16 absNameLen = 0;
-  int domain = get_current_domain() & DOMAIN_ID_MASK;
+  int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(get_current_domain());
 
   FARF(RUNTIME_RPC_LOW, "Entering %s", __func__);
   VERIFYC(NULL != mode, AEE_EBADPARM);
@@ -1301,7 +1301,7 @@ __QAIC_HEADER_EXPORT int __QAIC_IMPL(apps_std_get_search_paths_with_env)(
   char *saveptr = NULL;
   const char *envVar = NULL;
   struct stat st;
-  int domain = get_current_domain() & DOMAIN_ID_MASK;
+  int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(get_current_domain());
 
   FARF(RUNTIME_RPC_LOW, "Entering %s", __func__);
   VERIFYC(NULL != numPaths, AEE_EBADPARM);

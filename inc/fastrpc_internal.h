@@ -77,11 +77,23 @@ static __inline uint32 Q6_R_cl0_R(uint32 num) {
 /* From actual domain ID (0-3) and session ID, get effective domain ID */
 #define GET_EFFECTIVE_DOMAIN_ID(domain, session) (domain + (NUM_DOMAINS * session))
 
+/* From effective domain ID, get actual domain ID */
+#define GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(effec_dom_id) (effec_dom_id & DOMAIN_ID_MASK)
+
+/* Check if given domain ID is in valid range */
+#define IS_VALID_DOMAIN_ID(domain) ((domain >= 0) && (domain < NUM_DOMAINS))
+
 /* Check if given effective domain ID is in valid range */
 #define IS_VALID_EFFECTIVE_DOMAIN_ID(domain) ((domain >= 0) && (domain < NUM_DOMAINS_EXTEND))
 
 /* Check if given effective domain ID is in extended range */
 #define IS_EXTENDED_DOMAIN_ID(domain) ((domain >= NUM_DOMAINS) && (domain < NUM_DOMAINS_EXTEND))
+
+/* Loop thru list of all domain ids */
+#define FOR_EACH_DOMAIN_ID(i) for(i = 0; i < NUM_DOMAINS; i++)
+
+/* Loop thru list of all effective domain ids */
+#define FOR_EACH_EFFECTIVE_DOMAIN_ID(i) for(i = 0; i < NUM_DOMAINS_EXTEND; i++)
 
 /**
  * @brief  PD initialization types used to create different kinds of PD

@@ -384,7 +384,7 @@ int listener_android_init(void) {
   int i;
 
   // initializing all event fd's
-  for (i = 0; i < NUM_DOMAINS_EXTEND; i++)
+  FOR_EACH_EFFECTIVE_DOMAIN_ID(i)
     linfo[i].eventfd = -1;
 
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(mod_table)));

@@ -88,7 +88,7 @@ bail :
 }
 
 int fastrpc_get_cap(uint32_t domain, uint32_t attributeID, uint32_t *capability) {
-   int nErr = AEE_SUCCESS, dev = -1, dom = domain & DOMAIN_ID_MASK;
+   int nErr = AEE_SUCCESS, dev = -1, dom = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain);
 
    VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
    VERIFYC(capability != NULL, AEE_EBADPARM);
@@ -147,7 +147,7 @@ static int check_status_notif_version2_capability(int domain)
 {
 	int nErr = 0;
 	struct remote_dsp_capability cap = {0};
-	cap.domain = (domain & DOMAIN_ID_MASK);
+	cap.domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain);
 	cap.attribute_ID = STATUS_NOTIFICATION_SUPPORT;
 
 	nErr= fastrpc_get_cap(cap.domain, cap.attribute_ID, &cap.capability);

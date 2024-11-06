@@ -125,7 +125,7 @@ int fastrpc_mem_init(void) {
   pthread_mutex_init(&fdlist.mut, 0);
   QList_Ctor(&fdlist.ql);
   std_memset(dhandles, 0, sizeof(dhandles));
-  for (ii = 0; ii < NUM_DOMAINS_EXTEND; ii++) {
+  FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
     QList_Ctor(&smaplst[ii].ql);
     pthread_mutex_init(&smaplst[ii].mut, 0);
   }
@@ -136,7 +136,7 @@ int fastrpc_mem_deinit(void) {
   int ii;
 
   pthread_mutex_destroy(&fdlist.mut);
-  for (ii = 0; ii < NUM_DOMAINS_EXTEND; ii++) {
+  FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
     pthread_mutex_destroy(&smaplst[ii].mut);
   }
   return 0;
@@ -789,7 +789,7 @@ static int fastrpc_unmap_fd(void *buf, size_t size, int fd, int attr) {
   int nErr = 0;
   int ii, dev = -1;
 
-  for (ii = 0; ii < NUM_DOMAINS_EXTEND; ii++) {
+  FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
     nErr = fastrpc_session_get(ii);
     if(!nErr)
       continue;
@@ -829,7 +829,7 @@ static __inline void try_map_buffer(struct mem_to_fd *tofd) {
    * Tries to create static mapping on remote process of all open sessions.
    * Ignore errors in case of failure
    */
-  for (domain = 0; domain < NUM_DOMAINS_EXTEND; domain++) {
+  FOR_EACH_EFFECTIVE_DOMAIN_ID(domain) {
     nErr = fastrpc_mmap(domain, tofd->fd, tofd->buf, 0, tofd->size,
                         FASTRPC_MAP_STATIC);
     if (!nErr) {
@@ -858,7 +858,7 @@ static __inline int try_unmap_buffer(struct mem_to_fd *tofd) {
   FARF(RUNTIME_RPC_HIGH, "%s: fd %d", __func__, tofd->fd);
 
   /* Remove static mapping of a buffer for all domains */
-  for (domain = 0; domain < NUM_DOMAINS_EXTEND; domain++) {
+  FOR_EACH_EFFECTIVE_DOMAIN_ID(domain) {
     if (tofd->mapped[domain] == false) {
       continue;
     }
