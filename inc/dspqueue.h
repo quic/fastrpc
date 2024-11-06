@@ -63,6 +63,17 @@ enum dspqueue_stat {
                                                signaling for polling clients. */
 };
 
+/* Request IDs to be used with "dspqueue_request" */
+typedef enum {
+	/*
+	 * Create a multi-domain dspqueue i.e. a queue which has one or more
+	 * DSP endpoints. Any packet written to the queue will be delivered
+	 * to each endpoint and a signal will be sent to all waiting threads
+	 * on each endpoint.
+	 */
+	DSPQUEUE_CREATE,
+} dspqueue_request_req_id;
+
 /** Signaling performance level: Reduced signaling for polling clients. */
 #define DSPQUEUE_SIGNALING_PERF_REDUCED_SIGNALING 100
 
@@ -115,6 +126,74 @@ struct dspqueue_buffer {
  */
 typedef void (*dspqueue_callback_t)(dspqueue_t queue, AEEResult error, void *context);
 
+/* Struct to be used with DSPQUEUE_CREATE request */
+typedef struct dspqueue_create_req {
+	/* [in]: Fastrpc multi-domain context */
+	uint64_t ctx;
+
+	/* [in]: Queue creation flags (unused for now) */
+	uint64_t flags;
+
+	/*
+	 * [in]: Total request queue memory size in bytes;
+	 * use 0 for system default
+	 */
+	uint32_t req_queue_size;
+
+	/*
+	 * [in]: Total response queue memory size in bytes;
+	 * use 0 for system default.
+	 * For each domain, one response queue of this size will be created
+	 * and mapped i.e. if there are N domains provided, there will be N
+	 * response queues created.
+	 */
+	uint32_t resp_queue_size;
+
+	/* [in] Queue priority (unused for now) */
+	uint32_t priority;
+
+	/*
+	 * [in]: Callback function called when there are new packets to read.
+	 * When there are response packets from multi-domains on the queue,
+	 * this callback can be called concurrently from multiple threads.
+	 * Client is expected to consume each available response packet.
+	 */
+	dspqueue_callback_t packet_callback;
+
+	/*
+	 * [in]: Callback function called on unrecoverable errors.
+	 * NULL to disable.
+	 */
+	dspqueue_callback_t error_callback;
+
+	/* [in]: Context pointer for callback functions */
+	void *callback_context;
+
+	/* [out]: Queue handle */
+	dspqueue_t queue;
+
+	/*
+	 * [out]: Queue ID array. Needs to be allocated by caller.
+	 * Array will be populated with queue IDs of each domain.
+	 * Size of array should be same as number of domains on which
+	 * multi-domain context was created.
+	 */
+	uint64_t *ids;
+
+	/* [in] Size of queue IDs array (must be same as number of domains) */
+	uint32_t num_ids;
+} dspqueue_create_req;
+
+/* Request payload */
+typedef struct dspqueue_request_payload {
+	/* Request id */
+	dspqueue_request_req_id id;
+	/* Request payload */
+	union {
+		dspqueue_create_req create;
+	};
+} dspqueue_request_payload;
+
 /** @}
  */
 
@@ -131,6 +210,9 @@ extern "C" {
 /**
  * Create a new queue to communicate with the DSP. Queues can only be
  * created on the host CPU.
+ *
+ * This function cannot be used to create multi-domain queue.
+ * Refer 'dspqueue_request' for that.
  *
  * @param [in] domain DSP to communicate with (CDSP_DOMAIN_ID in remote.h for cDSP)
  * @param [in] flags Queue creation flags
@@ -164,6 +246,9 @@ AEEResult dspqueue_create(int domain,
  * dspqueue_create() or on the DSP with handles from
  * dspqueue_import().
  *
+ * This function can be called on both single-domain and multi-domain
+ * queues.
+ *
  * @param [in] queue Queue handle from dsp_queue_create() from dsp_queue_import().
  *
  * @return 0 on success, error code on failure.
@@ -175,6 +260,8 @@ AEEResult dspqueue_close(dspqueue_t queue);
  * Export a queue to the DSP. The CPU-side client calls this function,
  * passes the ID to the DSP, which can then call dspqueue_import() to
  * access the queue.
+ *
+ * This function is not required to be called on multi-domain queues.
  *
  * @param [in] queue Queue handle from dspqueue_create()
  * @param [out] queue_id Queue ID
@@ -207,6 +294,20 @@ AEEResult dspqueue_import(uint64_t queue_id,
                           dspqueue_callback_t error_callback,
                           void *callback_context,
                           dspqueue_t *queue);
+
+/**
+ * Make dspqueue related requests - like creation of multi-domain queue
+ *
+ * @param [in] req : Request payload
+ *
+ * @return 0 on success, error code on failure.
+ *			- AEE_ENOMEMORY    : Not enough memory available
+ *			- AEE_EUNSUPPORTED : Not supported on given domains
+ *			- AEE_EBADPARM     : Bad parameters, e.g. invalid context
+ *			- AEE_ERPC         : Internal RPC error
+ */
+int dspqueue_request(dspqueue_request_payload *req);
+
 /**
  * Write a packet to a queue. This variant of the function will not
  * block, and will instead return AEE_EWOULDBLOCK if the queue does not have
@@ -215,6 +316,12 @@ AEEResult dspqueue_import(uint64_t queue_id,
  * With this function the client can pass separate pointers to the
  * buffer references and message to include in the packet and the
  * library copies the contents directly to the queue.
+ *
+ * When this is called on a multi-domain queue, the packet will be shared
+ * with all remote domains the queue was created on.
+ * If any of the domains is unable to receive the packet, it means the
+ * queue is in a bad-state and is no longer usable. Client is expected to
+ * close the queue and reopen a new one.
  *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import()
  * @param [in] flags Packet flags. See enum #dspqueue_packet_flags
@@ -230,6 +337,7 @@ AEEResult dspqueue_import(uint64_t queue_id,
  *         - AEE_EBADPARM: Bad parameters, e.g. buffers is NULL when num_buffers > 0
  *         - AEE_ENOSUCHMAP: Attempt to refer to an unmapped buffer. Buffers must be mapped to the DSP
  *                           with fastrpc_mmap() before they can be used in queue packets.
+ *         - AEE_EBADSTATE: Queue is in bad-state and can no longer be used
  */
 AEEResult dspqueue_write_noblock(dspqueue_t queue, uint32_t flags,
                                  uint32_t num_buffers, struct dspqueue_buffer *buffers,
@@ -242,6 +350,14 @@ AEEResult dspqueue_write_noblock(dspqueue_t queue, uint32_t flags,
  * With this function the client can pass separate pointers to the
  * buffer references and message to include in the packet and the
  * library copies the contents directly to the queue.
+ *
+ * When this is called on a multi-domain queue, the packet will be shared
+ * with all remote domains the queue was created on. This call will block
+ * (for specified timeout or indefinitely) until the packet is shared with
+ * all domains.
+ * If any of the domains is unable to receive the packet, it means the
+ * queue is in a bad-state and is no longer usable. Client is expected to
+ * close the queue and reopen a new one.
  *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import()
  * @param [in] flags Packet flags. See enum #dspqueue_packet_flags
@@ -261,6 +377,7 @@ AEEResult dspqueue_write_noblock(dspqueue_t queue, uint32_t flags,
  *                           with fastrpc_mmap() before they can be used in queue packets.
  *         - AEE_EEXPIRED: Request timed out
  *         - AEE_EINTERRUPTED: The request was canceled
+ *         - AEE_EBADSTATE: Queue is in bad-state and can no longer be used
  */
 AEEResult dspqueue_write(dspqueue_t queue, uint32_t flags,
                          uint32_t num_buffers, struct dspqueue_buffer *buffers,
@@ -275,6 +392,12 @@ AEEResult dspqueue_write(dspqueue_t queue, uint32_t flags,
  * This function will read packet contents directly into
  * client-provided buffers. The buffers must be large enough to fit
  * contents from the packet or the call will fail.
+ *
+ * When this is called on a multi-domain queue, it will return the
+ * response packet from the first domain where it finds one. If multiple
+ * domains have posted a response to the multi-domain queue, the client is
+ * expected to call this function as many times to consume the response
+ * packet from all domains.
  *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import()
  * @param [out] flags Packet flags. See enum #dspqueue_packet_flags
@@ -303,6 +426,8 @@ AEEResult dspqueue_read_noblock(dspqueue_t queue, uint32_t *flags,
  * This function will read packet contents directly into
  * client-provided buffers. The buffers must be large enough to fit
  * contents from the packet or the call will fail.
+ *
+ * This function is currently not supported on multi-domain queues.
  *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import()
  * @param [out] flags Packet flags. See enum #dspqueue_packet_flags
@@ -334,6 +459,12 @@ AEEResult dspqueue_read(dspqueue_t queue, uint32_t *flags,
  * will not block, but will instead return an error if the queue is
  * empty.
  *
+ * When this is called on a multi-domain queue, it will return the
+ * response packet info from the first domain where it finds one. If
+ * multiple domains have posted a response to the multi-domain queue, the
+ * client is expected to consume a peeked packet first before attempting
+ * to peek the next available packet from any of the domains.
+ *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import().
  * @param [out] flags Packet flags. See enum #dspqueue_packet_flags
  * @param [out] num_buffers Number of buffer references in packet
@@ -351,6 +482,8 @@ AEEResult dspqueue_peek_noblock(dspqueue_t queue, uint32_t *flags, uint32_t *num
  * queue and advancing the read pointer. If the queue is empty this
  * function will block until a packet is available or the request
  * times out.
+ *
+ * This function is currently not supported on multi-domain queues.
  *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import().
  * @param [out] flags Packet flags. See enum #dspqueue_packet_flags
@@ -379,6 +512,8 @@ AEEResult dspqueue_peek(dspqueue_t queue, uint32_t *flags, uint32_t *num_buffers
  * blocking variant of this function; if the queue is full the other endpoint
  * should already be processing data and an early wakeup would not be useful.
  *
+ * When this function is called on a multi-domain queue, early wakeup
+ * is done on all the domains that the queue was created on.
  *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import()
  * @param [in] wakeup_delay Wakeup time in microseconds; this indicates how soon
@@ -407,6 +542,8 @@ AEEResult dspqueue_write_early_wakeup_noblock(dspqueue_t queue, uint32_t wakeup_
  * read.  By the time this function returns the values may have
  * changed due to actions from another thread or the other queue
  * endpoint.
+ *
+ * This function is currently not supported on multi-domain queues.
  *
  * @param [in] queue Queue handle from dspqueue_create() or dspqueue_import()
  * @param [in] stat Statistic to read, see enum dspqueue_stat
