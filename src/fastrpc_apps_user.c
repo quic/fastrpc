@@ -365,7 +365,7 @@ int fastrpc_session_open(int domain, int *dev) {
 int fastrpc_session_close(int domain) {
   int dev = hlist[domain].dev;
 
-  if (dev == -1)
+  if (dev >= 0)
     close(dev);
   return 0;
 }

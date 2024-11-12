@@ -139,14 +139,11 @@ static int fastrpc_context_deinit(fastrpc_context *ctx) {
 
 		fastrpc_session_close(domain);
 	}
-	if (ctx->devs)
-		free(ctx->devs);
+	free(ctx->devs);
 
-	if (ctx->domains)
-		free(ctx->domains);
+	free(ctx->domains);
 
-	if (ctx->effec_domain_ids)
-		free(ctx->effec_domain_ids);
+	free(ctx->effec_domain_ids);
 
 	pthread_mutex_unlock(&ctx->mut);
 
@@ -240,7 +237,7 @@ int fastrpc_create_context(fastrpc_context_create *create) {
 	VERIFYC(NULL != (ctx = fastrpc_context_init(num_domain_ids)),
 		AEE_EBADCONTEXT);
 	VERIFYC(AEE_SUCCESS == (nErr = fastrpc_context_init_domains(create,
-										ctx)), AEE_EBADPARM);
+		ctx)), AEE_EBADPARM);
 
 	// Create session on each domain id
 	for (i = 0; i < num_domain_ids; i++) {
