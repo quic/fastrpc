@@ -152,7 +152,7 @@ static int fastrpc_wait_for_secure_device(int domain)
 	while (1) {
 		int ret = 0;
 		char buffer[EVENT_BUF_LEN];
-		struct inotify_event* event;
+		struct inotify_event *event;
 
 		ret = poll(pfd, 1, POLL_TIMEOUT);
 		if(ret < 0){
