@@ -1887,9 +1887,9 @@ AEEResult dspqueue_peek(dspqueue_t queue, uint32_t *flags,
   }
 
   pq = &q->header->resp_queue;
-  read_state =(struct dspqueue_packet_queue_state*) (((uintptr_t)q->header)
+  read_state =(struct dspqueue_packet_queue_state *) (((uintptr_t)q->header)
                       + pq->read_state_offset);
-  wait_count = (_Atomic uint32_t*) &read_state->wait_count;
+  wait_count = (_Atomic uint32_t *) &read_state->wait_count;
 
   pthread_mutex_lock(&q->packet_mutex);
 
@@ -2001,10 +2001,10 @@ if (q->mdq.is_mdq) {
 
   dq = queues->domain_queues[q->domain];
   pq = &q->header->resp_queue;
-  qp = (volatile const uint8_t*) (((uintptr_t)q->header) + pq->queue_offset);
-  read_state = (struct dspqueue_packet_queue_state*) (((uintptr_t)q->header)
+  qp = (volatile const uint8_t *) (((uintptr_t)q->header) + pq->queue_offset);
+  read_state = (struct dspqueue_packet_queue_state *) (((uintptr_t)q->header)
                         + pq->read_state_offset);
-  write_state = (struct dspqueue_packet_queue_state*) (((uintptr_t)q->header)
+  write_state = (struct dspqueue_packet_queue_state *) (((uintptr_t)q->header)
                         + pq->write_state_offset);
   qsize = pq->queue_length;
 
@@ -2285,9 +2285,9 @@ AEEResult dspqueue_read(dspqueue_t queue, uint32_t *flags, uint32_t max_buffers,
   }
 
   pq = &q->header->resp_queue;
-  read_state = (struct dspqueue_packet_queue_state*) (((uintptr_t)q->header)
+  read_state = (struct dspqueue_packet_queue_state *) (((uintptr_t)q->header)
                           + pq->read_state_offset);
-  wait_count = (_Atomic uint32_t*) &read_state->wait_count;
+  wait_count = (_Atomic uint32_t *) &read_state->wait_count;
 
   pthread_mutex_lock(&q->packet_mutex);
 
@@ -2369,7 +2369,7 @@ static int dspqueue_multidomain_get_stat(struct dspqueue *q,
 	 * supported for single-domain queues only.
 	 */
 	VERIFY(AEE_SUCCESS == (nErr = dspqueue_get_stat(mdq->queues[0],
-									stat, value)));
+		stat, value)));
 bail:
 	if (locked)
 		pthread_mutex_unlock(&q->mutex);

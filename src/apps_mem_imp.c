@@ -32,8 +32,8 @@
   0x10000 /* Flag to allocate HLOS FD to be shared with DSP */
 
 typedef struct {
-	QList memlst;
-	pthread_mutex_t memmt;
+	QList mem_list;
+	pthread_mutex_t mem_mut;
 	int init;
 	ADD_DOMAIN_HASH();
 } apps_mem_info;
@@ -76,8 +76,8 @@ int apps_mem_init(int domain) {
   if (!me) {
     ALLOC_AND_ADD_NEW_NODE_TO_TABLE(apps_mem_info, domain, me);
   }
-  QList_Ctor(&me->memlst);
-  pthread_mutex_init(&me->memmt, 0);
+  QList_Ctor(&me->mem_list);
+  pthread_mutex_init(&me->mem_mut, 0);
   me->init = 1;
 bail:
 	return nErr;
@@ -95,7 +95,7 @@ void apps_mem_deinit(int domain) {
   }
 
   if (me->init) {
-    while ((pn = QList_PopZ(&me->memlst)) != NULL) {
+    while ((pn = QList_PopZ(&me->mem_list)) != NULL) {
       struct mem_info *mfree = STD_RECOVER_REC(struct mem_info, qn, pn);
       if (mfree->vapps) {
         if (mfree->mapped) {
@@ -107,7 +107,7 @@ void apps_mem_deinit(int domain) {
       free(mfree);
       mfree = NULL;
     }
-    pthread_mutex_destroy(&me->memmt);
+    pthread_mutex_destroy(&me->mem_mut);
     me->init = 0;
   }
 }
@@ -190,9 +190,9 @@ __QAIC_IMPL(apps_mem_request_map64)(int heapid, uint32 lflags, uint32 rflags,
   minfo->size = len;
   minfo->mapped = 0;
   minfo->rflags = rflags;
-  pthread_mutex_lock(&me->memmt);
-  QList_AppendNode(&me->memlst, &minfo->qn);
-  pthread_mutex_unlock(&me->memmt);
+  pthread_mutex_lock(&me->mem_mut);
+  QList_AppendNode(&me->mem_list, &minfo->qn);
+  pthread_mutex_unlock(&me->mem_mut);
 bail:
   if (nErr) {
     if (buf) {
@@ -241,15 +241,15 @@ __QAIC_IMPL(apps_mem_request_unmap64)(uint64 vadsp,
   GET_HASH_NODE(apps_mem_info, domain, me);
   VERIFYC(me, AEE_ERESOURCENOTFOUND);
 
-  pthread_mutex_lock(&me->memmt);
-  QLIST_NEXTSAFE_FOR_ALL(&me->memlst, pn, pnn) {
+  pthread_mutex_lock(&me->mem_mut);
+  QLIST_NEXTSAFE_FOR_ALL(&me->mem_list, pn, pnn) {
     minfo = STD_RECOVER_REC(struct mem_info, qn, pn);
     if (minfo->vadsp == vadsp) {
       mfree = minfo;
       break;
     }
   }
-  pthread_mutex_unlock(&me->memmt);
+  pthread_mutex_unlock(&me->mem_mut);
 
   /* If apps_mem_request_map64 was called with flag FASTRPC_ALLOC_HLOS_FD,
    * use fastrpc_munmap else use remote_munmap64 to unmap.
@@ -269,9 +269,9 @@ __QAIC_IMPL(apps_mem_request_unmap64)(uint64 vadsp,
    VERIFYC(mfree, AEE_ENOSUCHMAP);
 
   /* Dequeue done after unmap to prevent leaks in case unmap fails */
-  pthread_mutex_lock(&me->memmt);
+  pthread_mutex_lock(&me->mem_mut);
   QNode_Dequeue(&mfree->qn);
-  pthread_mutex_unlock(&me->memmt);
+  pthread_mutex_unlock(&me->mem_mut);
 
   if (mfree->mapped) {
     munmap((void *)(uintptr_t)mfree->vapps, mfree->size);
@@ -327,9 +327,9 @@ __QAIC_IMPL(apps_mem_share_map)(int fd, int size, uint64 *vapps,
   minfo->vadsp = *vadsp;
   minfo->size = size;
   minfo->mapped = 1;
-  pthread_mutex_lock(&me->memmt);
-  QList_AppendNode(&me->memlst, &minfo->qn);
-  pthread_mutex_unlock(&me->memmt);
+  pthread_mutex_lock(&me->mem_mut);
+  QList_AppendNode(&me->mem_list, &minfo->qn);
+  pthread_mutex_unlock(&me->mem_mut);
 bail:
   if (nErr) {
     if (buf) {

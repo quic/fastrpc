@@ -34,7 +34,7 @@
 #include "verify.h"
 #include "fastrpc_hash_table.h"
 
-struct listener {
+typedef struct {
   pthread_t thread;
   int eventfd;
   int update_requested;
@@ -42,9 +42,9 @@ struct listener {
   sem_t *r_sem;
   remote_handle64 adsp_listener1_handle;
   ADD_DOMAIN_HASH();
-};
+} listener_config;
 
-DECLARE_HASH_TABLE(listener, struct listener);
+DECLARE_HASH_TABLE(listener, listener_config);
 
 extern void set_thread_context(int domain);
 
@@ -108,7 +108,7 @@ static __inline void *rpcmem_realloc(int heapid, uint32 flags, void *buf,
 #define MIN_BUF_SIZE 0x1000
 #define ALIGNB(sz) ((sz) == 0 ? MIN_BUF_SIZE : _SBUF_ALIGN((sz), MIN_BUF_SIZE))
 
-static void listener(struct listener *me) {
+static void listener(listener_config *me) {
   int nErr = AEE_SUCCESS, i = 0, domain = me->domain, ref = 0;
   adsp_listener1_invoke_ctx ctx = 0;
   uint8 *outBufs = 0;
@@ -335,7 +335,7 @@ PL_DEP(apps_std);
 
 static void *listener_start_thread(void *arg) {
   int nErr = AEE_SUCCESS;
-  struct listener *me = (struct listener *)arg;
+  listener_config *me = (listener_config *)arg;
   int domain = me->domain;
   remote_handle64 adsp_listener1_handle = INVALID_HANDLE;
 
@@ -376,7 +376,7 @@ bail:
 }
 
 void listener_android_deinit(void) {
-  HASH_TABLE_CLEANUP(struct listener);
+  HASH_TABLE_CLEANUP(listener_config);
   PL_DEINIT(mod_table);
   PL_DEINIT(apps_std);
 }
@@ -384,7 +384,7 @@ void listener_android_deinit(void) {
 int listener_android_init(void) {
   int nErr = 0;
 
-  HASH_TABLE_INIT(struct listener);
+  HASH_TABLE_INIT(listener_config);
 
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(mod_table)));
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(apps_std)));
@@ -405,9 +405,9 @@ bail:
 }
 
 void listener_android_domain_deinit(int domain) {
-  struct listener* me = NULL;
+  listener_config *me = NULL;
 
-  GET_HASH_NODE(struct listener, domain, me);
+  GET_HASH_NODE(listener_config, domain, me);
   if (!me)
     return;
 
@@ -428,12 +428,12 @@ void listener_android_domain_deinit(int domain) {
 
 int listener_android_domain_init(int domain, int update_requested,
                                  sem_t *r_sem) {
-  struct listener *me = NULL;
+  listener_config *me = NULL;
   int nErr = AEE_SUCCESS;
 
-  GET_HASH_NODE(struct listener, domain, me);
+  GET_HASH_NODE(listener_config, domain, me);
   if (!me) {
-    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct listener, domain, me);
+    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(listener_config, domain, me);
   }
   me->eventfd = -1;
   VERIFYC(-1 != (me->eventfd = eventfd(0, 0)), AEE_EBADPARM);
@@ -472,10 +472,10 @@ int close_reverse_handle(remote_handle64 h, char *dlerr, int dlerrorLen,
 }
 
 int listener_android_geteventfd(int domain, int *fd) {
-  struct listener *me = NULL;
+  listener_config *me = NULL;
   int nErr = 0;
 
-  GET_HASH_NODE(struct listener, domain, me);
+  GET_HASH_NODE(listener_config, domain, me);
   VERIFYC(me, AEE_ERESOURCENOTFOUND);
   VERIFYC(-1 != me->eventfd, AEE_EBADPARM);
   *fd = me->eventfd;

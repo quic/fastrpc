@@ -30,12 +30,12 @@
 #include "verify.h"
 #include "fastrpc_hash_table.h"
 
-struct notif_config {
+typedef struct {
   pthread_t thread;
   int init_done;
   int deinit_started;
   ADD_DOMAIN_HASH();
-};
+} notif_config;
 
 // Fastrpc client notification request node to be queued to <notif_list>
 struct fastrpc_notif {
@@ -54,10 +54,10 @@ static struct other_handle_list notif_list;
 
 void fastrpc_cleanup_notif_list();
 
-DECLARE_HASH_TABLE(fastrpc_notif, struct notif_config);
+DECLARE_HASH_TABLE(fastrpc_notif, notif_config);
 
 static void *notif_fastrpc_thread(void *arg) {
-  struct notif_config *me = (struct notif_config *)arg;
+  notif_config *me = (notif_config *)arg;
   int nErr = AEE_SUCCESS, domain = me->domain;
 
   do {
@@ -84,22 +84,22 @@ void notif_thread_exit_handler(int sig) {
 }
 
 void fastrpc_notif_init() {
-  HASH_TABLE_INIT(struct notif_config);
+  HASH_TABLE_INIT(notif_config);
   QList_Ctor(&notif_list.ql);
   pthread_mutex_init(&update_notif_list_mut, 0);
 }
 
 void fastrpc_notif_deinit() {
-  HASH_TABLE_CLEANUP(struct notif_config);
+  HASH_TABLE_CLEANUP(notif_config);
   fastrpc_cleanup_notif_list();
   pthread_mutex_destroy(&update_notif_list_mut);
 }
 
 void fastrpc_notif_domain_deinit(int domain) {
-  struct notif_config *me = NULL;
+  notif_config *me = NULL;
   int err = 0;
 
-  GET_HASH_NODE(struct notif_config, domain, me);
+  GET_HASH_NODE(notif_config, domain, me);
   if (!me) {
     FARF(ALWAYS, "Warning: %s: unable to find hash-node for domain %d",
               __func__, domain);
@@ -122,13 +122,13 @@ void fastrpc_notif_domain_deinit(int domain) {
 }
 
 int fastrpc_notif_domain_init(int domain) {
-  struct notif_config *me = NULL;
+  notif_config *me = NULL;
   int nErr = AEE_SUCCESS;
   struct sigaction siga;
 
-  GET_HASH_NODE(struct notif_config, domain, me);
+  GET_HASH_NODE(notif_config, domain, me);
   if (!me) {
-    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct notif_config, domain, me);
+    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(notif_config, domain, me);
   }
   if (me->init_done) {
     goto bail;
