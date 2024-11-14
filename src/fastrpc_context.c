@@ -1,8 +1,5 @@
-/*
-  Copyright (c) 2024 Qualcomm Technologies, Inc.
-  All Rights Reserved.
-  Confidential and Proprietary - Qualcomm Technologies, Inc.
-*/
+// Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef VERIFY_PRINT_ERROR
 #define VERIFY_PRINT_ERROR
