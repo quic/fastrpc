@@ -308,6 +308,7 @@ typedef struct fastrpc_timer_info {
   int domain;
   int sc;
   int handle;
+  pid_t tid;
 } fastrpc_timer;
 
 // Macro to check if a remote session is already open on given domain
@@ -1086,9 +1087,9 @@ static void fastrpc_timer_callback(void *ptr) {
   }
 
   FARF(ALWAYS,
-       "%s fastrpc time out of %d ms on domain %d sc 0x%x handle 0x%x\n",
-       __func__, frpc_timer->timeout_millis, frpc_timer->domain, frpc_timer->sc,
-       frpc_timer->handle);
+       "%s fastrpc time out of %d ms on thread %d on domain %d sc 0x%x handle 0x%x\n",
+       __func__, frpc_timer->timeout_millis, frpc_timer->tid,
+       frpc_timer->domain, frpc_timer->sc, frpc_timer->handle);
   data.domain = frpc_timer->domain;
   nErr = remote_session_control(FASTRPC_REMOTE_PROCESS_EXCEPTION, &data,
                                 sizeof(remote_rpc_process_exception));
@@ -1325,6 +1326,7 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
       frpc_timer.sc = sc;
       frpc_timer.handle = handle;
       frpc_timer.timeout_millis = rpc_timeout;
+      frpc_timer.tid = gettid();
       fastrpc_add_timer(&frpc_timer);
     }
   }
