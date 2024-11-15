@@ -100,14 +100,17 @@ static boolean fastrpc_dev_exists(const char* dev_name)
 	struct stat buffer;
 	char *path = NULL;
 	uint64 len;
+	unsigned int info;
 
 	len = snprintf(0, 0, "/dev/%s", dev_name) + 1;
 	if(NULL == (path = (char *)malloc(len * sizeof(char))))
 		return false;
 
 	snprintf(path, (int)len, "/dev/%s", dev_name);
+	info = stat(path, &buffer);
+	free(path);
 
-	return (stat(path, &buffer) == 0);
+	return (!info);
 }
 
 /**
