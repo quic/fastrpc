@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([libadspprc.so], [0.0.1])
+AC_INIT([libadsprpc.so], [0.0.1])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -20,6 +20,14 @@ AS_CASE([$host],
 
 AM_CONDITIONAL([ANDROID_CC],
 [test "$compile_for_android" = yes])
+
+# Add shared object versioning
+m4_define([LT_MAJOR], [1])
+m4_define([LT_MINOR], [0])
+m4_define([LT_PATCH], [0])
+
+AC_SUBST([LT_VERSION], LT_MAJOR.LT_MINOR)
+AC_SUBST([LT_VERSION_NUMBER], LT_MAJOR:LT_MINOR:LT_PATCH)
 
 # Checks for programs.
 AC_PROG_CXX
