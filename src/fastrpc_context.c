@@ -134,7 +134,7 @@ static int fastrpc_context_deinit(fastrpc_context *ctx) {
 		if (!ctx->devs[i])
 			continue;
 
-		fastrpc_session_close(domain);
+		fastrpc_session_close(domain, INVALID_DEVICE);
 	}
 	free(ctx->devs);
 

@@ -362,12 +362,18 @@ int fastrpc_session_open(int domain, int *dev) {
   return AEE_ECONNREFUSED;
 }
 
-int fastrpc_session_close(int domain) {
-  int dev = hlist[domain].dev;
-
-  if (dev >= 0)
+void fastrpc_session_close(int domain, int dev) {
+  if (!hlist)
+    return;
+  if ((hlist[domain].dev == INVALID_DEVICE) &&
+      (dev != INVALID_DEVICE)) {
     close(dev);
-  return 0;
+  } else if ((hlist[domain].dev != INVALID_DEVICE) &&
+            (dev == INVALID_DEVICE)) {
+    close(hlist[domain].dev);
+    hlist[domain].dev = INVALID_DEVICE;
+  }
+  return;
 }
 
 int fastrpc_session_get(int domain) {
