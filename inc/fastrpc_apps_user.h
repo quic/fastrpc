@@ -20,6 +20,22 @@
 #define __CONSTRUCTOR_ATTRIBUTE__ __attribute__((constructor))
 #endif
 
+/* Verify if the handle is configured for staticPD. */
+#define IS_STATICPD_HANDLE(h) ((h > 0xff) && (h <= 0x200))
+
+/*
+ * Enum defined for static PD handles.
+ * The range for constant handles is <0,255>,
+ * and the range for staticPD handles is <256,512>
+ */
+typedef enum {
+	 OISPD_HANDLE			=	256,
+	 AUDIOPD_HANDLE			=	257,
+	 SENSORPD_HANDLE		=	258,
+	 ATTACHGUESTOS_HANDLE		=	259,
+	 ROOTPD_HANDLE			=	260,
+	 SECUREPD_HANDLE		=	261
+ } static_pd_handle;
 /*
  * API to initialize rpcmem data structures for ION allocation
  */
