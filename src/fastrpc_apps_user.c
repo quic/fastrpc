@@ -347,6 +347,14 @@ void set_thread_context(int domain) {
   }
 }
 
+int get_device_fd(int domain) {
+  if (hlist && (hlist[domain].dev != -1)) {
+    return hlist[domain].dev;
+  } else {
+    return -1;
+  }
+}
+
 int fastrpc_session_open(int domain, int *dev) {
   int device = -1;
 
