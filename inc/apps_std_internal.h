@@ -19,6 +19,8 @@
 #define ADSP_LIBRARY_PATH "ADSP_LIBRARY_PATH"
 #define DSP_LIBRARY_PATH "DSP_LIBRARY_PATH"
 #define ADSP_AVS_PATH "ADSP_AVS_CFG_PATH"
+#define MAX_NON_PRELOAD_LIBS_LEN 2048
+#define FILE_EXT ".so"
 
 // Locations where shell file can be found
 #ifndef ENABLE_UPSTREAM_DRIVER_INTERFACE
