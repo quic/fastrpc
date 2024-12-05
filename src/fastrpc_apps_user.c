@@ -337,6 +337,10 @@ static int open_device_node(int domain_id);
 static int close_device_node(int domain_id, int dev);
 extern int apps_mem_table_init(void);
 extern void apps_mem_table_deinit(void);
+extern int log_config_table_init(void);
+extern void log_config_table_deinit(void);
+extern int dspqueue_info_table_init(void);
+extern void dspqueue_info_table_deinit(void);
 
 static uint32_t crc_table[256];
 uint32 timer_expired = 0;
@@ -4123,13 +4127,17 @@ static void fastrpc_apps_user_deinit(void) {
   }
   pthread_mutex_destroy(&dsp_client_mut);
 #endif
-  fastrpc_context_table_deinit();
-  deinit_process_signals();
+fastrpc_context_table_deinit();
+  fastrpc_dspsignal_deinit();
   fastrpc_notif_deinit();
   apps_mem_table_deinit();
   fastrpc_wake_lock_deinit();
   fastrpc_log_deinit();
   fastrpc_mem_deinit();
+  fastrpc_adspmsgd_deinit();
+  dspqueue_info_table_deinit();
+  fastrpc_async_deinit();
+  log_config_table_deinit();
   PL_DEINIT(apps_std);
   PL_DEINIT(rpcmem);
   PL_DEINIT(gpls);
@@ -4190,8 +4198,13 @@ static int fastrpc_apps_user_init(void) {
   VERIFY(AEE_SUCCESS == (nErr = PL_INIT(rpcmem)));
   fastrpc_mem_init();
   fastrpc_context_table_init();
+  dspqueue_info_table_init();
+  fastrpc_dspsignal_init();
   fastrpc_log_init();
+  fastrpc_adspmsgd_init();
   fastrpc_config_init();
+  fastrpc_async_init();
+  log_config_table_init();
   pthread_mutex_init(&update_notif_list_mut, 0);
 #ifndef NO_HAL
   pthread_mutex_init(&dsp_client_mut, 0);
