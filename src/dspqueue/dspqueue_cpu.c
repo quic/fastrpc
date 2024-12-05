@@ -27,6 +27,7 @@
 #include "fastrpc_internal.h"
 #include "fastrpc_mem.h"
 #include "fastrpc_context.h"
+#include "fastrpc_hash_table.h"
 #include "remote.h"
 #include "verify.h"
 #include <AEEStdErr.h>
@@ -107,17 +108,37 @@ static inline void free_skel_uri(remote_rpc_get_uri_t *dspqueue_skel) {
   }
 }
 
-#define UNUSED_QUEUE ((struct dspqueue *)NULL)
-#define INVALID_QUEUE ((struct dspqueue *)-1)
+#define UNUSED_QUEUE ((struct dspqueue*)NULL)
+#define INVALID_QUEUE ((struct dspqueue*)-1)
+
+/*
+ * macro to check if a node is present is present
+ * in the dspqueue_info hash table
+ */
+#define VERIFY_QUEUE_HASH_NODE(me, dq, domain) \
+	do { \
+		GET_HASH_NODE(struct dspqueue_info, domain, me); \
+		if (!me) { \
+			nErr = AEE_ENOSUCHINSTANCE; \
+			FARF(ERROR, "Error 0x%x: %s: unable to find hash node for domain %d", \
+				nErr, __func__, domain); \
+			return nErr; \
+		} \
+		dq = me->domain_queues; \
+	} while(0)
+
+struct dspqueue_info {
+	struct dspqueue_domain_queues *domain_queues;
+	int notif_registered;
+	ADD_DOMAIN_HASH();
+};
+
+DECLARE_HASH_TABLE(dspqueue_info, struct dspqueue_info);
 
 struct dspqueue_process_queues {
-  pthread_mutex_t mutex; // Hold this to manipulate domain_queues or
-                         // domain_queues[i]->num_queues; In other words, must
-                         // hold this mutex to decide when to create/destroy a
-                         // new struct dspqueue_domain_queues.
-  struct dspqueue_domain_queues *domain_queues[NUM_DOMAINS_EXTEND];
-  uint32_t count;
-  int notif_registered[NUM_DOMAINS_EXTEND];
+    pthread_mutex_t mutex;  // Must hold this mutex to decide when to create/destroy
+                            // a new struct dspqueue_domain_queues.
+    uint32_t count;
 };
 
 static struct dspqueue_process_queues proc_queues;
@@ -159,6 +180,17 @@ static void *dspqueue_packet_callback_thread(void *arg);
 static int dspqueue_notif_callback(void *context, int domain, int session,
                                    remote_rpc_status_flags_t status);
 
+/* Delete and free all nodes in hash-table */
+void dspqueue_info_table_deinit(void) {
+	HASH_TABLE_CLEANUP(struct dspqueue_info);
+}
+
+/* Initialize hash-table */
+int dspqueue_info_table_init(void) {
+	HASH_TABLE_INIT(struct dspqueue_info);
+	return 0;
+}
+
 // Initialize process static queue structure. This should realistically never
 // fail.
 static void init_process_queues_once(void) {
@@ -180,13 +212,18 @@ static AEEResult init_domain_queues_locked(int domain) {
   int sendmutex = 0, sendcond = 0, sendthread = 0, recvthread = 0,
       dom = domain & DOMAIN_ID_MASK;
   struct dspqueue_domain_queues *dq = NULL;
+  struct dspqueue_info *me = NULL;
   remote_rpc_get_uri_t dspqueue_skel = {0};
   int state_mapped = 0;
   uint32_t cap = 0;
 
   errno = 0;
   assert(IS_VALID_EFFECTIVE_DOMAIN_ID(domain));
-  if (queues->domain_queues[domain] != NULL) {
+  GET_HASH_NODE(struct dspqueue_info, domain, me);
+  if (!me) {
+    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct dspqueue_info, domain, me);
+  }
+  if (me->domain_queues) {
     return AEE_SUCCESS;
   }
 
@@ -253,7 +290,7 @@ static AEEResult init_domain_queues_locked(int domain) {
     goto bail;
   }
 
-  if (!queues->notif_registered[domain]) {
+  if (!me->notif_registered) {
     // Register for process exit notifications. Only do this once for the
     // lifetime of the process to avoid multiple registrations and leaks.
     remote_rpc_notif_register_t reg = {.context = queues,
@@ -266,7 +303,7 @@ static AEEResult init_domain_queues_locked(int domain) {
            nErr, __func__);
       nErr = 0;
     } else if (!nErr) {
-      queues->notif_registered[domain] = 1;
+      me->notif_registered = 1;
     } else {
       goto bail;
     }
@@ -322,7 +359,7 @@ static AEEResult init_domain_queues_locked(int domain) {
   }
 
   free_skel_uri(&dspqueue_skel);
-  queues->domain_queues[domain] = dq;
+  me->domain_queues = dq;
   return AEE_SUCCESS;
 
 bail:
@@ -371,13 +408,14 @@ static AEEResult destroy_domain_queues_locked(int domain) {
 
   AEEResult nErr = AEE_SUCCESS;
   struct dspqueue_domain_queues *dq = NULL;
+  struct dspqueue_info *me = NULL;
   void *ret;
 
   errno = 0;
   FARF(HIGH, "destroy_domain_queues_locked");
   assert(IS_VALID_EFFECTIVE_DOMAIN_ID(domain));
-  assert(queues->domain_queues[domain] != NULL);
-  dq = queues->domain_queues[domain];
+  VERIFY_QUEUE_HASH_NODE(me, dq, domain);
+  assert(dq);
   assert(dq->num_queues == 0);
 
   if (!dq->have_dspsignal) {
@@ -423,7 +461,7 @@ static AEEResult destroy_domain_queues_locked(int domain) {
   rpcmem_free(dq->state);
   free(dq);
 
-  queues->domain_queues[domain] = NULL;
+  me->domain_queues = NULL;
 
 bail:
   if (nErr != AEE_SUCCESS) {
@@ -439,18 +477,19 @@ AEEResult dspqueue_create(int domain, uint32_t flags, uint32_t req_queue_size,
                           dspqueue_callback_t error_callback,
                           void *callback_context, dspqueue_t *queue) {
 
-  struct dspqueue *q = NULL;
-  AEEResult nErr = AEE_SUCCESS;
-  uint32_t o;
-  int mutex_init = 0;
-  pthread_attr_t tattr;
-  unsigned id = DSPQUEUE_MAX_PROCESS_QUEUES;
-  struct dspqueue_domain_queues *dq = NULL;
-  int packetmutex = 0, packetcond = 0, spacemutex = 0, spacecond = 0;
-  int callbackthread = 0;
-  uint32_t queue_count;
-  int queue_mapped = 0;
-  unsigned signals = 0;
+    struct dspqueue *q = NULL;
+    AEEResult nErr = AEE_SUCCESS;
+    uint32_t o;
+    int mutex_init = 0;
+    pthread_attr_t tattr;
+    unsigned id = DSPQUEUE_MAX_PROCESS_QUEUES;
+    struct dspqueue_domain_queues *dq = NULL;
+    struct dspqueue_info *me = NULL;
+    int packetmutex = 0, packetcond = 0, spacemutex = 0, spacecond = 0;
+    int callbackthread = 0;
+    uint32_t queue_count;
+    int queue_mapped = 0;
+    unsigned signals = 0;
 
   VERIFYC(queue, AEE_EBADPARM);
   *queue = NULL;
@@ -476,7 +515,7 @@ AEEResult dspqueue_create(int domain, uint32_t flags, uint32_t req_queue_size,
     pthread_mutex_unlock(&queues->mutex);
     return nErr;
   }
-  dq = queues->domain_queues[domain];
+  VERIFY_QUEUE_HASH_NODE(me, dq, domain);
   if (!dq) {
     FARF(ERROR, "No queues in process for domain %d", domain);
     pthread_mutex_unlock(&queues->mutex);
@@ -798,11 +837,12 @@ bail:
 
 AEEResult dspqueue_close(dspqueue_t queue) {
 
-  struct dspqueue *q = queue;
-  struct dspqueue_domain_queues *dq = NULL;
-  AEEResult nErr = AEE_SUCCESS;
-  int32_t imported;
-  unsigned i;
+    struct dspqueue *q = queue;
+    struct dspqueue_domain_queues *dq = NULL;
+    struct dspqueue_info *me = NULL;
+    AEEResult nErr = AEE_SUCCESS;
+    int32_t imported;
+    unsigned i;
 
   errno = 0;
   VERIFYC(q, AEE_EBADPARM);
@@ -814,7 +854,7 @@ AEEResult dspqueue_close(dspqueue_t queue) {
 
   VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(q->domain), AEE_EINVALIDDOMAIN);
   pthread_mutex_lock(&queues->mutex);
-  dq = queues->domain_queues[q->domain];
+  VERIFY_QUEUE_HASH_NODE(me, dq, q->domain);
   if (dq == NULL) {
     FARF(ERROR, "No domain queues");
     pthread_mutex_unlock(&queues->mutex);
@@ -1213,9 +1253,11 @@ static uint32_t timespec_diff_us(struct timespec *a, struct timespec *b) {
 // Send a signal
 static AEEResult send_signal(struct dspqueue *q, uint32_t signal_no) {
 
-  struct dspqueue_domain_queues *dq = queues->domain_queues[q->domain];
+  struct dspqueue_domain_queues *dq = NULL;
+  struct dspqueue_info *me = NULL;
   int nErr = AEE_SUCCESS;
 
+  VERIFY_QUEUE_HASH_NODE(me, dq, q->domain);
   if (q->have_driver_signaling) {
     VERIFYC(signal_no < DSPQUEUE_NUM_SIGNALS, AEE_EBADPARM);
     VERIFY((nErr = dspsignal_signal(q->domain,
@@ -1375,21 +1417,22 @@ AEEResult dspqueue_write_noblock(dspqueue_t queue, uint32_t flags,
                                  uint32_t message_length,
                                  const uint8_t *message) {
 
-  AEEResult nErr = AEE_SUCCESS;
-  struct dspqueue *q = queue;
-  struct dspqueue_packet_queue_header *pq = NULL;
-  volatile uint8_t *qp = NULL;
-  struct dspqueue_packet_queue_state *read_state = NULL;
-  struct dspqueue_packet_queue_state *write_state = NULL;
-  struct dspqueue_domain_queues *dq = NULL;
-  unsigned len, alen;
-  uint32_t r, w;
-  uint32_t qleft = 0, qsize = 0;
-  int locked = 0;
-  uint64_t phdr;
-  int wrap = 0;
-  uint32_t i;
-  uint32_t buf_refs = 0;
+    AEEResult nErr = AEE_SUCCESS;
+    struct dspqueue *q = queue;
+    struct dspqueue_packet_queue_header *pq = NULL;
+    volatile uint8_t *qp = NULL;
+    struct dspqueue_packet_queue_state *read_state = NULL;
+    struct dspqueue_packet_queue_state *write_state = NULL;
+    struct dspqueue_domain_queues *dq = NULL;
+    struct dspqueue_info *me = NULL;
+    unsigned len, alen;
+    uint32_t r, w;
+    uint32_t qleft, qsize = 0;
+    int locked = 0;
+    uint64_t phdr;
+    int wrap = 0;
+    uint32_t i;
+    uint32_t buf_refs = 0;
 
   if (q->mdq.is_mdq) {
     // Recursively call 'dspqueue_write_noblock' on individual queues
@@ -1403,12 +1446,12 @@ AEEResult dspqueue_write_noblock(dspqueue_t queue, uint32_t flags,
                         + pq->read_state_offset);
   write_state = (struct dspqueue_packet_queue_state*) (((uintptr_t)q->header)
                         + pq->write_state_offset);
-  dq = queues->domain_queues[q->domain];
-  qsize = pq->queue_length;
+    qsize = pq->queue_length;
 
-  // Check properties
-  VERIFYC(num_buffers <= DSPQUEUE_MAX_BUFFERS, AEE_EBADPARM);
-  VERIFYC(message_length <= DSPQUEUE_MAX_MESSAGE_SIZE, AEE_EBADPARM);
+    VERIFY_QUEUE_HASH_NODE(me, dq, q->domain);
+    // Check properties
+    VERIFYC(num_buffers <= DSPQUEUE_MAX_BUFFERS, AEE_EBADPARM);
+    VERIFYC(message_length <= DSPQUEUE_MAX_MESSAGE_SIZE, AEE_EBADPARM);
 
   // Prepare flags
   if (num_buffers > 0) {
@@ -1976,22 +2019,24 @@ AEEResult dspqueue_read_noblock(dspqueue_t queue, uint32_t *flags,
                                 uint32_t max_message_length,
                                 uint32_t *message_length, uint8_t *message) {
 
-  AEEResult nErr = AEE_SUCCESS;
-  struct dspqueue *q = queue;
-  struct dspqueue_domain_queues *dq = NULL;
-  struct dspqueue_packet_queue_header *pq = NULL;
-  volatile const uint8_t *qp = NULL;
-  struct dspqueue_packet_queue_state *read_state = NULL;
-  struct dspqueue_packet_queue_state *write_state = NULL;
-  uint32_t r, qleft;
-  uint32_t f, num_b, msg_l, qsize = 0;
-  uint32_t len;
-  int locked = 0;
-  unsigned i;
-  uint32_t buf_refs = 0;
-  uint64_t header;
+    AEEResult nErr = AEE_SUCCESS;
+    struct dspqueue *q = queue;
+    struct dspqueue_domain_queues *dq = NULL;
+    struct dspqueue_info *me = NULL;
+    struct dspqueue_packet_queue_header *pq = NULL;
+    volatile uint8_t *qp = NULL;
+    struct dspqueue_packet_queue_state *read_state = NULL;
+    struct dspqueue_packet_queue_state *write_state = NULL;
+    uint32_t r, qleft;
+    uint32_t f, num_b, msg_l, qsize = 0;
+    uint32_t len;
+    int locked = 0;
+    unsigned i;
+    uint32_t buf_refs = 0;
+    uint64_t header;
 
-  errno = 0;
+    VERIFY_QUEUE_HASH_NODE(me, dq, q->domain);
+    errno = 0;
 
 if (q->mdq.is_mdq) {
         // Recursively call 'dspqueue_read_noblock' on individual queues
@@ -2000,10 +2045,9 @@ if (q->mdq.is_mdq) {
                 message_length, message, 0, true, false);
     }
 
-  dq = queues->domain_queues[q->domain];
-  pq = &q->header->resp_queue;
-  qp = (volatile const uint8_t *) (((uintptr_t)q->header) + pq->queue_offset);
-  read_state = (struct dspqueue_packet_queue_state *) (((uintptr_t)q->header)
+    pq = &q->header->resp_queue;
+    qp = (volatile const uint8_t*) (((uintptr_t)q->header) + pq->queue_offset);
+    read_state = (struct dspqueue_packet_queue_state*) (((uintptr_t)q->header)
                         + pq->read_state_offset);
   write_state = (struct dspqueue_packet_queue_state *) (((uintptr_t)q->header)
                         + pq->write_state_offset);
@@ -2714,6 +2758,8 @@ bail:
 static int dspqueue_notif_callback(void *context, int domain, int session,
                                    remote_rpc_status_flags_t status) {
   int nErr = AEE_SUCCESS, effec_domain_id = domain;
+  struct dspqueue_info *me = NULL;
+  struct dspqueue_domain_queues *dq = NULL;
 
   if (status == FASTRPC_USER_PD_UP) {
     return 0;
@@ -2730,8 +2776,9 @@ static int dspqueue_notif_callback(void *context, int domain, int session,
 
   // Send different error codes for SSR and remote-process exit
   nErr = (status == FASTRPC_DSP_SSR) ? AEE_ECONNRESET : AEE_ENOSUCH;
-  if (queues->domain_queues[effec_domain_id] != NULL) {
-    error_callback(queues->domain_queues[effec_domain_id], nErr);
+  VERIFY_QUEUE_HASH_NODE(me, dq, domain);
+  if ( dq != NULL ) {
+    error_callback(dq, nErr);
   }
   return 0;
 }

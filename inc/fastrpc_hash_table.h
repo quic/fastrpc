@@ -65,4 +65,15 @@
 		pthread_mutex_unlock(&info.mut); \
 	} while(0)
 
+
+/* Delete a particular entry in the hash-table */
+#define DELETE_HASH_NODE(type, domain, me) \
+	do { \
+		pthread_mutex_lock(&info.mut); \
+		HASH_FIND_INT(info.tbl, &domain, me); \
+		if (me) \
+			HASH_DEL(info.tbl, me); \
+		pthread_mutex_unlock(&info.mut); \
+	} while(0)
+
 #endif // FASTRPC_HASH_TABLE_H

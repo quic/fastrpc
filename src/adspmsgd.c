@@ -26,12 +26,29 @@
 
 extern char *fastrpc_config_get_runtime_farf_file(void);
 
-msgd androidmsgd_handle[NUM_DOMAINS_EXTEND];
+DECLARE_HASH_TABLE(msgd_handle, msgd);
+
+int fastrpc_adspmsgd_init(void) {
+	HASH_TABLE_INIT(msgd);
+	return 0;
+}
+
+void fastrpc_adspmsgd_deinit(void) {
+	HASH_TABLE_CLEANUP(msgd);
+}
 
 void readMessage(int domain) {
   int index = 0;
-  msgd *msgd_handle = &androidmsgd_handle[domain];
-  unsigned long long lreadIndex = msgd_handle->readIndex;
+  msgd *msgd_handle = NULL;
+  unsigned int lreadIndex = 0;
+
+  GET_HASH_NODE(msgd, domain, msgd_handle);
+  if (!msgd_handle) {
+    FARF(ERROR, "Error: %s: unable to find hash node for domain %d",
+          __func__, domain);
+    return;
+  }
+  lreadIndex = msgd_handle->readIndex;
   memset(msgd_handle->message, 0, BUFFER_SIZE);
   if (msgd_handle->readIndex >= msgd_handle->bufferSize) {
     lreadIndex = msgd_handle->readIndex = 0;
@@ -69,12 +86,17 @@ static void *adspmsgd_reader(void *arg) {
   int domain = DEFAULT_DOMAIN_ID;
   int nErr = AEE_SUCCESS;
   unsigned long long bytesToRead = 0;
-  msgd *msgd_handle;
+  msgd *msgd_handle = NULL;
 
   FARF(RUNTIME_RPC_HIGH, "%s thread starting for domain %d\n", __func__,
        domain);
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(handle, &domain)));
-  msgd_handle = &androidmsgd_handle[domain];
+  GET_HASH_NODE(msgd, domain, msgd_handle);
+  if (!msgd_handle) {
+    FARF(ERROR, "Error: %s: unable to find hash node for domain %d",
+          __func__, domain);
+    return (void*)(-1);
+  }
   msgd_handle->threadStop = 0;
   while (!(msgd_handle->threadStop)) {
     if (*(msgd_handle->currentIndex) == msgd_handle->readIndex) {
@@ -105,11 +127,13 @@ int adspmsgd_init(remote_handle64 handle, int filter) {
   unsigned long long vapps = 0;
   errno = 0;
   char *filename = NULL;
-  msgd *msgd_handle = &androidmsgd_handle[DEFAULT_DOMAIN_ID];
+  msgd *msgd_handle = NULL;
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(handle, &domain)));
-  msgd_handle = &androidmsgd_handle[domain];
+  GET_HASH_NODE(msgd, domain, msgd_handle);
+  if (!msgd_handle)
+    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(msgd, domain, msgd_handle);
   if (msgd_handle->thread_running) {
-    androidmsgd_handle[domain].threadStop = 1;
+    msgd_handle->threadStop = 1;
     adspmsgd_adsp1_deinit(handle);
     adspmsgd_stop(domain);
   }
@@ -155,22 +179,31 @@ bail:
 }
 
 // function to stop logger thread
-void adspmsgd_stop(int dom) {
-  if (!androidmsgd_handle[dom].thread_running)
-    return;
-  if (androidmsgd_handle[dom].threadStop == 0) {
-    androidmsgd_handle[dom].threadStop = 1;
-    while (androidmsgd_handle[dom].threadStop != -1)
-      ;
-    pthread_join(androidmsgd_handle[dom].msgreader_thread, NULL);
-    androidmsgd_handle[dom].msgreader_thread = 0;
-    androidmsgd_handle[dom].thread_running = false;
-    if (androidmsgd_handle[dom].message) {
-      free(androidmsgd_handle[dom].message);
-      androidmsgd_handle[dom].message = NULL;
+void adspmsgd_stop(int dom)
+{
+  msgd *msgd_handle = NULL;
+
+  GET_HASH_NODE(msgd, dom, msgd_handle);
+    if (!msgd_handle) {
+      FARF(ERROR, "Error: %s: unable to find hash node for domain %d",
+           __func__, dom);
+      return;
     }
-    if (androidmsgd_handle[dom].log_file_fd) {
-      fclose(androidmsgd_handle[dom].log_file_fd);
+  if (!msgd_handle->thread_running) {
+    return;
+  }
+  if (msgd_handle->threadStop == 0) {
+    msgd_handle->threadStop = 1;
+    while (msgd_handle->threadStop != -1);
+    pthread_join(msgd_handle->msgreader_thread, NULL);
+    msgd_handle->msgreader_thread = 0;
+    msgd_handle->thread_running = false;
+    if (msgd_handle->message) {
+      free(msgd_handle->message);
+      msgd_handle->message = NULL;
+    }
+    if (msgd_handle->log_file_fd) {
+      fclose(msgd_handle->log_file_fd);
     }
   }
 }

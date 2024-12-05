@@ -70,4 +70,15 @@ int fastrpc_async_domain_init(int domain);
  */
 void fastrpc_async_domain_deinit(int domain);
 
+/*
+ * Initialize adspmsgd hash-table
+ * Returns 0 on success
+ */
+int fastrpc_async_init(void);
+
+/*
+ * Cleanup adspmsgd hash table
+ * Returns none
+ */
+void fastrpc_async_deinit(void);
 #endif // FASTRPC_ASYNC_H

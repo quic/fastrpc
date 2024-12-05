@@ -35,6 +35,7 @@
 #include "AEEstd.h"
 #include "HAP_farf.h"
 #include "fastrpc_common.h"
+#include "fastrpc_hash_table.h"
 #include "fastrpc_internal.h"
 #include "fastrpc_mem.h"
 #include "rpcmem.h"
@@ -72,15 +73,50 @@
 // Mask for Map control flags
 #define FASTRPC_MAP_FLAGS_MASK (0xFFFF)
 
+/*
+ * macro to check if a node is present is present
+ * in the smaplst hash table
+ */
+#define VERIFY_SMAPLST_NODE_PRESENT(domain) \
+	do { \
+		GET_HASH_NODE(struct static_map_list, domain, me); \
+		if (!me) { \
+			nErr = AEE_ENOSUCHINSTANCE; \
+			FARF(ERROR, "Error 0x%x: %s: unable to find hash-node for domain %d", \
+				nErr, __func__, domain); \
+			goto bail; \
+		} \
+	} while(0);
+
+/*
+ * macro to delete and free all of
+ * mapped_info hash table for a particular fd
+ */
+#define MEM_TO_FD_HASH_TABLE_CLEANUP(tofd) \
+	do { \
+		struct mapped_info *me = NULL, *tmp = NULL; \
+		\
+		HASH_ITER(hh, tofd->mapped_info_table, me, tmp) { \
+			HASH_DEL(tofd->mapped_info_table, me); \
+			free(me); \
+		} \
+	} while(0);
+
+/* Hash-table of domains on which "fd" is mapped */
+struct mapped_info {
+	bool mapped; // Buffer persistent mapping status
+	ADD_DOMAIN_HASH();
+};
+
 struct mem_to_fd {
-  QNode qn;
-  void *buf;
-  size_t size;
-  int fd;
-  int nova;
-  int attr;
-  int refcount;
-  bool mapped[NUM_DOMAINS_EXTEND]; //! Buffer persistent mapping status
+   QNode qn;
+   void* buf;
+   size_t size;
+   int fd;
+   int nova;
+   int attr;
+   int refcount;
+   struct mapped_info *mapped_info_table;
 };
 
 struct mem_to_fd_list {
@@ -106,11 +142,12 @@ struct static_map {
 };
 
 struct static_map_list {
-  QList ql;
-  pthread_mutex_t mut;
+	QList ql;
+	pthread_mutex_t mut;
+	ADD_DOMAIN_HASH();
 };
 
-static struct static_map_list smaplst[NUM_DOMAINS_EXTEND];
+DECLARE_HASH_TABLE(smaplst, struct static_map_list);
 static struct mem_to_fd_list fdlist;
 static struct dma_handle_info dhandles[MAX_DMA_HANDLES];
 static int dma_handle_count = 0;
@@ -119,27 +156,47 @@ static int fastrpc_unmap_fd(void *buf, size_t size, int fd, int attr);
 static __inline void try_map_buffer(struct mem_to_fd *tofd);
 static __inline int try_unmap_buffer(struct mem_to_fd *tofd);
 
+/* Helper function to remove all static mappings of a session */
+static inline void remove_static_mapping_for_session(struct static_map_list **me) {
+	struct static_map *smap = NULL;
+	QNode *pn = NULL, *pnn = NULL;
+
+	pthread_mutex_lock(&(*me)->mut);
+		QLIST_NEXTSAFE_FOR_ALL(&(*me)->ql, pn, pnn) {
+			smap = STD_RECOVER_REC(struct static_map, qn, pn);
+			if (!smap)
+				continue;
+			QNode_DequeueZ(&smap->qn);
+			free(smap);
+		}
+	pthread_mutex_unlock(&(*me)->mut);
+}
+
 int fastrpc_mem_init(void) {
   int ii;
 
-  pthread_mutex_init(&fdlist.mut, 0);
-  QList_Ctor(&fdlist.ql);
-  std_memset(dhandles, 0, sizeof(dhandles));
-  FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
-    QList_Ctor(&smaplst[ii].ql);
-    pthread_mutex_init(&smaplst[ii].mut, 0);
-  }
-  return 0;
+	pthread_mutex_init(&fdlist.mut, 0);
+	QList_Ctor(&fdlist.ql);
+	std_memset(dhandles, 0, sizeof(dhandles));
+	HASH_TABLE_INIT(struct static_map_list);
+	return 0;
 }
 
 int fastrpc_mem_deinit(void) {
-  int ii;
+	int ii, nErr = 0;
+	struct static_map_list *node = NULL;
 
-  pthread_mutex_destroy(&fdlist.mut);
-  FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
-    pthread_mutex_destroy(&smaplst[ii].mut);
-  }
-  return 0;
+	pthread_mutex_destroy(&fdlist.mut);
+	FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
+		GET_HASH_NODE(struct static_map_list, ii, node);
+		if (!node) {
+			continue;
+		}
+		remove_static_mapping_for_session(&node);
+		pthread_mutex_destroy(&node->mut);
+	}
+	HASH_TABLE_CLEANUP(struct static_map_list);
+	return 0;
 }
 
 static void *remote_register_fd_attr(int fd, size_t size, int attr) {
@@ -272,6 +329,7 @@ static int remote_register_buf_common(void *buf, size_t size, int fd,
       if (freefd->nova) {
         munmap(freefd->buf, freefd->size);
       }
+      MEM_TO_FD_HASH_TABLE_CLEANUP(freefd);
       free(freefd);
       freefd = NULL;
     } else if (addr_match_fd) {
@@ -447,6 +505,7 @@ int fastrpc_mmap(int domain, int fd, void *vaddr, int offset, size_t length,
   uint64_t vaddrout = 0;
   struct static_map *mNode = NULL, *tNode = NULL;
   QNode *pn, *pnn;
+  struct static_map_list *me = NULL;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -478,14 +537,20 @@ int fastrpc_mmap(int domain, int fd, void *vaddr, int offset, size_t length,
   VERIFYC(-1 != dev, AEE_ERPC);
 
   /* Search for mapping in current session static map list */
-  pthread_mutex_lock(&smaplst[domain].mut);
-  QLIST_NEXTSAFE_FOR_ALL(&smaplst[domain].ql, pn, pnn) {
+  GET_HASH_NODE(struct static_map_list, domain, me);
+  if (!me) {
+    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct static_map_list, domain, me);
+    QList_Ctor(&me->ql);
+    pthread_mutex_init(&me->mut, 0);
+  }
+  pthread_mutex_lock(&me->mut);
+  QLIST_NEXTSAFE_FOR_ALL(&me->ql, pn, pnn) {
     tNode = STD_RECOVER_REC(struct static_map, qn, pn);
     if (tNode->map.fd == fd) {
       break;
     }
   }
-  pthread_mutex_unlock(&smaplst[domain].mut);
+  pthread_mutex_unlock(&me->mut);
 
   // Raise error if map found already
   if (tNode) {
@@ -510,9 +575,9 @@ int fastrpc_mmap(int domain, int fd, void *vaddr, int offset, size_t length,
   if (!iocErr) {
     mNode->map.vaddrout = vaddrout;
     mNode->refs = 1;
-    pthread_mutex_lock(&smaplst[domain].mut);
-    QList_AppendNode(&smaplst[domain].ql, &mNode->qn);
-    pthread_mutex_unlock(&smaplst[domain].mut);
+    pthread_mutex_lock(&me->mut);
+    QList_AppendNode(&me->ql, &mNode->qn);
+    pthread_mutex_unlock(&me->mut);
     mNode = NULL;
   } else if (errno == ENOTTY ||
              iocErr == (int)(DSP_AEE_EOFFSET | AEE_EUNSUPPORTED)) {
@@ -545,6 +610,7 @@ int fastrpc_munmap(int domain, int fd, void *vaddr, size_t length) {
   int nErr = 0, dev = -1, iocErr = 0, locked = 0, ref = 0;
   struct static_map *mNode = NULL;
   QNode *pn, *pnn;
+  struct static_map_list *me = NULL;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -563,9 +629,10 @@ int fastrpc_munmap(int domain, int fd, void *vaddr, size_t length) {
    * Virtual address and length can be used for precise find with additional
    * flags in future.
    */
-  pthread_mutex_lock(&smaplst[domain].mut);
+  VERIFY_SMAPLST_NODE_PRESENT(domain);
+  pthread_mutex_lock(&me->mut);
   locked = 1;
-  QLIST_NEXTSAFE_FOR_ALL(&smaplst[domain].ql, pn, pnn) {
+  QLIST_NEXTSAFE_FOR_ALL(&me->ql, pn, pnn) {
     mNode = STD_RECOVER_REC(struct static_map, qn, pn);
     if (mNode->map.fd == fd) {
       FARF(RUNTIME_RPC_HIGH, "%s: unmap found for fd %d domain %d", __func__,
@@ -582,11 +649,11 @@ int fastrpc_munmap(int domain, int fd, void *vaddr, size_t length) {
   }
   mNode->refs = 0;
   locked = 0;
-  pthread_mutex_unlock(&smaplst[domain].mut);
+  pthread_mutex_unlock(&me->mut);
 
   iocErr = ioctl_munmap(dev, MEM_UNMAP, 0, 0, fd, mNode->map.length,
                         mNode->map.vaddrout);
-  pthread_mutex_lock(&smaplst[domain].mut);
+  pthread_mutex_lock(&me->mut);
   locked = 1;
   if (iocErr == 0) {
     QNode_DequeueZ(&mNode->qn);
@@ -599,9 +666,8 @@ int fastrpc_munmap(int domain, int fd, void *vaddr, size_t length) {
     nErr = AEE_EFAILED;
   }
 bail:
-  if (locked == 1) {
-    locked = 0;
-    pthread_mutex_unlock(&smaplst[domain].mut);
+  if (me && locked) {
+    pthread_mutex_unlock(&me->mut);
   }
   FASTRPC_PUT_REF(domain);
   if (nErr) {
@@ -812,6 +878,27 @@ static int fastrpc_unmap_fd(void *buf, size_t size, int fd, int attr) {
   return nErr;
 }
 
+/* Helper function to update domain on which fd is mapped */
+static inline int fastrpc_mem_fd_update_map_domain(struct mem_to_fd *tofd,
+	int domain) {
+	int nErr = AEE_SUCCESS;
+	struct mapped_info *me = NULL;
+
+	HASH_FIND_INT(tofd->mapped_info_table, &domain, me);
+	if (me)
+		goto bail;
+	VERIFYC(NULL != (me = (struct mapped_info *)calloc(1,
+		sizeof(*me))), AEE_ENOMEMORY);
+	me->domain = domain;
+	HASH_ADD_INT(tofd->mapped_info_table, domain, me);
+bail:
+	if (nErr) {
+		FARF(ERROR, "Error 0x%x: %s failed for domain %d",
+				nErr, __func__, domain);
+	}
+	return nErr;
+}
+
 /**
  * Map buffer on all domains with open remote session
  *
@@ -833,11 +920,14 @@ static __inline void try_map_buffer(struct mem_to_fd *tofd) {
     nErr = fastrpc_mmap(domain, tofd->fd, tofd->buf, 0, tofd->size,
                         FASTRPC_MAP_STATIC);
     if (!nErr) {
-      tofd->mapped[domain] = true;
+      VERIFY(AEE_SUCCESS == (nErr = fastrpc_mem_fd_update_map_domain(tofd,
+                        domain)));
+      tofd->mapped_info_table->mapped = true;
     } else {
       errcnt++;
     }
   }
+bail:
   if (errcnt) {
     FARF(ERROR, "Error 0x%x: %s failed for fd %d buf %p size 0x%zx errcnt %d",
          nErr, __func__, tofd->fd, tofd->buf, tofd->size, errcnt);
@@ -853,24 +943,26 @@ static __inline void try_map_buffer(struct mem_to_fd *tofd) {
  * Returns : None
  */
 static __inline int try_unmap_buffer(struct mem_to_fd *tofd) {
-  int nErr = 0, domain = 0, errcnt = 0;
+	int nErr = 0, domain = 0, errcnt = 0;
+	struct mapped_info *me = NULL;
 
   FARF(RUNTIME_RPC_HIGH, "%s: fd %d", __func__, tofd->fd);
 
   /* Remove static mapping of a buffer for all domains */
   FOR_EACH_EFFECTIVE_DOMAIN_ID(domain) {
-    if (tofd->mapped[domain] == false) {
+    HASH_FIND_INT(tofd->mapped_info_table, &domain, me);
+    if (!me || (me && !me->mapped))
       continue;
-    }
     nErr = fastrpc_munmap(domain, tofd->fd, tofd->buf, tofd->size);
     if (!nErr) {
-      tofd->mapped[domain] = false;
+      me->mapped = false;
     } else {
       errcnt++;
       //@TODO: Better way to handle error? probably prevent same FD getting
       //re-used with FastRPC library.
     }
   }
+bail:
   if (errcnt) {
     FARF(ERROR, "Error 0x%x: %s failed for fd %d buf %p size 0x%zx errcnt %d",
          nErr, __func__, tofd->fd, tofd->buf, tofd->size, errcnt);
@@ -882,6 +974,7 @@ int fastrpc_mem_open(int domain) {
   int nErr = 0;
   QNode *pn, *pnn;
   struct mem_to_fd *tofd = NULL;
+  struct mapped_info *me = NULL;
 
   /**
    * Initialize fastrpc session specific informaiton of the fastrpc_mem module
@@ -895,12 +988,13 @@ int fastrpc_mem_open(int domain) {
   pthread_mutex_lock(&fdlist.mut);
   QLIST_NEXTSAFE_FOR_ALL(&fdlist.ql, pn, pnn) {
     tofd = STD_RECOVER_REC(struct mem_to_fd, qn, pn);
-    if (tofd->attr & FASTRPC_ATTR_TRY_MAP_STATIC &&
-        tofd->mapped[domain] == false) {
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_mem_fd_update_map_domain(tofd, domain)));
+    me = tofd->mapped_info_table;
+    if (tofd->attr & FASTRPC_ATTR_TRY_MAP_STATIC && me->mapped == false) {
       nErr = fastrpc_mmap(domain, tofd->fd, tofd->buf, 0, tofd->size,
                           FASTRPC_MAP_STATIC);
       if (!nErr) {
-        tofd->mapped[domain] = true;
+        me->mapped = true;
       }
     }
   }
@@ -914,42 +1008,40 @@ bail:
 }
 
 int fastrpc_mem_close(int domain) {
-  int nErr = 0;
-  struct static_map *mNode;
-  struct mem_to_fd *tofd = NULL;
-  QNode *pn, *pnn;
+	int nErr = 0;
+	struct mem_to_fd *tofd = NULL;
+	QNode *pn, *pnn;
+	struct static_map_list *me = NULL;
+	struct mapped_info *map = NULL;
 
   FARF(RUNTIME_RPC_HIGH, "%s for domain %d", __func__, domain);
   VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
 
-  /**
-   * Destroy fastrpc session specific information of the fastrpc_mem module.
-   * Remove all static mappings of a session
-   */
-  pthread_mutex_lock(&smaplst[domain].mut);
-  do {
-    mNode = NULL;
-    QLIST_NEXTSAFE_FOR_ALL(&smaplst[domain].ql, pn, pnn) {
-      mNode = STD_RECOVER_REC(struct static_map, qn, pn);
-      QNode_DequeueZ(&mNode->qn);
-      free(mNode);
-      mNode = NULL;
-    }
-  } while (mNode);
-  pthread_mutex_unlock(&smaplst[domain].mut);
+	/**
+	 * Destroy fastrpc session specific information of the fastrpc_mem module.
+	 * Remove all static mappings of a session
+	 */
+	GET_HASH_NODE(struct static_map_list, domain, me);
+	if (me) {
+		remove_static_mapping_for_session(&me);
+	}
 
-  // Remove mapping status of static buffers
-  pthread_mutex_lock(&fdlist.mut);
-  QLIST_NEXTSAFE_FOR_ALL(&fdlist.ql, pn, pnn) {
-    tofd = STD_RECOVER_REC(struct mem_to_fd, qn, pn);
-    /* This function is called only when remote session is being closed.
-     * So no need to do "fastrpc_munmap" here.
-     */
-    if (tofd->mapped[domain]) {
-      tofd->mapped[domain] = false;
-    }
-  }
-  pthread_mutex_unlock(&fdlist.mut);
+	// Remove mapping status of static buffers
+	pthread_mutex_lock(&fdlist.mut);
+	QLIST_NEXTSAFE_FOR_ALL(&fdlist.ql, pn, pnn) {
+		tofd = STD_RECOVER_REC(struct mem_to_fd, qn, pn);
+		HASH_FIND_INT(tofd->mapped_info_table, &domain, map);
+		if (!map) {
+				continue;
+		}
+		/* This function is called only when remote session is being closed.
+		 * So no need to do "fastrpc_munmap" here.
+		 */
+		if (map->mapped) {
+			map->mapped = false;
+		}
+	}
+	pthread_mutex_unlock(&fdlist.mut);
 bail:
   return nErr;
 }
@@ -959,20 +1051,22 @@ int fastrpc_buffer_ref(int domain, int fd, int ref, void **va, size_t *size) {
   int nErr = 0;
   struct static_map *map = NULL;
   QNode *pn, *pnn;
+  struct static_map_list *me = NULL;
 
   if (!IS_VALID_EFFECTIVE_DOMAIN_ID(domain)) {
     FARF(ERROR, "%s: invalid domain %d", __func__, domain);
     return AEE_EBADPARM;
   }
-  pthread_mutex_lock(&smaplst[domain].mut);
+  VERIFY_SMAPLST_NODE_PRESENT(domain);
+  pthread_mutex_lock(&me->mut);
 
   // Find buffer in the domain's static mapping list
-  QLIST_NEXTSAFE_FOR_ALL(&smaplst[domain].ql, pn, pnn) {
+  QLIST_NEXTSAFE_FOR_ALL(&me->ql, pn, pnn) {
     struct static_map *m = STD_RECOVER_REC(struct static_map, qn, pn);
-    if (m->map.fd == fd) {
-      map = m;
-      break;
-    }
+      if ( m->map.fd == fd ) {
+        map = m;
+         break;
+      }
   }
   VERIFYC(map != NULL, AEE_ENOSUCHMAP);
   VERIFYC(map->refs > 0, AEE_ERPC);
@@ -1002,7 +1096,9 @@ int fastrpc_buffer_ref(int domain, int fd, int ref, void **va, size_t *size) {
   }
 
 bail:
-  pthread_mutex_unlock(&smaplst[domain].mut);
+  if (me) {
+        pthread_mutex_unlock(&me->mut);
+    }
   if (nErr != AEE_SUCCESS) {
     FARF(ERROR, "Error 0x%x: %s failed (domain %d, fd %d, ref %d)", nErr,
          __func__, domain, fd, ref);

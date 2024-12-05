@@ -27,6 +27,7 @@
 #include "fastrpc_perf.h"
 #include "fastrpc_common.h"
 #include "fastrpc_async.h"
+#include "fastrpc_hash_table.h"
 #include "platform_libs.h"
 #include "verify.h"
 
@@ -35,12 +36,28 @@
   ((jobid & FASTRPC_ASYNC_HASH_MASK) >> FASTRPC_ASYNC_JOB_POS)
 #define EVENT_COMPLETE 0xff
 
+/*
+ * macro to check if a node is present is present
+ * in the fastrpc_async_info hash table
+ */
+#define VERIFY_ASYNC_NODE_PRESENT(domain) \
+	do { \
+		GET_HASH_NODE(struct fastrpc_async, domain, me); \
+		if (!me) { \
+			nErr = AEE_ENOSUCHINSTANCE; \
+			FARF(ERROR, "Error 0x%x: %s: unable to find hash-node for domain %d", \
+				nErr, __func__, domain); \
+			goto bail; \
+		} \
+	} while(0);
+
 struct fastrpc_async {
-  QList ql[FASTRPC_ASYNC_QUEUE_LIST_LEN];
-  pthread_mutex_t mut;
-  pthread_t thread;
-  int init_done;
-  int deinit_started;
+	QList ql[FASTRPC_ASYNC_QUEUE_LIST_LEN];
+	pthread_mutex_t mut;
+	pthread_t thread;
+	int init_done;
+	int deinit_started;
+	ADD_DOMAIN_HASH();
 };
 
 struct fastrpc_async_job_node {
@@ -52,11 +69,20 @@ struct fastrpc_async_job_node {
 };
 
 pthread_mutex_t async_mut = PTHREAD_MUTEX_INITIALIZER;
-static struct fastrpc_async lasyncinfo[NUM_DOMAINS_EXTEND];
+DECLARE_HASH_TABLE(lasyncinfo, struct fastrpc_async);
 
 extern void set_thread_context(int domain);
 static int get_remote_async_response(int domain, fastrpc_async_jobid *jobid,
                                      int *result);
+
+int fastrpc_async_init(void) {
+	HASH_TABLE_INIT(struct fastrpc_async);
+	return 0;
+}
+
+void fastrpc_async_deinit(void) {
+	HASH_TABLE_CLEANUP(struct fastrpc_async);
+}
 
 int fastrpc_search_async_job(fastrpc_async_jobid jobid,
                              struct fastrpc_async_job_node **async_node) {
@@ -70,7 +96,7 @@ int fastrpc_search_async_job(fastrpc_async_jobid jobid,
   domain = GET_DOMAIN_FROM_JOBID(jobid);
   hash = GET_HASH_FROM_JOBID(jobid);
   VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
-  me = &lasyncinfo[domain];
+  VERIFY_ASYNC_NODE_PRESENT(domain);
   VERIFYC(me->init_done == 1, AEE_EBADPARM);
   pthread_mutex_lock(&me->mut);
   QLIST_NEXTSAFE_FOR_ALL(&me->ql[hash], pn, pnn) {
@@ -98,7 +124,7 @@ int fastrpc_async_get_status(fastrpc_async_jobid jobid, int timeout_us,
   VERIFYC(result != NULL, AEE_EBADPARM);
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_search_async_job(jobid, &lasync_node)));
   domain = GET_DOMAIN_FROM_JOBID(jobid);
-  me = &lasyncinfo[domain];
+  VERIFY_ASYNC_NODE_PRESENT(domain);
   pthread_mutex_lock(&me->mut);
   if (lasync_node->isjobdone) { // If job is done, return result
     *result = lasync_node->result;
@@ -148,7 +174,7 @@ int fastrpc_remove_async_job(fastrpc_async_jobid jobid,
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_search_async_job(jobid, &lasync_node)));
   domain = GET_DOMAIN_FROM_JOBID(jobid);
-  me = &lasyncinfo[domain];
+  VERIFY_ASYNC_NODE_PRESENT(domain)
   pthread_mutex_lock(&me->mut);
   if (dsp_invoke_done && !lasync_node->isjobdone) {
     pthread_mutex_unlock(&me->mut);
@@ -180,10 +206,11 @@ int fastrpc_release_async_job(fastrpc_async_jobid jobid) {
 int fastrpc_save_async_job(int domain, struct fastrpc_async_job *async_job,
                            fastrpc_async_descriptor_t *desc) {
   int nErr = AEE_SUCCESS;
-  struct fastrpc_async *me = &lasyncinfo[domain];
+  struct fastrpc_async* me = NULL;
   struct fastrpc_async_job_node *lasync_job = 0;
   int hash = -1;
 
+  VERIFY_ASYNC_NODE_PRESENT(domain);
   VERIFYC(me->init_done == 1, AEE_EINVALIDJOB);
   VERIFYC(NULL != (lasync_job = calloc(1, sizeof(*lasync_job))), AEE_ENOMEMORY);
   QNode_CtorZ(&lasync_job->qn);
@@ -210,10 +237,16 @@ bail:
 
 void fastrpc_async_respond_all_pending_jobs(int domain) {
   int i = 0;
-  struct fastrpc_async *me = &lasyncinfo[domain];
+  struct fastrpc_async* me = NULL;
   struct fastrpc_async_job_node *lasync_node = NULL;
   QNode *pn;
 
+  GET_HASH_NODE(struct fastrpc_async, domain, me);
+    if (!me) {
+      FARF(ERROR, "Error %s: unable to find hash-node for domain %d",
+              __func__, domain);
+      return;
+    }
   for (i = 0; i < FASTRPC_ASYNC_QUEUE_LIST_LEN; i++) {
     pthread_mutex_lock(&me->mut);
     while (!QList_IsEmpty(&me->ql[i])) {
@@ -251,7 +284,7 @@ void fastrpc_async_respond_all_pending_jobs(int domain) {
 static void *async_fastrpc_thread(void *arg) {
   int nErr = AEE_SUCCESS;
   struct fastrpc_async *me = (struct fastrpc_async *)arg;
-  int domain = (int)(me - &lasyncinfo[0]);
+  int domain = me->domain;
   struct fastrpc_async_job_node *lasync_node = NULL;
   int result = -1;
   fastrpc_async_jobid jobid = -1;
@@ -335,10 +368,16 @@ void async_thread_exit_handler(int sig) {
 }
 
 void fastrpc_async_domain_deinit(int domain) {
-  struct fastrpc_async *me = &lasyncinfo[domain];
+  struct fastrpc_async* me = NULL;
   int err = 0;
 
   pthread_mutex_lock(&async_mut);
+  GET_HASH_NODE(struct fastrpc_async, domain, me);
+  if (!me) {
+    FARF(ERROR, "Error %s: unable to find hash-node for domain %d",
+          __func__, domain);
+    return;
+  }
   if (!me->init_done) {
     goto fasync_deinit_done;
   }
@@ -363,11 +402,15 @@ fasync_deinit_done:
 }
 
 int fastrpc_async_domain_init(int domain) {
-  struct fastrpc_async *me = &lasyncinfo[domain];
+  struct fastrpc_async* me = NULL;
   int nErr = AEE_EUNKNOWN, i = 0;
   struct sigaction siga;
   uint32_t capability = 0;
 
+  GET_HASH_NODE(struct fastrpc_async, domain, me);
+  if (!me) {
+    ALLOC_AND_ADD_NEW_NODE_TO_TABLE(struct fastrpc_async, domain, me);
+  }
   pthread_mutex_lock(&async_mut);
   if (me->init_done) {
     nErr = AEE_SUCCESS;
