@@ -128,6 +128,7 @@ int adspmsgd_init(remote_handle64 handle, int filter) {
   errno = 0;
   char *filename = NULL;
   msgd *msgd_handle = NULL;
+
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(handle, &domain)));
   GET_HASH_NODE(msgd, domain, msgd_handle);
   if (!msgd_handle)
@@ -185,8 +186,8 @@ void adspmsgd_stop(int dom)
 
   GET_HASH_NODE(msgd, dom, msgd_handle);
     if (!msgd_handle) {
-      FARF(ERROR, "Error: %s: unable to find hash node for domain %d",
-           __func__, dom);
+      FARF(ERROR, "Error: %s: unable to find hash node for domain %d", 
+          __func__, dom);
       return;
     }
   if (!msgd_handle->thread_running) {

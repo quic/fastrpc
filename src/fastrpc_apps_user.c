@@ -4127,7 +4127,7 @@ static void fastrpc_apps_user_deinit(void) {
   }
   pthread_mutex_destroy(&dsp_client_mut);
 #endif
-fastrpc_context_table_deinit();
+  fastrpc_context_table_deinit();
   fastrpc_dspsignal_deinit();
   fastrpc_notif_deinit();
   apps_mem_table_deinit();

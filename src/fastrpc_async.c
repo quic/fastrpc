@@ -206,7 +206,7 @@ int fastrpc_release_async_job(fastrpc_async_jobid jobid) {
 int fastrpc_save_async_job(int domain, struct fastrpc_async_job *async_job,
                            fastrpc_async_descriptor_t *desc) {
   int nErr = AEE_SUCCESS;
-  struct fastrpc_async* me = NULL;
+  struct fastrpc_async *me = NULL;
   struct fastrpc_async_job_node *lasync_job = 0;
   int hash = -1;
 
@@ -237,7 +237,7 @@ bail:
 
 void fastrpc_async_respond_all_pending_jobs(int domain) {
   int i = 0;
-  struct fastrpc_async* me = NULL;
+  struct fastrpc_async *me = NULL;
   struct fastrpc_async_job_node *lasync_node = NULL;
   QNode *pn;
 
@@ -368,7 +368,7 @@ void async_thread_exit_handler(int sig) {
 }
 
 void fastrpc_async_domain_deinit(int domain) {
-  struct fastrpc_async* me = NULL;
+  struct fastrpc_async *me = NULL;
   int err = 0;
 
   pthread_mutex_lock(&async_mut);
@@ -402,7 +402,7 @@ fasync_deinit_done:
 }
 
 int fastrpc_async_domain_init(int domain) {
-  struct fastrpc_async* me = NULL;
+  struct fastrpc_async *me = NULL;
   int nErr = AEE_EUNKNOWN, i = 0;
   struct sigaction siga;
   uint32_t capability = 0;

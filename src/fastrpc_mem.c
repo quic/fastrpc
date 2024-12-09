@@ -162,13 +162,13 @@ static inline void remove_static_mapping_for_session(struct static_map_list **me
 	QNode *pn = NULL, *pnn = NULL;
 
 	pthread_mutex_lock(&(*me)->mut);
-		QLIST_NEXTSAFE_FOR_ALL(&(*me)->ql, pn, pnn) {
-			smap = STD_RECOVER_REC(struct static_map, qn, pn);
-			if (!smap)
-				continue;
-			QNode_DequeueZ(&smap->qn);
-			free(smap);
-		}
+	QLIST_NEXTSAFE_FOR_ALL(&(*me)->ql, pn, pnn) {
+		smap = STD_RECOVER_REC(struct static_map, qn, pn);
+		if (!smap)
+			continue;
+		QNode_DequeueZ(&smap->qn);
+		free(smap);
+	}
 	pthread_mutex_unlock(&(*me)->mut);
 }
 
