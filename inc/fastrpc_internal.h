@@ -53,7 +53,7 @@
 #define REMOTE_MAP_MAX_FLAG REMOTE_MAP_MEM_STATIC + 1
 
 /* Max value of fastrpc_map_flags, used to validate range of supported flags */
-#define FASTRPC_MAP_MAX FASTRPC_MAP_FD_NOMAP + 1
+#define FASTRPC_MAP_MAX FASTRPC_MAP_FD_DELAYED_EXTENDED + 1
 
 #if !(defined __qdsp6__) && !(defined __hexagon__)
 static __inline uint32 Q6_R_cl0_R(uint32 num) {
