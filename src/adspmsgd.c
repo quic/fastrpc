@@ -37,47 +37,40 @@ void fastrpc_adspmsgd_deinit(void) {
 	HASH_TABLE_CLEANUP(msgd);
 }
 
-void readMessage(int domain) {
+void readMessage(int domain, msgd msgd_handle) {
   int index = 0;
-  msgd *msgd_handle = NULL;
   unsigned int lreadIndex = 0;
 
-  GET_HASH_NODE(msgd, domain, msgd_handle);
-  if (!msgd_handle) {
-    FARF(ERROR, "Error: %s: unable to find hash node for domain %d",
-          __func__, domain);
-    return;
+  lreadIndex = msgd_handle.readIndex;
+  memset(msgd_handle.message, 0, BUFFER_SIZE);
+  if (msgd_handle.readIndex >= msgd_handle.bufferSize) {
+    lreadIndex = msgd_handle.readIndex = 0;
   }
-  lreadIndex = msgd_handle->readIndex;
-  memset(msgd_handle->message, 0, BUFFER_SIZE);
-  if (msgd_handle->readIndex >= msgd_handle->bufferSize) {
-    lreadIndex = msgd_handle->readIndex = 0;
-  }
-  while ((lreadIndex != *(msgd_handle->currentIndex)) &&
-         (msgd_handle->headPtr[lreadIndex] == '\0')) {
+  while ((lreadIndex != *(msgd_handle.currentIndex)) &&
+         (msgd_handle.headPtr[lreadIndex] == '\0')) {
     lreadIndex++;
-    if (lreadIndex >= msgd_handle->bufferSize) {
+    if (lreadIndex >= msgd_handle.bufferSize) {
       lreadIndex = 0;
     }
   }
-  while (msgd_handle->headPtr[lreadIndex] != '\0') {
-    *(msgd_handle->message + index) = msgd_handle->headPtr[lreadIndex];
+  while (msgd_handle.headPtr[lreadIndex] != '\0') {
+    *(msgd_handle.message + index) = msgd_handle.headPtr[lreadIndex];
     index++;
     lreadIndex++;
-    if (lreadIndex >= msgd_handle->bufferSize) {
+    if (lreadIndex >= msgd_handle.bufferSize) {
       lreadIndex = 0;
     }
     if (index >= BUFFER_SIZE) {
       break;
     }
   }
-  if (*(msgd_handle->message + 0) != '\0') {
-    if (msgd_handle->log_file_fd != NULL) {
-      fputs(msgd_handle->message, msgd_handle->log_file_fd);
-      fputs("\n", msgd_handle->log_file_fd);
+  if (*(msgd_handle.message + 0) != '\0') {
+    if (msgd_handle.log_file_fd != NULL) {
+      fputs(msgd_handle.message, msgd_handle.log_file_fd);
+      fputs("\n", msgd_handle.log_file_fd);
     }
-    adspmsgd_log_message("%s", msgd_handle->message);
-    msgd_handle->readIndex = lreadIndex + 1;
+    adspmsgd_log_message("%s", msgd_handle.message);
+    msgd_handle.readIndex = lreadIndex + 1;
   }
 }
 // function to flush messages to logcat
@@ -103,10 +96,10 @@ static void *adspmsgd_reader(void *arg) {
       // wait till messages are ready from DSP
       adspmsgd_adsp1_wait(handle, &bytesToRead);
     }
-    readMessage(domain);
+    readMessage(domain, *msgd_handle);
   }
   while (*(msgd_handle->currentIndex) != msgd_handle->readIndex) {
-    readMessage(domain);
+    readMessage(domain, *msgd_handle);
   }
   msgd_handle->threadStop = -1;
 bail:
