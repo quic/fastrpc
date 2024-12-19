@@ -1677,7 +1677,7 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
     } else if (!std_strncmp(pdName, "oispd", std_strlen("oispd"))) {
       hlist[domain].dsppd = OIS_STATICPD;
     }
-    return AEE_SUCCESS;
+    goto free_buffer;
   }
   if (std_strbegins(name, ITRANSPORT_PREFIX "attachuserpd")) {
     FARF(RUNTIME_RPC_HIGH, "setting attach mode to userpd : %d", domain);
@@ -1720,10 +1720,7 @@ bail:
          "%s) (errno %s)\n",
          nErr, __func__, name, domain, dlerrstr, strerror(errno));
   }
-  if (pdname_uri) {
-    free(pdname_uri);
-    pdname_uri = NULL;
-  }
+
   if (nErr == AEE_ECONNRESET) {
       if (!hlist[domain].domainsCount && !hlist[domain].nondomainsCount) {
       /* Close session if there are no open remote handles */
@@ -1731,6 +1728,9 @@ bail:
       domain_deinit(domain);
     }
   }
+free_buffer:
+   if (pdname_uri)
+      free(pdname_uri);
   FASTRPC_ATRACE_END();
   return nErr;
 }
