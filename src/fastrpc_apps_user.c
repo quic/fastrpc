@@ -308,6 +308,7 @@ typedef struct fastrpc_timer_info {
   int domain;
   int sc;
   int handle;
+  pid_t tid;
 } fastrpc_timer;
 
 // Macro to check if a remote session is already open on given domain
@@ -346,6 +347,14 @@ void set_thread_context(int domain) {
   }
 }
 
+int get_device_fd(int domain) {
+  if (hlist && (hlist[domain].dev != -1)) {
+    return hlist[domain].dev;
+  } else {
+    return -1;
+  }
+}
+
 int fastrpc_session_open(int domain, int *dev) {
   int device = -1;
 
@@ -362,12 +371,18 @@ int fastrpc_session_open(int domain, int *dev) {
   return AEE_ECONNREFUSED;
 }
 
-int fastrpc_session_close(int domain) {
-  int dev = hlist[domain].dev;
-
-  if (dev >= 0)
+void fastrpc_session_close(int domain, int dev) {
+  if (!hlist)
+    return;
+  if ((hlist[domain].dev == INVALID_DEVICE) &&
+      (dev != INVALID_DEVICE)) {
     close(dev);
-  return 0;
+  } else if ((hlist[domain].dev != INVALID_DEVICE) &&
+            (dev == INVALID_DEVICE)) {
+    close(hlist[domain].dev);
+    hlist[domain].dev = INVALID_DEVICE;
+  }
+  return;
 }
 
 int fastrpc_session_get(int domain) {
@@ -624,7 +639,8 @@ int fastrpc_set_remote_uthread_params(int domain) {
   if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
     nErr = remotectl1_set_param(handle, th_params->reqID, (uint32_t *)th_params,
                                 paramsLen);
-    if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
+    if ((nErr == DSP_AEE_EOFFSET + AEE_ERPC) ||
+          nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
       FARF(ALWAYS,
            "Warning 0x%x: %s: remotectl1 domains not supported for domain %d\n",
            nErr, __func__, domain);
@@ -1085,9 +1101,9 @@ static void fastrpc_timer_callback(void *ptr) {
   }
 
   FARF(ALWAYS,
-       "%s fastrpc time out of %d ms on domain %d sc 0x%x handle 0x%x\n",
-       __func__, frpc_timer->timeout_millis, frpc_timer->domain, frpc_timer->sc,
-       frpc_timer->handle);
+       "%s fastrpc time out of %d ms on thread %d on domain %d sc 0x%x handle 0x%x\n",
+       __func__, frpc_timer->timeout_millis, frpc_timer->tid,
+       frpc_timer->domain, frpc_timer->sc, frpc_timer->handle);
   data.domain = frpc_timer->domain;
   nErr = remote_session_control(FASTRPC_REMOTE_PROCESS_EXCEPTION, &data,
                                 sizeof(remote_rpc_process_exception));
@@ -1324,6 +1340,7 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
       frpc_timer.sc = sc;
       frpc_timer.handle = handle;
       frpc_timer.timeout_millis = rpc_timeout;
+      frpc_timer.tid = gettid();
       fastrpc_add_timer(&frpc_timer);
     }
   }
@@ -1675,7 +1692,8 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
       if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
         nErr = remotectl1_open1(handle, name, (int *)ph, dlerrstr,
                                 sizeof(dlerrstr), &dlerr);
-        if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
+        if ((nErr == DSP_AEE_EOFFSET + AEE_ERPC) ||
+            nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
           FARF(ALWAYS,
                "Warning 0x%x: %s: remotectl1 domains not supported for domain "
                "%d\n",
@@ -1826,7 +1844,8 @@ int remote_handle_close_domain(int domain, remote_handle h) {
       &t_close,
       if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
         nErr = remotectl1_close1(handle, h, dlerrstr, err_str_len, &dlerr);
-        if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
+        if ((nErr == DSP_AEE_EOFFSET + AEE_ERPC) ||
+            nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
           FARF(ALWAYS,
                "Warning 0x%x: %s: remotectl1 domains not supported for domain "
                "%d\n",
@@ -1966,7 +1985,8 @@ static int manage_adaptive_qos(int domain, uint32_t enable) {
      */
     if ((handle = get_remotectl1_handle(domain)) != INVALID_HANDLE) {
       nErr = remotectl1_set_param(handle, RPC_ADAPTIVE_QOS, &enable, 1);
-      if (nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
+      if ((nErr == DSP_AEE_EOFFSET + AEE_ERPC) ||
+          nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
         FARF(ALWAYS,
              "Warning 0x%x: %s: remotectl1 domains not supported for domain "
              "%d\n",

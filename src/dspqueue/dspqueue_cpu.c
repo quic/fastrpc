@@ -1532,6 +1532,7 @@ AEEResult dspqueue_write_noblock(dspqueue_t queue, uint32_t flags,
   cache_flush_word(&dq->state->req_packet_count[q->id]);
   if (q->have_wait_counts) {
     // Only send a signal if the other end is potentially waiting
+    barrier_full();
     cache_invalidate_word(&read_state->wait_count);
     if (read_state->wait_count) {
       FARF(MEDIUM, "%s: Send signal", __func__);
