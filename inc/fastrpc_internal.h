@@ -567,6 +567,7 @@ int ioctl_optimization(int dev, uint32_t max_concurrency);
  * @param[in]     req            : type of context manage request
  * @param[in]     user_ctx       : context generated in user
  * @param[in]     domain_ids     : list of domains in context
+ * @param[in]     session_ids    : list of session ids on each domain
  * @param[in]     num_domain_ids : number of domains
  * @param[in/out] ctx            : kernel-generated context id. Output ptr
  *                                 for setup req and input value for
@@ -575,7 +576,8 @@ int ioctl_optimization(int dev, uint32_t max_concurrency);
  * returns 0 on success
  */
 int ioctl_mdctx_manage(int dev, int req, void *user_ctx,
-	unsigned int *domain_ids, unsigned int num_domain_ids, uint64_t *ctx);
+	unsigned int *domain_ids, unsigned int *session_ids,
+	unsigned int num_domain_ids, uint64_t *ctx);
 
 const char* get_secure_domain_name(int domain_id);
 int is_async_fastrpc_supported(void);

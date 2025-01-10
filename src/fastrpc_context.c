@@ -65,7 +65,7 @@ static int fastrpc_context_init_domains(fastrpc_context_create *create,
 	fastrpc_context *ctx) {
 	int nErr = AEE_SUCCESS, i = 0, j = 0;
 	unsigned int effec_domain_id = 0, num_domain_ids = create->num_domain_ids;
-	unsigned int *domain_ids = ctx->domains;
+	unsigned int *domain_ids = ctx->domains, *session_ids = ctx->session_ids;
 	bool multisess = true, multidom = true;
 
 	for (i = 0; i < num_domain_ids; i++) {
@@ -75,6 +75,7 @@ static int fastrpc_context_init_domains(fastrpc_context_create *create,
 
 		ctx->effec_domain_ids[i] = effec_domain_id;
 		domain_ids[i] = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(effec_domain_id);
+		session_ids[i] = GET_SESSION_ID_FROM_DOMAIN_ID(effec_domain_id);
 
 		/*
 		 * If client is trying to create context on multiple sessions on
@@ -90,7 +91,7 @@ static int fastrpc_context_init_domains(fastrpc_context_create *create,
 	 * If client is trying to create context on multiple domains, validate
 	 * that every domain id in the list is unique.
 	 */
-	for (i = 0; i < num_domain_ids; i++) {
+	for (i = 0; i < num_domain_ids - 1; i++) {
 		for (j = i + 1; j < num_domain_ids; j++) {
 			if (domain_ids[j] == domain_ids[i]) {
 				multidom = false;
@@ -137,9 +138,8 @@ static int fastrpc_context_deinit(fastrpc_context *ctx) {
 		fastrpc_session_close(domain, INVALID_DEVICE);
 	}
 	free(ctx->devs);
-
 	free(ctx->domains);
-
+	free(ctx->session_ids);
 	free(ctx->effec_domain_ids);
 
 	pthread_mutex_unlock(&ctx->mut);
@@ -171,6 +171,8 @@ static fastrpc_context *fastrpc_context_init(unsigned int num_domain_ids) {
 		num_domain_ids, sizeof(*ctx->effec_domain_ids))), AEE_ENOMEMORY);
 	VERIFYC(NULL != (ctx->domains = (unsigned int *)calloc(num_domain_ids,
 		sizeof(*ctx->domains))), AEE_ENOMEMORY);
+	VERIFYC(NULL != (ctx->session_ids = (unsigned int *)calloc(num_domain_ids,
+		sizeof(*ctx->session_ids))), AEE_ENOMEMORY);
 	VERIFYC(NULL != (ctx->devs = (int *)calloc(num_domain_ids,
 		sizeof(*ctx->devs))), AEE_ENOMEMORY);
 
@@ -204,15 +206,21 @@ int fastrpc_destroy_context(uint64_t ctxid) {
 	 */
 	VERIFYC(-1 != (dev = get_device_fd(ctx->effec_domain_ids[0])),
 			AEE_EINVALIDDEVICE);
-	VERIFY(AEE_SUCCESS == (nErr = ioctl_mdctx_manage(dev,
-			FASTRPC_MDCTX_REMOVE, NULL, NULL, 0, &ctx->ctxid)));
+	nErr = ioctl_mdctx_manage(dev,
+			FASTRPC_MDCTX_REMOVE, NULL, ctx->domains, ctx->session_ids,
+			ctx->num_domain_ids, &ctx->ctxid);
+	nErr = convert_kernel_to_user_error(nErr, errno);
+	if (nErr && nErr != AEE_ECONNRESET) {
+		/* Bail only in cases other than ssr */
+		goto bail;
+	}
 
 	VERIFY(AEE_SUCCESS == (nErr = fastrpc_context_deinit(ctx)));
 	FARF(ALWAYS, "%s done for context 0x%"PRIx64"", __func__, ctxid);
 bail:
 	if (nErr) {
-		FARF(ALWAYS, "Error 0x%x: %s failed for ctx 0x%"PRIx64"",
-			nErr, __func__, ctxid);
+		FARF(ALWAYS, "Error 0x%x: %s failed for ctx 0x%"PRIx64", errno %d (%s)",
+			nErr, __func__, ctxid, errno, strerror(errno));
 	}
 	return nErr;
 }
@@ -252,9 +260,10 @@ int fastrpc_create_context(fastrpc_context_create *create) {
 	 */
 	VERIFYC(-1 != (dev = get_device_fd(ctx->effec_domain_ids[0])),
 			AEE_EINVALIDDEVICE);
-	VERIFY(AEE_SUCCESS == (nErr = ioctl_mdctx_manage(dev,
-			FASTRPC_MDCTX_SETUP, ctx, ctx->domains,
-			num_domain_ids, &ctx->ctxid)));
+	nErr = ioctl_mdctx_manage(dev, FASTRPC_MDCTX_SETUP, ctx, ctx->domains,
+			ctx->session_ids, num_domain_ids, &ctx->ctxid);
+	VERIFY(AEE_SUCCESS == (nErr =
+			convert_kernel_to_user_error(nErr, errno)));
 
 	fastrpc_context_add_to_table(ctx);
 
@@ -264,8 +273,8 @@ int fastrpc_create_context(fastrpc_context_create *create) {
 		__func__, ctx->ctxid, num_domain_ids);
 bail:
 	if (nErr) {
-		FARF(ALWAYS, "Error 0x%x: %s failed for %u domain ids\n",
-			nErr, __func__, num_domain_ids);
+		FARF(ALWAYS, "Error 0x%x: %s failed for %u domain ids, errno %d (%s)\n",
+			nErr, __func__, num_domain_ids, errno, strerror(errno));
 		fastrpc_context_deinit(ctx);
 	}
 	return nErr;

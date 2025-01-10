@@ -18,7 +18,7 @@
 //#  undef NDEBUG
 //#endif
 
-#include "AEEQList.h" // Needed by fastrpc_mem.h
+#include "AEEQList.h"
 #include "dspqueue.h"
 #include "dspqueue_rpc.h"
 #include "dspqueue_shared.h"
@@ -37,6 +37,7 @@
 #include <rpcmem_internal.h>
 #include <stdatomic.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <unistd.h>
 
 struct dspqueue {
@@ -864,7 +865,7 @@ AEEResult dspqueue_close(dspqueue_t queue) {
     if (dq->dsp_error != AEE_ECONNRESET) {
       for (i = 0; i < DSPQUEUE_NUM_SIGNALS; i++) {
         nErr = dspsignal_cancel_wait(q->domain, QUEUE_SIGNAL(q->id, i));
-        if (nErr && nErr != AEE_EBADSTATE) {
+        if (nErr && nErr != AEE_EBADSTATE && nErr != AEE_ECONNRESET) {
           goto bail;
         }
       }
@@ -917,7 +918,7 @@ AEEResult dspqueue_close(dspqueue_t queue) {
       FARF(MEDIUM, "%s: Destroy signals", __func__);
       for (i = 0; i < DSPQUEUE_NUM_SIGNALS; i++) {
         nErr = dspsignal_destroy(q->domain, QUEUE_SIGNAL(q->id, i));
-        if (nErr && nErr != AEE_EBADSTATE) {
+        if (nErr && nErr != AEE_EBADSTATE && nErr != AEE_ECONNRESET) {
           goto bail;
         }
       }
@@ -977,13 +978,60 @@ AEEResult dspqueue_export(dspqueue_t queue, uint64_t *queue_id) {
   return AEE_SUCCESS;
 }
 
+/* Invoke packet / error callback for a multidomain queue */
+static int dspqueue_multidomain_invoke_callback(dspqueue_t queue,
+	AEEResult error, void *context, bool err_cb) {
+	unsigned int ii = 0, effec_domain_id = UINT_MAX;
+	struct dspqueue *q = queue, *pq = q->mdq.pq;
+	struct dspqueue_multidomain *mdq = NULL;
+
+	// Parent queue pointer cannot be NULL in this callback
+	assert(pq);
+	mdq = &pq->mdq;
+
+	// Loop thru child queue handles until match is found for given handle
+	for (ii = 0; ii < mdq->num_domain_ids; ii++) {
+		if (mdq->queues[ii] == queue) {
+			effec_domain_id = mdq->effec_domain_ids[ii];
+			break;
+		}
+	}
+	assert(IS_VALID_EFFECTIVE_DOMAIN_ID(effec_domain_id));
+
+	// Invoke the client registered callback function
+	if (err_cb) {
+		assert(mdq->error_callback);
+		mdq->error_callback(pq, error, context, ii, effec_domain_id);
+	} else {
+		assert(mdq->packet_callback);
+		mdq->packet_callback(queue, error, context, ii, effec_domain_id);
+	}
+	return 0;
+}
+
+/* Internal error callback function for all multidomain queues */
+static void dspqueue_multidomain_error_callback(dspqueue_t queue,
+	AEEResult error, void *context) {
+	dspqueue_multidomain_invoke_callback(queue, error, context, true);
+}
+
+/* Internal packet callback function for all multidomain queues */
+static void dspqueue_multidomain_packet_callback(dspqueue_t queue,
+	AEEResult error, void *context) {
+	dspqueue_multidomain_invoke_callback(queue, error, context, false);
+}
+
 static int dspqueue_multidomain_create(dspqueue_create_req *create) {
 	int nErr = AEE_SUCCESS;
 	bool queue_mut = false;
 	unsigned int *effec_domain_ids = NULL;
 	unsigned int num_domain_ids = 0, size = 0;
-	struct dspqueue *q = NULL;
+	struct dspqueue *q = NULL, *cq = NULL;
 	struct dspqueue_multidomain *mdq = NULL;
+	dspqueue_callback_t mdq_err_cb = create->error_callback ?
+		dspqueue_multidomain_error_callback : NULL;
+	dspqueue_callback_t mdq_pkt_cb = create->packet_callback ?
+		dspqueue_multidomain_packet_callback : NULL;
 
 	VERIFY(AEE_SUCCESS == (nErr = fastrpc_context_get_domains(create->ctx,
 		&effec_domain_ids, &num_domain_ids)));
@@ -1006,6 +1054,8 @@ static int dspqueue_multidomain_create(dspqueue_create_req *create) {
 	mdq = &q->mdq;
 	mdq->is_mdq = true;
 	mdq->ctx = create->ctx;
+	mdq->packet_callback = create->packet_callback;
+	mdq->error_callback = create->error_callback;
 
 	VERIFYC(AEE_SUCCESS == (nErr = pthread_mutex_init(&q->mutex, NULL)),
 		AEE_ENOTINITIALIZED);
@@ -1027,13 +1077,18 @@ static int dspqueue_multidomain_create(dspqueue_create_req *create) {
 
 	// Create queue on each individual domain
 	for (unsigned int ii = 0; ii < num_domain_ids; ii++) {
+		cq = NULL;
+
 		VERIFY(AEE_SUCCESS == (nErr = dspqueue_create(effec_domain_ids[ii],
 			create->flags, create->req_queue_size, create->resp_queue_size,
-			create->packet_callback, create->error_callback,
-			create->callback_context, &mdq->queues[ii])));
+			mdq_pkt_cb, mdq_err_cb, create->callback_context, &cq)));
+		mdq->queues[ii] = cq;
+
+		// Assign the parent queue for the single-domain queue
+		cq->mdq.pq = q;
 
 		// Export queue and get queue id for that domain
-		VERIFY(AEE_SUCCESS == (nErr = dspqueue_export(mdq->queues[ii],
+		VERIFY(AEE_SUCCESS == (nErr = dspqueue_export(cq,
 			&mdq->dsp_ids[ii])));
 	}
 
@@ -1226,7 +1281,6 @@ static AEEResult send_signal(struct dspqueue *q, uint32_t signal_no) {
     pthread_cond_signal(&dq->send_signal_cond);
     pthread_mutex_unlock(&dq->send_signal_mutex);
   }
-
 bail:
   if (nErr != AEE_SUCCESS) {
     FARF(ERROR, "Error 0x%x: %s failed for queue %p signal %u", nErr, __func__,
@@ -2683,7 +2737,7 @@ static void *dspqueue_packet_callback_thread(void *arg) {
 
     // Wait for a signal
     nErr = wait_signal_locked(q, DSPQUEUE_SIGNAL_RESP_PACKET, NULL);
-    if (nErr == AEE_EINTERRUPTED || nErr == AEE_EBADSTATE) {
+    if (nErr == AEE_EINTERRUPTED || nErr == AEE_EBADSTATE || nErr == AEE_ECONNRESET ) {
       FARF(HIGH, "Queue %u exit callback thread", (unsigned)q->id);
       if (q->have_wait_counts) {
         atomic_fetch_sub(wait_count, 1);

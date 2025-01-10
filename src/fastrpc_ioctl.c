@@ -246,7 +246,8 @@ int ioctl_optimization(int dev, uint32_t max_concurrency) {
 }
 
 int ioctl_mdctx_manage(int dev, int req, void *user_ctx,
-	unsigned int *domain_ids, unsigned int num_domain_ids, uint64_t *ctx)
+	unsigned int *domain_ids, unsigned int *session_ids,
+	unsigned int num_domain_ids, uint64_t *ctx)
 {
 	// TODO: Implement this for opensource
 	return AEE_EUNSUPPORTED;

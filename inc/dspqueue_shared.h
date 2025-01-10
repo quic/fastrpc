@@ -127,6 +127,18 @@ struct dspqueue_multidomain {
 
 	/* Array of queue ids - one for each domain */
 	uint64_t *dsp_ids;
+
+	/* Packet callback function pointer for multidomain queue */
+	dspqueue_mdq_callback_t packet_callback;
+
+	/* Error callback function pointer for multidomain queue */
+	dspqueue_mdq_callback_t error_callback;
+
+	/*
+	 * When a single domain queue is a child queue of a multidomain queue,
+	 * this field will be set to the parent queue handle.
+	 */
+	dspqueue_t *pq;
 };
 
 /* Signals IDs used with driver signaling. Update the signal allocations in dspsignal.h

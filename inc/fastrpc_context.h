@@ -19,6 +19,9 @@ typedef struct fastrpc_context {
 	/* Array of domains on which context is created */
 	unsigned int *domains;
 
+	/* Array of session ids on each domain */
+	unsigned int *session_ids;
+
 	/* Array of device fds opened for each session */
 	int *devs;
 
