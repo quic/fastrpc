@@ -1510,6 +1510,13 @@ int remote_handle64_invoke(remote_handle64 local, uint32_t sc,
   int nErr = AEE_SUCCESS, domain = -1, ref = 0;
   struct handle_info *h = (struct handle_info*)local;
 
+  if (IS_STATICPD_HANDLE(local)) {
+     nErr = AEE_EINVHANDLE;
+     FARF(ERROR, "Error 0x%x: %s cannot be called for staticPD handle 0x%"PRIx64"\n",
+                 nErr, __func__, local);
+     goto bail;
+  }
+
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
   FASTRPC_ATRACE_BEGIN_L("%s called with handle 0x%x , scalar 0x%x", __func__,
@@ -1636,6 +1643,7 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
   if (!std_strncmp(name, ITRANSPORT_PREFIX "attachguestos",
                    std_strlen(ITRANSPORT_PREFIX "attachguestos"))) {
     FARF(RUNTIME_RPC_HIGH, "setting attach mode to guestos : %d", domain);
+    *ph = ATTACHGUESTOS_HANDLE;
     hlist[domain].dsppd = ROOT_PD;
     return AEE_SUCCESS;
   }
@@ -1670,15 +1678,20 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
     VERIFYC(MAX_DSPPD_NAMELEN > std_strlen(pdName), AEE_EBADPARM);
     std_strlcpy(hlist[domain].dsppdname, pdName, std_strlen(pdName) + 1);
     if (!std_strncmp(pdName, "audiopd", std_strlen("audiopd"))) {
+      *ph = AUDIOPD_HANDLE;
       hlist[domain].dsppd = AUDIO_STATICPD;
     } else if (!std_strncmp(pdName, "securepd", std_strlen("securepd"))) {
       FARF(ALWAYS, "%s: attaching to securePD\n", __func__);
+      *ph = SECUREPD_HANDLE;
       hlist[domain].dsppd = SECURE_STATICPD;
     } else if (!std_strncmp(pdName, "sensorspd", std_strlen("sensorspd"))) {
+      *ph = SENSORPD_HANDLE;
       hlist[domain].dsppd = SENSORS_STATICPD;
     } else if (!std_strncmp(pdName, "rootpd", std_strlen("rootpd"))) {
+      *ph = ROOTPD_HANDLE;
       hlist[domain].dsppd = GUEST_OS_SHARED;
     } else if (!std_strncmp(pdName, "oispd", std_strlen("oispd"))) {
+      *ph = OISPD_HANDLE;
       hlist[domain].dsppd = OIS_STATICPD;
     }
     return AEE_SUCCESS;
@@ -1805,7 +1818,8 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
      polls on it, hence return remote handle (which is the actual fd) for
      "geteventd" call*/
   if (!std_strncmp(name, ITRANSPORT_PREFIX "geteventfd",
-                   std_strlen(ITRANSPORT_PREFIX "geteventfd"))) {
+                   std_strlen(ITRANSPORT_PREFIX "geteventfd")) ||
+                   IS_STATICPD_HANDLE(h)) {
     *ph = h;
   } else {
     fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain, h, &local, name);
@@ -1920,6 +1934,8 @@ int remote_handle64_close(remote_handle64 handle) {
   bool start_deinit = false;
   struct handle_info *hi = (struct handle_info*)handle;
 
+  if (IS_STATICPD_HANDLE(handle))
+     return AEE_SUCCESS;
   FARF(RUNTIME_RPC_HIGH, "Entering %s, handle %llu\n", __func__, handle);
   FASTRPC_ATRACE_BEGIN_L("%s called with handle 0x%" PRIx64 "\n", __func__,
                          handle);
