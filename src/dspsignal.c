@@ -160,7 +160,6 @@ bail:
 }
 
 AEEResult dspsignal_destroy(int domain, uint32_t id) {
-
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
 
@@ -175,7 +174,6 @@ AEEResult dspsignal_destroy(int domain, uint32_t id) {
     goto bail;
   }
   FARF(HIGH, "%s: Signal %u destroyed", __func__, id);
-
 bail:
   if (nErr != AEE_SUCCESS) {
     FARF(ERROR, "Error 0x%x: %s failed (domain %d, ID %u) errno %s", nErr,
@@ -211,7 +209,6 @@ bail:
 }
 
 AEEResult dspsignal_wait(int domain, uint32_t id, uint32_t timeout_usec) {
-
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
 
@@ -231,6 +228,9 @@ AEEResult dspsignal_wait(int domain, uint32_t id, uint32_t timeout_usec) {
     } else if (errno == EINTR) {
       FARF(MEDIUM, "%s: Signal %u canceled", __func__, id);
       return AEE_EINTERRUPTED;
+    } else if (errno == EPIPE ) {
+      FARF(MEDIUM, "%s: Signal %u, ssr on domain %d", __func__, id, domain);
+      return AEE_ECONNRESET;
     } else {
       nErr = convert_kernel_to_user_error(nErr, errno);
       goto bail;
@@ -246,7 +246,6 @@ bail:
 }
 
 AEEResult dspsignal_cancel_wait(int domain, uint32_t id) {
-
   AEEResult nErr = AEE_SUCCESS;
   struct dspsignal_domain_signals *ds = NULL;
 
