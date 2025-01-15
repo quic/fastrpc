@@ -8,6 +8,8 @@
 #include <stdbool.h>
 #include <pthread.h>
 
+#include "fastrpc_hash_table.h"
+
 typedef void* (*reader_thread)();
 
 typedef struct {
@@ -20,6 +22,7 @@ typedef struct {
   char* message; //scratch buffer used to print messages
   pthread_t msgreader_thread;
   FILE *log_file_fd; // file descriptor to save runtime farf logs
+  ADD_DOMAIN_HASH();
 } msgd;
 
 /**
@@ -37,5 +40,17 @@ void adspmsgd_log_message(char *format, char *msg);
   * after calling this API, no new messages will be logged in the system.
   */
 void adspmsgd_stop(int);
+
+/*
+ * Initialize adspmsgd hash-table
+ * Returns 0 on success
+ */
+int fastrpc_adspmsgd_init(void);
+
+/*
+ * Cleanup adspmsgd hash table
+ * Returns none
+ */
+void fastrpc_adspmsgd_deinit(void);
 
 #endif /* __ADSPMSGD_INTERNAL__ */
