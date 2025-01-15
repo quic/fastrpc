@@ -20,6 +20,7 @@
 
 /* size of buffer used to share the inital config params to dsp */
 #define PROC_SHAREDBUF_SIZE (4*1024)
+#define ENV_PATH_LEN 256
 #define WORD_SIZE 4
 
 extern struct handle_list *hlist;
@@ -68,16 +69,13 @@ bail:
 
 static int get_non_preload_lib_names (char** lib_names, size_t* buffer_size, int domain)
 {
-	int nErr = AEE_SUCCESS, env_list_len = 0,  concat_len = 0, new_len = 0;
+	int nErr = AEE_SUCCESS, env_list_len = 0;
 	char* data_paths = NULL;
 	char *saveptr       = NULL;
-	size_t dsp_search_path_len = std_strlen(DSP_LIBRARY_PATH) + 1;
+	VERIFYC(NULL != (data_paths = calloc(1, sizeof(char) * ENV_PATH_LEN)), AEE_ENOMEMORY);
+	VERIFY(AEE_SUCCESS == (nErr = apps_std_getenv(DSP_LIBRARY_PATH, data_paths, ENV_PATH_LEN, &env_list_len)));
 
-	VERIFYC(*lib_names != NULL, AEE_ENOMEMORY);
-	VERIFYC(NULL != (data_paths = calloc(1, sizeof(char) * dsp_search_path_len)), AEE_ENOMEMORY);
-	VERIFYC(AEE_SUCCESS == apps_std_getenv(DSP_LIBRARY_PATH, data_paths, dsp_search_path_len, &env_list_len), AEE_EGETENV);
-
-	char* path = strtok_r(data_paths, ";", &saveptr);
+	char* path = strtok_r(data_paths, ":", &saveptr);
 	while (path != NULL)
 	{
 		struct dirent *entry;
@@ -87,31 +85,23 @@ static int get_non_preload_lib_names (char** lib_names, size_t* buffer_size, int
 		while ((entry = readdir(dir)) != NULL) {
 			if ( entry -> d_type == DT_REG) {
 				char* file = entry->d_name;
-				if (std_strstr(file, FILE_EXT) != NULL) {
-					if (concat_len + std_strlen(file) > MAX_NON_PRELOAD_LIBS_LEN) {
-						FARF(ALWAYS,"ERROR: Failed to pack library names in custom DSP_LIBRARY_PATH as required buffer size exceeds Max limit (%d).", MAX_NON_PRELOAD_LIBS_LEN);
-						nErr = AEE_EBUFFERTOOSMALL;
-						closedir(dir);
-						goto bail;
-					}
-					std_strlcat(*lib_names, file, MAX_NON_PRELOAD_LIBS_LEN);
-					concat_len = std_strlcat(*lib_names, ";", MAX_NON_PRELOAD_LIBS_LEN);
+				if ( strstr (file, ".so") != NULL) {
+					size_t new_len = *buffer_size + std_strlen(file) + 1;
+					VERIFYC(NULL != (*lib_names = realloc (*lib_names, new_len)), AEE_ENOMEMORY);
+					std_strlcat(*lib_names, file, new_len);
+					std_strlcat(*lib_names, ";", new_len);
+					*buffer_size = new_len;
 				}
 			}
 		}
-		if (dir != NULL) {
-			closedir(dir);
-		}
-		path = strtok_r(NULL,";", &saveptr);
+		closedir(dir);
+		path = strtok_r(NULL,":", &saveptr);
 	}
+	(*lib_names)[*buffer_size - 1] = '\0';
 	*buffer_size = std_strlen(*lib_names) + 1;
 
 bail:
-	if (data_paths) {
-		free(data_paths);
-		data_paths = NULL;
-	}
-	if (nErr && (nErr != AEE_EGETENV)) {
+	if (nErr) {
 		FARF(ERROR, "Error 0x%x: %s Failed for domain %d (%s)\n",
 					nErr, __func__, domain, strerror(errno));
 	}
@@ -248,15 +238,14 @@ void fastrpc_process_pack_params(int dev, int domain) {
 		FARF(ERROR, "Error 0x%x: %s: Failed to pack effective domain id %d in shared buffer",
 				nErr, __func__, domain);
 	}
-	lib_names = (char *)malloc(sizeof(char) * MAX_NON_PRELOAD_LIBS_LEN);
-	if (lib_names) {
-		if (AEE_SUCCESS == get_non_preload_lib_names(&lib_names, &buffer_size, domain)) {
-			nErr = pack_proc_shared_buf_params(domain, CUSTOM_DSP_SEARCH_PATH_LIBS_ID, lib_names, buffer_size);
-			if (nErr) {
-				FARF(ERROR, "Error 0x%x: %s: Failed to pack the directory list in shared buffer",
-								nErr, __func__);
-			}
-		}
+	if (AEE_SUCCESS != get_non_preload_lib_names(&lib_names, &buffer_size, domain)){
+		return;
+	}
+	nErr = pack_proc_shared_buf_params(domain, CUSTOM_DSP_SEARCH_PATH_LIBS_ID,
+			lib_names, buffer_size);
+	if (nErr) {
+		FARF(ERROR, "Error 0x%x: %s: Failed to pack the directory list in shared buffer",
+				nErr, __func__);
 	}
 	nErr = pack_proc_shared_buf_params(domain, HLOS_PROC_SESS_ID,
 			&sess_id, sizeof(sess_id));
