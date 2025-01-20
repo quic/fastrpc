@@ -1685,7 +1685,7 @@ int remote_handle64_invoke_async(remote_handle64 local,
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(local, &domain)));
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS == (nErr = get_handle_remote(local, &remote)));
-  nErr = remote_get_info(domain, HANDLE_PRIORITY_SUPPORT, &capability);
+  nErr = fastrpc_get_cap(domain, HANDLE_PRIORITY_SUPPORT, &capability);
 	/* Block all async calls if the dsp supports handle priority */
 	VERIFYC((nErr == 0) && (capability != 0), AEE_EUNSUPPORTED);
   VERIFY(AEE_SUCCESS ==
@@ -1925,7 +1925,7 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
       * but the thread will still be created in thread group 1 on dsp
       * at default priority.
     */
-    nErr = remote_get_info(domain, HANDLE_PRIORITY_SUPPORT, &capability);
+    nErr = fastrpc_get_cap(domain, HANDLE_PRIORITY_SUPPORT, &capability);
     if (nErr == 0 && capability != 0) {
       VERIFY(AEE_SUCCESS == (nErr = get_handle_priority_from_uri(name,
                                             &handle_priority)));
@@ -3785,7 +3785,7 @@ static int remote_init(int domain) {
   FARF(RUNTIME_RPC_HIGH, "starting %s for domain %d", __func__, domain);
   /*
    * is_proc_sharedbuf_supported_dsp call should be made before
-   * mutex lock (hlist[domain].mut), Since remote_get_info is also locked
+   * mutex lock (hlist[domain].mut), Since fastrpc_get_cap is also locked
    * by the same mutex
    */
   shared_buf_support = is_proc_sharedbuf_supported_dsp(domain);
