@@ -59,7 +59,8 @@ __QAIC_IMPL(apps_remotectl_open)(const char *name, uint32 *handle, char *dlStr,
          (nErr = mod_table_open(name, handle, dlStr, dlerrorLen, dlErr)));
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(
-              REVERSE_HANDLE_LIST_PREPEND, domain, (remote_handle)*handle, &local, NULL)));
+              REVERSE_HANDLE_LIST_PREPEND, domain, (remote_handle)*handle, &local, NULL,
+              FASTRPC_RESERVED_HANDLE_PRIO)));
 bail:
   return nErr;
 }
@@ -81,7 +82,8 @@ __QAIC_IMPL(apps_remotectl_close)(uint32 handle, char *errStr, int errStrLen,
   }
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(
-              REVERSE_HANDLE_LIST_DEQUEUE, domain, (remote_handle)handle, NULL, NULL)));
+              REVERSE_HANDLE_LIST_DEQUEUE, domain, (remote_handle)handle, NULL, NULL,
+              FASTRPC_RESERVED_HANDLE_PRIO)));
 bail:
   return nErr;
 }
