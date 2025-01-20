@@ -47,13 +47,26 @@
 #define FASTRPC_ASYNC_TYPE_MAX FASTRPC_ASYNC_POLL + 1
 
 /* Max value of remote_dsp_attributes, used to validate the attribute ID*/
-#define FASTRPC_MAX_DSP_ATTRIBUTES MCID_MULTICAST + 1
+#define FASTRPC_MAX_DSP_ATTRIBUTES HANDLE_PRIORITY_SUPPORT + 1
 
 /* Max value of remote_mem_map_flags, used to validate the input flag */
 #define REMOTE_MAP_MAX_FLAG REMOTE_MAP_MEM_STATIC + 1
 
 /* Max value of fastrpc_map_flags, used to validate range of supported flags */
 #define FASTRPC_MAP_MAX FASTRPC_MAP_FD_NOMAP + 1
+
+/**
+ *  Reserved handle priority level for framework calls or
+ *  module open call to dsp that doesn't support handle priorities
+ */
+#define FASTRPC_RESERVED_HANDLE_PRIO 0
+
+/** Macro to check if given handle priority is within valid range */
+#define IS_VALID_USER_HANDLE_PRIORITY(prio) \
+        ((prio >= FASTRPC_HANDLE_PRIORITY_MAX) && (prio <= FASTRPC_HANDLE_PRIORITY_MIN))
+
+/** Macro to check if given handle priority is reserved for framework calls */
+#define IS_RESERVED_HANDLE_PRIORITY(prio) (prio == FASTRPC_RESERVED_HANDLE_PRIO)
 
 #if !(defined __qdsp6__) && !(defined __hexagon__)
 static __inline uint32 Q6_R_cl0_R(uint32 num) {
