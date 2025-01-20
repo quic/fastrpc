@@ -211,9 +211,9 @@ extern int perf_v2_dsp;
 #define DEFAULT_UTHREAD_STACK_SIZE 16 * 1024
 #define DEFAULT_PD_INITMEM_SIZE 3 * 1024 * 1024
 
-/* Valid QuRT thread priorities are 1 to 255 */
+/* Valid QuRT thread priorities are 1 to 254 */
 #define MIN_THREAD_PRIORITY 1
-#define MAX_THREAD_PRIORITY 255
+#define MAX_THREAD_PRIORITY 254
 
 /* Remote thread stack size should be between 16 KB and 8 MB */
 #define MIN_UTHREAD_STACK_SIZE (16 * 1024)
@@ -289,6 +289,8 @@ struct handle_info {
   remote_handle64 local;
   remote_handle64 remote;
   char *name;
+  /* priority of handle*/
+  uint32_t priority;
 };
 
 // Fastrpc client notification request node to be queued to <notif_list>
@@ -645,7 +647,8 @@ int fastrpc_set_remote_uthread_params(int domain) {
            "Warning 0x%x: %s: remotectl1 domains not supported for domain %d\n",
            nErr, __func__, domain);
       fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                 _const_remotectl1_handle, NULL, NULL);
+                                 _const_remotectl1_handle, NULL, NULL,
+                                 FASTRPC_RESERVED_HANDLE_PRIO);
 
       // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls are
       // non-domain calls
@@ -882,8 +885,70 @@ bail:
   return NULL;
 }
 
+/**
+ * get_handle_priority: returns the priority associated with the local handle.
+ *
+ * @param[in] local            : local handle
+ * @param[out] handle_priority : priority associated with local handle
+ *
+ * returns  AEE_SUCCESS if successful
+ *          AEE_EINVHANDLE if invalid handle is passed
+ */
+static int get_handle_priority(remote_handle64 local,
+					uint32_t *handle_priority) {
+	struct handle_info* hinfo = (struct handle_info*)(uintptr_t)local;
+	int nErr = AEE_SUCCESS;
+
+	VERIFY(AEE_SUCCESS == (nErr = verify_local_handle(-1, local)));
+	*handle_priority = hinfo->priority;
+bail:
+	if (nErr != AEE_SUCCESS) {
+		FARF(ERROR, "Error 0x%x: %s failed for handle 0x%"PRIx64"\n",
+				nErr, __func__, local);
+	}
+	return nErr;
+}
+
+/** get_handle_priority_from_uri : Get handle priority from URI
+ *
+ * @param[in] uri  : URI string
+ * @param[out] handle_priority : Handle priority
+ * Returns:
+ *		AEE_SUCCESS: if valid uri is extracted from uri
+ *		AEE_EBADPARM : if uri has the priority token but invalid user priority
+ */
+static int get_handle_priority_from_uri(const char *uri,
+						unsigned int *handle_priority) {
+	int nErr = 0;
+	unsigned int prio = 0;
+	char *priority_uri = NULL;
+	char *lib_name = NULL;
+
+	if (NULL != (priority_uri = std_strstr(uri, FASTRPC_URI_PRIORITY_TOKEN))) {
+		priority_uri = priority_uri + std_strlen(FASTRPC_URI_PRIORITY_TOKEN);
+		prio = strtol(priority_uri, NULL, 10);
+		VERIFYC(IS_VALID_USER_HANDLE_PRIORITY(prio), AEE_EBADPARM);
+		*handle_priority = prio;
+	} else {
+		/**
+		 * if no priority specified in uri, return FASTRPC_RESERVED_HANDLE_PRIO
+		 */
+		lib_name = get_lib_name(uri);
+		*handle_priority = FASTRPC_RESERVED_HANDLE_PRIO;
+		FARF(ALWAYS,"WARNING: %s: %s lib opened handle without priority token",
+					__func__, lib_name);
+	}
+bail:
+	if (nErr) {
+		FARF(ERROR,"Error 0x%x: %s: bad user handle priority %u in uri",
+					nErr, __func__, prio);
+	}
+	return nErr;
+}
+
 static int fastrpc_alloc_handle(int domain, QList *me, remote_handle64 remote,
-                                remote_handle64 *local, const char *name) {
+                                remote_handle64 *local, const char *name,
+                                uint32_t handle_priority) {
   struct handle_info *hinfo = {0};
   int nErr = 0;
   char *libname = NULL;
@@ -894,6 +959,14 @@ static int fastrpc_alloc_handle(int domain, QList *me, remote_handle64 remote,
   libname = get_lib_name(name);
   hinfo->name = libname;
   hinfo->hlist = &hlist[domain];
+  /**
+    * For user handle open calls, the valid priority ranges from
+    * FASTRPC_HANDLE_PRIORITY_MAX and FASTRPC_HANDLE_PRIORITY_MIN.
+    * FASTRPC_RESERVED_HANDLE_PRIO is used for framework calls or
+    * for backward compatability when the dsp doesn't support
+    * priority handles.
+  */
+  hinfo->priority = handle_priority;
   *local = hinfo->local;
 
   QNode_CtorZ(&hinfo->qn);
@@ -931,13 +1004,15 @@ static int fastrpc_free_handle(int domain, QList *me, remote_handle64 remote) {
 }
 
 int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
-                               remote_handle64 *local, const char *name) {
+                               remote_handle64 *local, const char *name,
+                               uint32_t priority) {
   int nErr = AEE_SUCCESS;
 
   switch (req) {
   case DOMAIN_LIST_PREPEND: {
     VERIFY(AEE_SUCCESS ==
-           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].ql, h, local, name)));
+           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].ql, h, local, name,
+                                          priority)));
     if(IS_CONST_HANDLE(h)) {
       pthread_mutex_lock(&hlist[domain].lmut);
       hlist[domain].constCount++;
@@ -965,7 +1040,8 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
   }
   case NON_DOMAIN_LIST_PREPEND: {
     VERIFY(AEE_SUCCESS ==
-           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].nql, h, local, name)));
+           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].nql, h, local, name,
+                                        priority)));
     pthread_mutex_lock(&hlist[domain].lmut);
     hlist[domain].nondomainsCount++;
     pthread_mutex_unlock(&hlist[domain].lmut);
@@ -981,7 +1057,8 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
   }
   case REVERSE_HANDLE_LIST_PREPEND: {
     VERIFY(AEE_SUCCESS ==
-           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].rql, h, local, name)));
+           (nErr = fastrpc_alloc_handle(domain, &hlist[domain].rql, h, local, name,
+                                        priority)));
     pthread_mutex_lock(&hlist[domain].lmut);
     hlist[domain].reverseCount++;
     pthread_mutex_unlock(&hlist[domain].lmut);
@@ -1155,7 +1232,7 @@ static void fastrpc_delete_timer(timer_t *timer) {
 
 int remote_handle_invoke_domain(int domain, remote_handle handle,
                                 fastrpc_async_descriptor_t *desc, uint32_t sc,
-                                remote_arg *pra) {
+                                remote_arg *pra, uint32_t priority) {
   int dev, total, bufs, handles, i, nErr = 0, wake_lock = 0, rpc_timeout = 0;
   unsigned req;
   uint32_t len;
@@ -1351,8 +1428,17 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
     fastrpc_wake_unlock();
     wake_lock = 0;
   }
+
+  /*
+    * If an rpc invoke is made with 0 priority, we take the legacy invoke path
+    * where the call will end up at the reserved priority level on dsp.
+    * If dsp supports handle priorities, this path is expected to be taken
+    * only for framework calls.
+  */
+  if (IS_VALID_USER_HANDLE_PRIORITY(priority))
+    req = INVOKE_PRIORITY;
   // Macros are initializing and destroying pfds and pattrs.
-  nErr = ioctl_invoke(dev, req, handle, sc, get_args(), pfds, pattrs, job,
+  nErr = ioctl_invoke(dev, req, handle, sc, priority, get_args(), pfds, pattrs, job,
                       crc_remote, perf_kernel, perf_dsp);
   if (nErr) {
     nErr = convert_kernel_to_user_error(nErr, errno);
@@ -1475,7 +1561,8 @@ int remote_handle_invoke(remote_handle handle, uint32_t sc, remote_arg *pra) {
   domain = get_current_domain();
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS ==
-         (nErr = remote_handle_invoke_domain(domain, handle, NULL, sc, pra)));
+         (nErr = remote_handle_invoke_domain(domain, handle, NULL, sc, pra,
+                      FASTRPC_RESERVED_HANDLE_PRIO)));
 bail:
   FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
@@ -1503,7 +1590,7 @@ bail:
 int remote_handle64_invoke(remote_handle64 local, uint32_t sc,
                            remote_arg *pra) {
   remote_handle64 remote = 0;
-  int nErr = AEE_SUCCESS, domain = -1, ref = 0;
+  int nErr = AEE_SUCCESS, domain = -1, ref = 0, priority;
   struct handle_info *h = (struct handle_info*)local;
 
   if (IS_STATICPD_HANDLE(local)) {
@@ -1522,8 +1609,12 @@ int remote_handle64_invoke(remote_handle64 local, uint32_t sc,
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(local, &domain)));
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS == (nErr = get_handle_remote(local, &remote)));
+  VERIFY(AEE_SUCCESS == (nErr = get_handle_priority(local, &priority)));
+	VERIFYC((IS_VALID_USER_HANDLE_PRIORITY(priority) ||
+				      IS_RESERVED_HANDLE_PRIORITY(priority)), AEE_EBADPARM);
   VERIFY(AEE_SUCCESS ==
-         (nErr = remote_handle_invoke_domain(domain, remote, NULL, sc, pra)));
+         (nErr = remote_handle_invoke_domain(domain, remote, NULL, sc, pra,
+                          priority)));
 bail:
   FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
@@ -1561,7 +1652,8 @@ int remote_handle_invoke_async(remote_handle handle,
   domain = get_current_domain();
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS ==
-         (nErr = remote_handle_invoke_domain(domain, handle, desc, sc, pra)));
+         (nErr = remote_handle_invoke_domain(domain, handle, desc, sc, pra,
+                      FASTRPC_RESERVED_HANDLE_PRIO)));
 bail:
   FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
@@ -1581,7 +1673,7 @@ int remote_handle64_invoke_async(remote_handle64 local,
                                  fastrpc_async_descriptor_t *desc, uint32_t sc,
                                  remote_arg *pra) {
   remote_handle64 remote = 0;
-  int nErr = AEE_SUCCESS, domain = -1, ref = 0;
+  int nErr = AEE_SUCCESS, domain = -1, ref = 0, capability = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
 
@@ -1594,8 +1686,12 @@ int remote_handle64_invoke_async(remote_handle64 local,
   VERIFY(AEE_SUCCESS == (nErr = get_domain_from_handle(local, &domain)));
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS == (nErr = get_handle_remote(local, &remote)));
+  nErr = remote_get_info(domain, HANDLE_PRIORITY_SUPPORT, &capability);
+	/* Block all async calls if the dsp supports handle priority */
+	VERIFYC((nErr == 0) && (capability != 0), AEE_EUNSUPPORTED);
   VERIFY(AEE_SUCCESS ==
-         (nErr = remote_handle_invoke_domain(domain, remote, desc, sc, pra)));
+         (nErr = remote_handle_invoke_domain(domain, remote, desc, sc, pra,
+                      FASTRPC_RESERVED_HANDLE_PRIO)));
 bail:
   FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
@@ -1712,7 +1808,8 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
                "%d\n",
                nErr, __func__, domain);
           fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                     _const_remotectl1_handle, NULL, NULL);
+                                     _const_remotectl1_handle, NULL, NULL,
+                                     FASTRPC_RESERVED_HANDLE_PRIO);
 
           // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
           // are non-domain calls
@@ -1768,7 +1865,8 @@ int remote_handle_open(const char *name, remote_handle *ph) {
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_open_domain(domain, name, ph,
                                                           &t_spawn, &t_load)));
-  fastrpc_update_module_list(NON_DOMAIN_LIST_PREPEND, domain, *ph, &local, name);
+  fastrpc_update_module_list(NON_DOMAIN_LIST_PREPEND, domain, *ph, &local, name,
+                              FASTRPC_RESERVED_HANDLE_PRIO);
 bail:
   if (nErr) {
     if (*ph) {
@@ -1795,6 +1893,7 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
   remote_handle64 remote = 0, local;
   int domain = -1, nErr = 0, ref = 0;
   uint64_t t_spawn = 0, t_load = 0;
+  uint32_t handle_priority = 0, capability = 0;
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_init_once()));
   FARF(RUNTIME_RPC_HIGH, "Entering %s, name %s\n", __func__, name);
@@ -1818,7 +1917,24 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
                    IS_STATICPD_HANDLE(h)) {
     *ph = h;
   } else {
-    fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain, h, &local, name);
+    /*
+      * Only if dsp supports opening of priority handles, read the priority
+      * token in uri and use it. If not, ignore the token and always open
+      * handle at 0 priority.
+      * If dsp supports the feature but client has not specified a priority
+      * token in the uri, then the handle will be opened at '0' priority
+      * but the thread will still be created in thread group 1 on dsp
+      * at default priority.
+    */
+    nErr = remote_get_info(domain, HANDLE_PRIORITY_SUPPORT, &capability);
+    if (nErr == 0 && capability != 0) {
+      VERIFY(AEE_SUCCESS == (nErr = get_handle_priority_from_uri(name,
+                                            &handle_priority)));
+    } else {
+      handle_priority = FASTRPC_RESERVED_HANDLE_PRIO;
+    }
+    fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain, h, &local, name,
+                                    handle_priority);
     get_handle_remote(local, &remote);
     *ph = local;
   }
@@ -1865,7 +1981,8 @@ int remote_handle_close_domain(int domain, remote_handle h) {
                "%d\n",
                nErr, __func__, domain);
           fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                     _const_remotectl1_handle, NULL, NULL);
+                                     _const_remotectl1_handle, NULL, NULL,
+                                     FASTRPC_RESERVED_HANDLE_PRIO);
 
           // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
           // are non-domain calls
@@ -1907,7 +2024,8 @@ int remote_handle_close(remote_handle h) {
   PRINT_WARN_USE_DOMAINS();
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_close_domain(domain, h)));
   FASTRPC_PUT_REF(domain);
-  fastrpc_update_module_list(NON_DOMAIN_LIST_DEQUEUE, domain, h, NULL, NULL);
+  fastrpc_update_module_list(NON_DOMAIN_LIST_DEQUEUE, domain, h, NULL, NULL,
+                              FASTRPC_RESERVED_HANDLE_PRIO);
 bail:
   if (nErr != AEE_SUCCESS) {
     if (is_process_exiting(domain)) {
@@ -1959,7 +2077,8 @@ int remote_handle64_close(remote_handle64 handle) {
   FARF(ALWAYS, "%s: closed module %s with handle 0x%" PRIx64 " remote handle 0x%" PRIx64
 		", num of open handles: %u",
          __func__, hi->name, handle, remote, hlist[domain].domainsCount - 1);
-  fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL, NULL);
+  fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL, NULL,
+                                  FASTRPC_RESERVED_HANDLE_PRIO);
   FASTRPC_PUT_REF(domain);
 bail:
   if (nErr != AEE_EINVHANDLE && IS_VALID_EFFECTIVE_DOMAIN_ID(domain)) {
@@ -2008,7 +2127,8 @@ static int manage_adaptive_qos(int domain, uint32_t enable) {
              "%d\n",
              nErr, __func__, domain);
         fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                   _const_remotectl1_handle, NULL, NULL);
+                                   _const_remotectl1_handle, NULL, NULL,
+                                  FASTRPC_RESERVED_HANDLE_PRIO);
 
         // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
         // are non-domain calls
@@ -3906,7 +4026,8 @@ remote_handle64 get_adsp_current_process1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
                              DOMAIN_LIST_PREPEND, domain,
-                             _const_adsp_current_process1_handle, &local, NULL)));
+                             _const_adsp_current_process1_handle, &local, NULL,
+                             FASTRPC_RESERVED_HANDLE_PRIO)));
   hlist[domain].cphandle = local;
   return hlist[domain].cphandle;
 bail:
@@ -3928,7 +4049,8 @@ remote_handle64 get_adspmsgd_adsp1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
                              DOMAIN_LIST_PREPEND, domain,
-                             _const_adspmsgd_adsp1_handle, &local, NULL)));
+                             _const_adspmsgd_adsp1_handle, &local, NULL,
+                             FASTRPC_RESERVED_HANDLE_PRIO)));
   hlist[domain].msghandle = local;
   return hlist[domain].msghandle;
 bail:
@@ -3949,7 +4071,8 @@ remote_handle64 get_adsp_listener1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
                              DOMAIN_LIST_PREPEND, domain,
-                             _const_adsp_listener1_handle, &local, NULL)));
+                             _const_adsp_listener1_handle, &local, NULL,
+                             FASTRPC_RESERVED_HANDLE_PRIO)));
   hlist[domain].listenerhandle = local;
   return hlist[domain].listenerhandle;
 bail:
@@ -3971,7 +4094,8 @@ remote_handle64 get_remotectl1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain,
-                                            _const_remotectl1_handle, &local, NULL)));
+                                            _const_remotectl1_handle, &local, NULL,
+                                            FASTRPC_RESERVED_HANDLE_PRIO)));
   hlist[domain].remotectlhandle = local;
   return hlist[domain].remotectlhandle;
 bail:
@@ -3991,7 +4115,8 @@ remote_handle64 get_adsp_perf1_handle(int domain) {
   }
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(DOMAIN_LIST_PREPEND, domain,
-                                            _const_adsp_perf1_handle, &local, NULL)));
+                                            _const_adsp_perf1_handle, &local, NULL,
+                                            FASTRPC_RESERVED_HANDLE_PRIO)));
   hlist[domain].adspperfhandle = local;
   return hlist[domain].adspperfhandle;
 bail:

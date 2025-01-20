@@ -47,13 +47,26 @@
 #define FASTRPC_ASYNC_TYPE_MAX FASTRPC_ASYNC_POLL + 1
 
 /* Max value of remote_dsp_attributes, used to validate the attribute ID*/
-#define FASTRPC_MAX_DSP_ATTRIBUTES MCID_MULTICAST + 1
+#define FASTRPC_MAX_DSP_ATTRIBUTES HANDLE_PRIORITY_SUPPORT + 1
 
 /* Max value of remote_mem_map_flags, used to validate the input flag */
 #define REMOTE_MAP_MAX_FLAG REMOTE_MAP_MEM_STATIC + 1
 
 /* Max value of fastrpc_map_flags, used to validate range of supported flags */
 #define FASTRPC_MAP_MAX FASTRPC_MAP_FD_NOMAP + 1
+
+/**
+ *  Reserved handle priority level for framework calls or
+ *  module open call to dsp that doesn't support handle priorities
+ */
+#define FASTRPC_RESERVED_HANDLE_PRIO 0
+
+/** Macro to check if given handle priority is within valid range */
+#define IS_VALID_USER_HANDLE_PRIORITY(prio) \
+        ((prio >= FASTRPC_HANDLE_PRIORITY_MAX) && (prio <= FASTRPC_HANDLE_PRIORITY_MIN))
+
+/** Macro to check if given handle priority is reserved for framework calls */
+#define IS_RESERVED_HANDLE_PRIORITY(prio) (prio == FASTRPC_RESERVED_HANDLE_PRIO)
 
 #if !(defined __qdsp6__) && !(defined __hexagon__)
 static __inline uint32 Q6_R_cl0_R(uint32 num) {
@@ -241,6 +254,7 @@ enum fastrpc_invoke_type {
 	INVOKE_FD,
 	INVOKE_CRC,
 	INVOKE_PERF,
+	INVOKE_PRIORITY,
 };
 
 /**
@@ -535,13 +549,13 @@ remote_handle64 get_adsp_perf1_handle(int domain);
   * @returns: 0 on success, valid non-zero error code on failure
   *
   **/
-int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle, remote_handle64 *local, const char *name);
+int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle, remote_handle64 *local, const char *name, uint32_t priority);
 
 /**
   * @brief functions to wrap ioctl syscalls for downstream and upstream kernel
   **/
 int ioctl_init(int dev, uint32_t flags, int attr, byte* shell, int shelllen, int shellfd, char* initmem, int initmemlen, int initmemfd, int tessiglen);
-int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc, void* pra, int* fds, unsigned int* attrs, void *job, unsigned int* crc, uint64_t* perf_kernel, uint64_t* perf_dsp);
+int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc, uint32_t priority, void* pra, int* fds, unsigned int* attrs, void *job, unsigned int* crc, uint64_t* perf_kernel, uint64_t* perf_dsp);
 int ioctl_invoke2_response(int dev, fastrpc_async_jobid *jobid, remote_handle *handle, uint32_t *sc, int* result, uint64_t *perf_kernel, uint64_t *perf_dsp);
 int ioctl_invoke2_notif(int dev, int *domain, int *session, int *status);
 int ioctl_mmap(int dev, int req, uint32_t flags, int attr, int fd, int offset, size_t len, uintptr_t vaddrin, uint64_t* vaddr_out);
