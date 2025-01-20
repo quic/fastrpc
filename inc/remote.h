@@ -140,6 +140,24 @@ extern "C" {
 /** Internal transport prefix */
 #define ITRANSPORT_PREFIX "'\":;./\\"
 
+/** Token to specify the priority of a handle */
+#define FASTRPC_URI_PRIORITY_TOKEN "&_hpriority="
+/** Macro to generate token string for priority */
+#define FASTRPC_HANDLE_PRIORITY_LEVEL(priority)  \
+                FASTRPC_URI_PRIORITY_TOKEN #priority
+
+/**
+ * The following defines are used to specify the priority level of a handle.
+ * Priority levels range from 1 to 7. Lower numbers indicate higher priority.
+ * For example, a priority of 1 indicates the highest priority while a priority
+ * of 7 indicates the lowest priority.
+ *
+ * If no priority level is specified, then handles are opened with highest
+ * priority.
+ */
+#define FASTRPC_HANDLE_PRIORITY_MIN 7
+#define FASTRPC_HANDLE_PRIORITY_MAX 1
+
 /** Maximum length of URI for remote_handle_open() calls */
 #define MAX_DOMAIN_URI_SIZE 12
 
@@ -310,6 +328,7 @@ enum remote_dsp_attributes {
     ASYNC_FASTRPC_SUPPORT,        /** Async FastRPC Support */
     STATUS_NOTIFICATION_SUPPORT , /** DSP User PD status notification Support */
     MCID_MULTICAST,               /** Multicast widget programming */
+    HANDLE_PRIORITY_SUPPORT,      /** DSP support for handle priority */
     /** Update FASTRPC_MAX_DSP_ATTRIBUTES when adding new value to this enum */
 };
 
