@@ -59,7 +59,8 @@ __QAIC_IMPL(apps_remotectl_open)(const char *name, uint32 *handle, char *dlStr,
          (nErr = mod_table_open(name, handle, dlStr, dlerrorLen, dlErr)));
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(
-              REVERSE_HANDLE_LIST_PREPEND, domain, (remote_handle)*handle, &local, NULL)));
+              REVERSE_HANDLE_LIST_PREPEND, domain, (remote_handle)*handle, &local, NULL,
+              FASTRPC_RESERVED_HANDLE_PRIO)));
 bail:
   return nErr;
 }
@@ -81,7 +82,8 @@ __QAIC_IMPL(apps_remotectl_close)(uint32 handle, char *errStr, int errStrLen,
   }
   VERIFY(AEE_SUCCESS ==
          (nErr = fastrpc_update_module_list(
-              REVERSE_HANDLE_LIST_DEQUEUE, domain, (remote_handle)handle, NULL, NULL)));
+              REVERSE_HANDLE_LIST_DEQUEUE, domain, (remote_handle)handle, NULL, NULL,
+              FASTRPC_RESERVED_HANDLE_PRIO)));
 bail:
   return nErr;
 }
@@ -350,7 +352,8 @@ static void *listener_start_thread(void *arg) {
         nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
       FARF(ERROR, "Error 0x%x: %s domains support not available in listener",
            nErr, __func__);
-      fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, _const_adsp_listener1_handle, NULL, NULL);
+      fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
+              _const_adsp_listener1_handle, NULL, NULL, FASTRPC_RESERVED_HANDLE_PRIO);
       adsp_listener1_handle = INVALID_HANDLE;
       VERIFY(AEE_SUCCESS == (nErr = __QAIC_HEADER(adsp_listener_init2)()));
     } else if (nErr == AEE_SUCCESS) {
