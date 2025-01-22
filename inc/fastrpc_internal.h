@@ -374,6 +374,8 @@ struct handle_list {
 	void *proc_sharedbuf;
 	/* current process shared buffer address to pack process params */
 	uint32_t *proc_sharedbuf_cur_addr;
+  /* Flag to indicate if wake-lock feature has been enabled for session */
+	uint32_t fastrpc_wake_lock_enable;
 };
 
 /**
@@ -521,7 +523,7 @@ static __inline int convert_kernel_to_user_error(int nErr, int err_no) {
 // Warning message to use domains
 #define PRINT_WARN_USE_DOMAINS() VERIFY_WPRINTF("Warning: %s: Non-domain usage of FastRPC will be deprecated, use domains to offload to DSP using FastRPC", __func__)
 #else
-#define PRINT_WARN_USE_DOMAINS() 0
+#define PRINT_WARN_USE_DOMAINS() (void)0
 #endif
 
 /**
