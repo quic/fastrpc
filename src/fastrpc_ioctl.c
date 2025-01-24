@@ -89,14 +89,18 @@ int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc, void *pra,
                  uint64_t *perf_kernel, uint64_t *perf_dsp) {
   int ioErr = AEE_SUCCESS;
   struct fastrpc_ioctl_invoke invoke = {0};
+  struct fastrpc_ioctl_invoke_v2 invoke2 = {0};
 
   invoke.handle = handle;
   invoke.sc = sc;
   invoke.args = (uint64_t)pra;
-  if (req >= INVOKE && req <= INVOKE_FD)
+  if (req >= INVOKE && req <= INVOKE_FD) {
     ioErr = ioctl(dev, FASTRPC_IOCTL_INVOKE, (unsigned long)&invoke);
-  else
-    return AEE_EUNSUPPORTED;
+  } else {
+    invoke2.inv = invoke;
+    invoke2.crc = (uint64_t)crc;
+    ioErr = ioctl(dev, FASTRPC_IOCTL_INVOKEV2, (unsigned long)&invoke2);
+  }
 
   return ioErr;
 }
@@ -205,6 +209,9 @@ int ioctl_setmode(int dev, int mode) {
 }
 
 int ioctl_control(int dev, int req, void *c) {
+  if (req == DSPRPC_RPC_POLL)
+    return AEE_SUCCESS;
+
   return AEE_EUNSUPPORTED;
 }
 
