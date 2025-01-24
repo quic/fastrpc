@@ -349,6 +349,7 @@ struct handle_list {
 	struct fastrpc_dsp_capabilities cap_info;
 	int trace_marker_fd;
 	uint64_t jobid;
+	uint64_t poll_timeout;
 	/* Capability flag to check if mapping DMA handle through reverse RPC is supported */
 	int dma_handle_reverse_rpc_map_capability;
 	/* Mutex to synchronize ASync init and deinit */
@@ -541,7 +542,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle,
   * @brief functions to wrap ioctl syscalls for downstream and upstream kernel
   **/
 int ioctl_init(int dev, uint32_t flags, int attr, byte* shell, int shelllen, int shellfd, char* initmem, int initmemlen, int initmemfd, int tessiglen);
-int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc, void* pra, int* fds, unsigned int* attrs, void *job, unsigned int* crc, uint64_t* perf_kernel, uint64_t* perf_dsp);
+int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc, void* pra, int* fds, unsigned int* attrs, void *job, unsigned int* crc, uint64_t* perf_kernel, uint64_t* perf_dsp, uint64_t poll_timeout);
 int ioctl_invoke2_response(int dev, fastrpc_async_jobid *jobid, remote_handle *handle, uint32_t *sc, int* result, uint64_t *perf_kernel, uint64_t *perf_dsp);
 int ioctl_invoke2_notif(int dev, int *domain, int *session, int *status);
 int ioctl_mmap(int dev, int req, uint32_t flags, int attr, int fd, int offset, size_t len, uintptr_t vaddrin, uint64_t* vaddr_out);
