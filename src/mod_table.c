@@ -728,8 +728,9 @@ bail:
   if (nErr != AEE_SUCCESS) {
     VERIFY_EPRINTF("Error 0x%x: %s failed for %s", nErr, __func__, uri);
   } else {
-    FARF(RUNTIME_RPC_HIGH, "%s: reverse module %s opened with handle 0x%x (idx %u)",
-         __func__, uri, *handle, handle_idx);
+    FARF(RUNTIME_RPC_HIGH,
+         "%s: reverse module %s opened with handle 0x%x (idx %u)", __func__,
+         uri, *handle, handle_idx);
   }
   if (nErr && dm) {
     if (dm->h64) {

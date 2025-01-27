@@ -105,10 +105,10 @@ void rpcmem_deinit() {
   pthread_mutex_destroy(&rpcmt);
 }
 
-int rpcmem_set_dmabuf_name(const char *name, int fd, int heapid,
-			void *buf, uint32 rpcflags) {
-        // Dummy call where DMABUF is not used
-        return 0;
+int rpcmem_set_dmabuf_name(const char *name, int fd, int heapid, void *buf,
+                           uint32 rpcflags) {
+  // Dummy call where DMABUF is not used
+  return 0;
 }
 
 int rpcmem_to_fd_internal(void *po) {
@@ -164,8 +164,9 @@ void *rpcmem_alloc_internal(int heapid, uint32 flags, size_t size) {
   pthread_mutex_lock(&rpcmt);
   QList_AppendNode(&rpclst, &rinfo->qn);
   pthread_mutex_unlock(&rpcmt);
-  FARF(RUNTIME_RPC_HIGH, "Allocted memory from DMA heap fd %d ptr %p orig ptr %p\n",
-       rinfo->fd, rinfo->aligned_buf, rinfo->buf);
+  FARF(RUNTIME_RPC_HIGH,
+       "Allocted memory from DMA heap fd %d ptr %p orig ptr %p\n", rinfo->fd,
+       rinfo->aligned_buf, rinfo->buf);
   return rinfo->aligned_buf;
 bail:
   if (nErr) {
