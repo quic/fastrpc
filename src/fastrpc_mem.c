@@ -1,7 +1,6 @@
 // Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 //#ifndef VERIFY_PRINT_ERROR
 //#define VERIFY_PRINT_ERROR
 //#endif // VERIFY_PRINT_ERROR
@@ -136,9 +135,7 @@ int fastrpc_mem_deinit(void) {
   int ii;
 
   pthread_mutex_destroy(&fdlist.mut);
-  FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
-    pthread_mutex_destroy(&smaplst[ii].mut);
-  }
+  FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) { pthread_mutex_destroy(&smaplst[ii].mut); }
   return 0;
 }
 
@@ -554,8 +551,7 @@ int fastrpc_munmap(int domain, int fd, void *vaddr, size_t length) {
     PRINT_WARN_USE_DOMAINS();
     domain = get_current_domain();
   }
-  VERIFYC(fd >= 0 && IS_VALID_EFFECTIVE_DOMAIN_ID(domain),
-          AEE_EBADPARM);
+  VERIFYC(fd >= 0 && IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
   FASTRPC_GET_REF(domain);
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_session_dev(domain, &dev)));
   /**
@@ -791,19 +787,19 @@ static int fastrpc_unmap_fd(void *buf, size_t size, int fd, int attr) {
 
   FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
     nErr = fastrpc_session_get(ii);
-    if(!nErr)
+    if (!nErr)
       continue;
     nErr = fastrpc_session_dev(ii, &dev);
-    if(!nErr) {
+    if (!nErr) {
       fastrpc_session_put(ii);
       continue;
     }
     nErr = ioctl_munmap(dev, MUNMAP_FD, attr, buf, fd, size, 0);
     if (nErr)
       FARF(RUNTIME_RPC_LOW,
-            "unmap_fd: device found %d for domain %d returned %d", dev, ii,
-            nErr);
-    fastrpc_session_put(ii); 
+           "unmap_fd: device found %d for domain %d returned %d", dev, ii,
+           nErr);
+    fastrpc_session_put(ii);
   }
   if (nErr != AEE_SUCCESS) {
     FARF(ERROR, "Error 0x%x: %s failed for size %zu fd %d errno %s\n", nErr,
@@ -868,7 +864,7 @@ static __inline int try_unmap_buffer(struct mem_to_fd *tofd) {
     } else {
       errcnt++;
       //@TODO: Better way to handle error? probably prevent same FD getting
-      //re-used with FastRPC library.
+      // re-used with FastRPC library.
     }
   }
   if (errcnt) {

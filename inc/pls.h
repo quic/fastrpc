@@ -13,63 +13,62 @@
 struct PLS;
 
 struct plskey {
-   uintptr_t type;
-   uintptr_t key;
+  uintptr_t type;
+  uintptr_t key;
 };
 
 struct PLS {
-   struct PLS* next;
-   struct plskey key;
-   void (*dtor)(void* data);
-   uint64_t data[1];
+  struct PLS *next;
+  struct plskey key;
+  void (*dtor)(void *data);
+  uint64_t data[1];
 };
 
-
 struct pls_table {
-   struct PLS* lst;
-   uint32_t uRefs;
-   uint32_t primThread;
+  struct PLS *lst;
+  uint32_t uRefs;
+  uint32_t primThread;
 };
 
 /**
  * initialize on every thread and stick the pls_thread_deinit
  * function into the threads tls
  */
-static __inline int pls_thread_init(struct pls_table* me, uintptr_t tid) {
-   if(tid == me->primThread) {
-      return 0;
-   }
-   if(0 == atomic_CompareOrAdd(&me->uRefs, 0, 1)) {
-      return -1;
-   }
-   return 0;
+static __inline int pls_thread_init(struct pls_table *me, uintptr_t tid) {
+  if (tid == me->primThread) {
+    return 0;
+  }
+  if (0 == atomic_CompareOrAdd(&me->uRefs, 0, 1)) {
+    return -1;
+  }
+  return 0;
 }
 
 /* call this constructor before the first thread creation with the
  * first threads id
  */
-static __inline void pls_ctor(struct pls_table* me, uintptr_t primThread) {
-   me->uRefs = 1;
-   me->primThread = primThread;
+static __inline void pls_ctor(struct pls_table *me, uintptr_t primThread) {
+  me->uRefs = 1;
+  me->primThread = primThread;
 }
 
-static __inline struct pls_table* pls_thread_deinit(struct pls_table* me) {
-   if(me && 0 != me->uRefs && 0 == atomic_Add(&me->uRefs, -1)) {
-      struct PLS* lst, *next;
-      lst = me->lst;
-      me->lst = 0;
-      while(lst) {
-         next = lst->next;
-         if(lst->dtor) {
-            FARF(HIGH, "pls dtor %p", lst->dtor);
-            lst->dtor((void*)lst->data);
-         }
-         free(lst);
-         lst = next;
+static __inline struct pls_table *pls_thread_deinit(struct pls_table *me) {
+  if (me && 0 != me->uRefs && 0 == atomic_Add(&me->uRefs, -1)) {
+    struct PLS *lst, *next;
+    lst = me->lst;
+    me->lst = 0;
+    while (lst) {
+      next = lst->next;
+      if (lst->dtor) {
+        FARF(HIGH, "pls dtor %p", lst->dtor);
+        lst->dtor((void *)lst->data);
       }
-      return me;
-   }
-   return 0;
+      free(lst);
+      lst = next;
+    }
+    return me;
+  }
+  return 0;
 }
 
 /**
@@ -88,77 +87,86 @@ static __inline struct pls_table* pls_thread_deinit(struct pls_table* me) {
  * @retval, 0 for success
  */
 
-static __inline int pls_add(struct pls_table* me, uintptr_t type, uintptr_t key, int size, int (*ctor)(void* ctx, void* data), void* ctx, void (*dtor)(void* data), void** ppo) {
-   int nErr = 0;
-   struct PLS* pls = 0;
-   struct PLS* prev;
-   VERIFY(me->uRefs != 0);
-   VERIFY(0 != (pls = (struct PLS*)calloc(1, size + sizeof(*pls) - sizeof(pls->data))));
-   if(ctor) {
-      VERIFY(0 == ctor(ctx, (void*)pls->data));
-   }
-   pls->dtor = dtor;
-   pls->key.type = type;
-   pls->key.key = key;
-   do {
-      pls->next = me->lst;
-      prev = (struct PLS*)atomic_CompareAndExchangeUP((uintptr_t*)&me->lst, (uintptr_t)pls, (uintptr_t)pls->next);
-   } while(prev != pls->next);
-   if(ppo) {
-      *ppo = (void*)pls->data;
-   }
-   FARF(HIGH, "pls added %p", dtor);
+static __inline int pls_add(struct pls_table *me, uintptr_t type, uintptr_t key,
+                            int size, int (*ctor)(void *ctx, void *data),
+                            void *ctx, void (*dtor)(void *data), void **ppo) {
+  int nErr = 0;
+  struct PLS *pls = 0;
+  struct PLS *prev;
+  VERIFY(me->uRefs != 0);
+  VERIFY(0 != (pls = (struct PLS *)calloc(1, size + sizeof(*pls) -
+                                                 sizeof(pls->data))));
+  if (ctor) {
+    VERIFY(0 == ctor(ctx, (void *)pls->data));
+  }
+  pls->dtor = dtor;
+  pls->key.type = type;
+  pls->key.key = key;
+  do {
+    pls->next = me->lst;
+    prev = (struct PLS *)atomic_CompareAndExchangeUP(
+        (uintptr_t *)&me->lst, (uintptr_t)pls, (uintptr_t)pls->next);
+  } while (prev != pls->next);
+  if (ppo) {
+    *ppo = (void *)pls->data;
+  }
+  FARF(HIGH, "pls added %p", dtor);
 bail:
-   if(nErr && pls) {
-      free(pls);
-   }
-   return nErr;
+  if (nErr && pls) {
+    free(pls);
+  }
+  return nErr;
 }
 
-static __inline int pls_lookup(struct pls_table* me, uintptr_t type, uintptr_t key, void** ppo);
+static __inline int pls_lookup(struct pls_table *me, uintptr_t type,
+                               uintptr_t key, void **ppo);
 
 /**
- * like add, but will only add 1 item if two threads try to add at the same time.  returns
- * item if its already there, otherwise tries to add.
- * ctor may be called twice
- * callers should avoid calling pls_add which will override the singleton
+ * like add, but will only add 1 item if two threads try to add at the same
+ * time.  returns item if its already there, otherwise tries to add. ctor may be
+ * called twice callers should avoid calling pls_add which will override the
+ * singleton
  */
-static __inline int pls_add_lookup_singleton(struct pls_table* me, uintptr_t type, uintptr_t key, int size, int (*ctor)(void* ctx, void* data), void* ctx, void (*dtor)(void* data), void** ppo) {
-   int nErr = 0;
-   struct PLS* pls = 0;
-   struct PLS* prev;
-   if(0 == pls_lookup(me, type, key, ppo)) {
-      return 0;
-   }
-   VERIFY(me->uRefs != 0);
-   VERIFY(0 != (pls = (struct PLS*)calloc(1, size + sizeof(*pls) - sizeof(pls->data))));
-   if(ctor) {
-      VERIFY(0 == ctor(ctx, (void*)pls->data));
-   }
-   pls->dtor = dtor;
-   pls->key.type = type;
-   pls->key.key = key;
-   do {
-      pls->next = me->lst;
-      if(0 == pls_lookup(me, type, key, ppo)) {
-         if(pls->dtor) {
-            pls->dtor((void*)pls->data);
-         }
-         free(pls);
-         return 0;
+static __inline int
+pls_add_lookup_singleton(struct pls_table *me, uintptr_t type, uintptr_t key,
+                         int size, int (*ctor)(void *ctx, void *data),
+                         void *ctx, void (*dtor)(void *data), void **ppo) {
+  int nErr = 0;
+  struct PLS *pls = 0;
+  struct PLS *prev;
+  if (0 == pls_lookup(me, type, key, ppo)) {
+    return 0;
+  }
+  VERIFY(me->uRefs != 0);
+  VERIFY(0 != (pls = (struct PLS *)calloc(1, size + sizeof(*pls) -
+                                                 sizeof(pls->data))));
+  if (ctor) {
+    VERIFY(0 == ctor(ctx, (void *)pls->data));
+  }
+  pls->dtor = dtor;
+  pls->key.type = type;
+  pls->key.key = key;
+  do {
+    pls->next = me->lst;
+    if (0 == pls_lookup(me, type, key, ppo)) {
+      if (pls->dtor) {
+        pls->dtor((void *)pls->data);
       }
-      prev = (struct PLS*)atomic_CompareAndExchangeUP((uintptr_t*)&me->lst, (uintptr_t)pls, (uintptr_t)pls->next);
-   } while(prev != pls->next);
-   if(ppo) {
-      *ppo = (void*)pls->data;
-   }
-bail:
-   if(nErr && pls) {
       free(pls);
-   }
-   return nErr;
+      return 0;
+    }
+    prev = (struct PLS *)atomic_CompareAndExchangeUP(
+        (uintptr_t *)&me->lst, (uintptr_t)pls, (uintptr_t)pls->next);
+  } while (prev != pls->next);
+  if (ppo) {
+    *ppo = (void *)pls->data;
+  }
+bail:
+  if (nErr && pls) {
+    free(pls);
+  }
+  return nErr;
 }
-
 
 /**
  * finds the last data pointer added for key to the local storage
@@ -168,19 +176,18 @@ bail:
  * @retval, 0 for success
  */
 
-static __inline int pls_lookup(struct pls_table* me, uintptr_t type, uintptr_t key, void** ppo) {
-   struct PLS* lst;
-   for(lst = me->lst; me->uRefs != 0 && lst != 0; lst = lst->next) {
-      if(lst->key.type == type && lst->key.key == key) {
-         if(ppo) {
-            *ppo = lst->data;
-         }
-         return 0;
+static __inline int pls_lookup(struct pls_table *me, uintptr_t type,
+                               uintptr_t key, void **ppo) {
+  struct PLS *lst;
+  for (lst = me->lst; me->uRefs != 0 && lst != 0; lst = lst->next) {
+    if (lst->key.type == type && lst->key.key == key) {
+      if (ppo) {
+        *ppo = lst->data;
       }
-   }
-   return -1;
+      return 0;
+    }
+  }
+  return -1;
 }
 
-#endif //PLS_H
-
-
+#endif // PLS_H

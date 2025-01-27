@@ -1,0 +1,50 @@
+name: Clang Format
+
+on:
+  push:
+    branches:
+    - 'main'
+    - 'development'
+  pull_request:
+    branches:
+    - 'main'
+    - 'development'
+
+jobs:
+  format:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Clang Format
+        run: |
+          sudo apt-get install wget
+          wget https://apt.llvm.org/llvm.sh
+          sudo chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install clang-format-18
+          sudo rm llvm.sh
+
+      - name: Get Clang Format Version
+        run: clang-format-18 --version
+        
+      - name: Run Clang Format
+        run: |
+          find . -name '*.cpp' -o -name '*.h' -o -name '*.c' | xargs clang-format -i -style='{SortIncludes: false}'
+          git diff --exit-code || echo "Changes detected"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --exit-code || echo "changes=true" >> $GITHUB_ENV
+
+      - name: Commit changes
+        if: env.changes == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "Apply formatting changes"
+          git push

@@ -24,7 +24,6 @@
 #include "HAP_farf.h"
 #include "verify.h"
 
-
 #define WAKE_LOCK_FILE "/sys/power/wake_lock"
 #define WAKE_UNLOCK_FILE "/sys/power/wake_unlock"
 

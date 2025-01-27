@@ -30,9 +30,9 @@
 #define ROOTPD_NAME "rootpd"
 #define ATTACH_GUESTOS "attachguestos"
 #define CREATE_STATICPD "createstaticpd:"
-#define POLL_TIMEOUT	10 * 1000
-#define EVENT_SIZE		( sizeof (struct inotify_event) )
-#define EVENT_BUF_LEN	( 1024 * ( EVENT_SIZE + 16 ) )
+#define POLL_TIMEOUT 10 * 1000
+#define EVENT_SIZE (sizeof(struct inotify_event))
+#define EVENT_BUF_LEN (1024 * (EVENT_SIZE + 16))
 #define ADSP_SECURE_DEVICE_NAME "fastrpc-adsp-secure"
 #define SDSP_SECURE_DEVICE_NAME "fastrpc-sdsp-secure"
 #define MDSP_SECURE_DEVICE_NAME "fastrpc-mdsp-secure"
@@ -60,31 +60,31 @@ static domain_t *get_domain_uri(int domain_id) {
 }
 
 static const char *get_secure_device_name(int domain_id) {
-	const char *name;
-	int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
+  const char *name;
+  int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
 
-	switch (domain) {
-	case ADSP_DOMAIN_ID:
-		name = ADSP_SECURE_DEVICE_NAME;
-		break;
-	case SDSP_DOMAIN_ID:
-		name = SDSP_SECURE_DEVICE_NAME;
-		break;
-	case MDSP_DOMAIN_ID:
-		name = MDSP_SECURE_DEVICE_NAME;
-		break;
-	case CDSP_DOMAIN_ID:
-		name = CDSP_SECURE_DEVICE_NAME;
-		break;
-	case CDSP1_DOMAIN_ID:
-		name = CDSP1_SECURE_DEVICE_NAME;
-		break;
-	default:
-		name = DEFAULT_DEVICE;
-		break;
-	}
+  switch (domain) {
+  case ADSP_DOMAIN_ID:
+    name = ADSP_SECURE_DEVICE_NAME;
+    break;
+  case SDSP_DOMAIN_ID:
+    name = SDSP_SECURE_DEVICE_NAME;
+    break;
+  case MDSP_DOMAIN_ID:
+    name = MDSP_SECURE_DEVICE_NAME;
+    break;
+  case CDSP_DOMAIN_ID:
+    name = CDSP_SECURE_DEVICE_NAME;
+    break;
+  case CDSP1_DOMAIN_ID:
+    name = CDSP1_SECURE_DEVICE_NAME;
+    break;
+  default:
+    name = DEFAULT_DEVICE;
+    break;
+  }
 
-	return name;
+  return name;
 }
 
 /**
@@ -95,19 +95,18 @@ static const char *get_secure_device_name(int domain_id) {
  *	True: Device node exists
  *	False: Device node does not exist
  */
-static boolean fastrpc_dev_exists(const char* dev_name)
-{
-	struct stat buffer;
-	char *path = NULL;
-	uint64 len;
+static boolean fastrpc_dev_exists(const char *dev_name) {
+  struct stat buffer;
+  char *path = NULL;
+  uint64 len;
 
-	len = snprintf(0, 0, "/dev/%s", dev_name) + 1;
-	if(NULL == (path = (char *)malloc(len * sizeof(char))))
-		return false;
+  len = snprintf(0, 0, "/dev/%s", dev_name) + 1;
+  if (NULL == (path = (char *)malloc(len * sizeof(char))))
+    return false;
 
-	snprintf(path, (int)len, "/dev/%s", dev_name);
+  snprintf(path, (int)len, "/dev/%s", dev_name);
 
-	return (stat(path, &buffer) == 0);
+  return (stat(path, &buffer) == 0);
 }
 
 /**
@@ -118,78 +117,81 @@ static boolean fastrpc_dev_exists(const char* dev_name)
  *	0 - Success
  *	Non-zero - Failure
  */
-static int fastrpc_wait_for_secure_device(int domain)
-{
-	int inotify_fd = -1, watch_fd = -1, err = 0;
-	const char *dev_name = NULL;
-	struct pollfd pfd[1];
+static int fastrpc_wait_for_secure_device(int domain) {
+  int inotify_fd = -1, watch_fd = -1, err = 0;
+  const char *dev_name = NULL;
+  struct pollfd pfd[1];
 
-	dev_name = get_secure_device_name(domain);
+  dev_name = get_secure_device_name(domain);
 
-	if (fastrpc_dev_exists(dev_name))
-		return 0;
+  if (fastrpc_dev_exists(dev_name))
+    return 0;
 
-	inotify_fd = inotify_init();
-	if (inotify_fd < 0) {
-		VERIFY_EPRINTF("Error: inotify_init failed, invalid fd errno = %s\n", strerror(errno));
-		return AEE_EINVALIDFD;
-	}
+  inotify_fd = inotify_init();
+  if (inotify_fd < 0) {
+    VERIFY_EPRINTF("Error: inotify_init failed, invalid fd errno = %s\n",
+                   strerror(errno));
+    return AEE_EINVALIDFD;
+  }
 
-	watch_fd = inotify_add_watch(inotify_fd, "/dev/", IN_CREATE);
-	if (watch_fd < 0) {
-		close(inotify_fd);
-		VERIFY_EPRINTF("Error: inotify_add_watch failed, invalid fd errno = %s\n", strerror(errno));
-		return AEE_EINVALIDFD;
-	}
+  watch_fd = inotify_add_watch(inotify_fd, "/dev/", IN_CREATE);
+  if (watch_fd < 0) {
+    close(inotify_fd);
+    VERIFY_EPRINTF("Error: inotify_add_watch failed, invalid fd errno = %s\n",
+                   strerror(errno));
+    return AEE_EINVALIDFD;
+  }
 
-	if (fastrpc_dev_exists(dev_name))
-		goto bail;
+  if (fastrpc_dev_exists(dev_name))
+    goto bail;
 
-	memset(pfd, 0 , sizeof(pfd));
-	pfd[0].fd = inotify_fd;
-	pfd[0].events = POLLIN;
+  memset(pfd, 0, sizeof(pfd));
+  pfd[0].fd = inotify_fd;
+  pfd[0].events = POLLIN;
 
-	while (1) {
-		int ret = 0;
-		char buffer[EVENT_BUF_LEN];
-		struct inotify_event *event;
+  while (1) {
+    int ret = 0;
+    char buffer[EVENT_BUF_LEN];
+    struct inotify_event *event;
 
-		ret = poll(pfd, 1, POLL_TIMEOUT);
-		if(ret < 0){
-			VERIFY_EPRINTF("Error: %s: polling for event failed errno(%s)\n", __func__, strerror(errno));
-			err = AEE_EPOLL;
-			break;
-		}
-		if(ret == 0){
-			VERIFY_EPRINTF("Error: %s: Poll timeout\n", __func__);
-			err = AEE_EPOLL;
-			break;
-		}
-		/* read on inotify fd never reads partial events. */
-		ssize_t len = read(inotify_fd, buffer, sizeof(buffer));
-		if (len < 0) {
-			VERIFY_EPRINTF("Error: %s: read failed, errno = %s\n", __func__, strerror(errno));
-			err = AEE_EEVENTREAD;
-			break;
-		}
-		 /* Loop over all events in the buffer. */
-		for (char *ptr = buffer; ptr < buffer + len;
-					ptr += sizeof(struct inotify_event) + event->len) {
-			event = (struct inotify_event *) ptr;
-			/* Check if the event corresponds to the creation of the device node. */
-			if (event->wd == watch_fd && (event->mask & IN_CREATE) &&
-				(std_strcmp(dev_name, event->name) == 0)) {
-				/* Device node created, process proceed to open and use it. */
-				VERIFY_IPRINTF("Device node %s created!\n", event->name);
-				goto bail; /* Exit the loop after device creation is detected. */
-			}
-		}
-	}
+    ret = poll(pfd, 1, POLL_TIMEOUT);
+    if (ret < 0) {
+      VERIFY_EPRINTF("Error: %s: polling for event failed errno(%s)\n",
+                     __func__, strerror(errno));
+      err = AEE_EPOLL;
+      break;
+    }
+    if (ret == 0) {
+      VERIFY_EPRINTF("Error: %s: Poll timeout\n", __func__);
+      err = AEE_EPOLL;
+      break;
+    }
+    /* read on inotify fd never reads partial events. */
+    ssize_t len = read(inotify_fd, buffer, sizeof(buffer));
+    if (len < 0) {
+      VERIFY_EPRINTF("Error: %s: read failed, errno = %s\n", __func__,
+                     strerror(errno));
+      err = AEE_EEVENTREAD;
+      break;
+    }
+    /* Loop over all events in the buffer. */
+    for (char *ptr = buffer; ptr < buffer + len;
+         ptr += sizeof(struct inotify_event) + event->len) {
+      event = (struct inotify_event *)ptr;
+      /* Check if the event corresponds to the creation of the device node. */
+      if (event->wd == watch_fd && (event->mask & IN_CREATE) &&
+          (std_strcmp(dev_name, event->name) == 0)) {
+        /* Device node created, process proceed to open and use it. */
+        VERIFY_IPRINTF("Device node %s created!\n", event->name);
+        goto bail; /* Exit the loop after device creation is detected. */
+      }
+    }
+  }
 bail:
-	inotify_rm_watch(inotify_fd, watch_fd);
-	close(inotify_fd);
+  inotify_rm_watch(inotify_fd, watch_fd);
+  close(inotify_fd);
 
-	return err;
+  return err;
 }
 
 int adsp_default_listener_start(int argc, char *argv[]) {
@@ -223,7 +225,8 @@ int adsp_default_listener_start(int argc, char *argv[]) {
     VERIFYC(NULL != (dsp_domain = get_domain_uri(domain_id)),
             AEE_EINVALIDDOMAIN);
 
-    VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(domain_id)), AEE_ECONNREFUSED);
+    VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(domain_id)),
+            AEE_ECONNREFUSED);
     // Allocate memory for URI. Example: "ITRANSPORT_PREFIX
     // createstaticpd:audiopd&dom=adsp"
     namelen = strlen(ITRANSPORT_PREFIX CREATE_STATICPD) + strlen(argv[1]) +
@@ -259,7 +262,8 @@ int adsp_default_listener_start(int argc, char *argv[]) {
 
     // If domain name part of arguments, use domains API
     if (domain_id != INVALID_DOMAIN_ID) {
-      VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(domain_id)), AEE_ECONNREFUSED);
+      VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(domain_id)),
+              AEE_ECONNREFUSED);
       VERIFY(AEE_SUCCESS == (nErr = remote_handle64_open(argv[1], &fd)));
       goto start_listener;
     }
@@ -283,10 +287,13 @@ int adsp_default_listener_start(int argc, char *argv[]) {
                 strlen(ITRANSPORT_PREFIX ATTACH_GUESTOS) + 1);
   }
 
-  VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(DEFAULT_DOMAIN_ID)), AEE_ECONNREFUSED);
+  VERIFYC(AEE_SUCCESS ==
+              (nErr = fastrpc_wait_for_secure_device(DEFAULT_DOMAIN_ID)),
+          AEE_ECONNREFUSED);
   // Default case: Open non-domain static process handle
   VERIFY_IPRINTF("%s started with arguments %s\n", __func__, name);
-  VERIFY(AEE_SUCCESS == (nErr = remote_handle_open(name, (remote_handle *)&fd)));
+  VERIFY(AEE_SUCCESS ==
+         (nErr = remote_handle_open(name, (remote_handle *)&fd)));
 start_listener:
   VERIFYC(!setenv("ADSP_LISTENER_MEM_CACHE_SIZE", "1048576", 0), AEE_ESETENV);
 
@@ -324,8 +331,8 @@ start_listener:
   VERIFY_IPRINTF("%s domains support is not available for "
                  "adsp_default_listener1, using non-domain API\n",
                  __func__);
-  VERIFY(0 ==
-         (nErr = remote_handle_open("adsp_default_listener", (remote_handle *)&listener_fd)));
+  VERIFY(0 == (nErr = remote_handle_open("adsp_default_listener",
+                                         (remote_handle *)&listener_fd)));
   VERIFY(0 == (nErr = adsp_default_listener_register()));
 start_poll:
   // If domain name part of arguments, use domains API
