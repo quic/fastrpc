@@ -1989,9 +1989,7 @@ bail:
   if (nErr) {
     if (*ph) {
       remote_handle64_close(*ph);
-    } else {
-      FASTRPC_PUT_REF(domain);
-    }
+    FASTRPC_PUT_REF(domain);
     if (0 == check_rpc_error(nErr)) {
       FARF(ERROR, "Error 0x%x: %s failed for %s (errno %s)", nErr, __func__,
            name, strerror(errno));
@@ -2060,8 +2058,7 @@ bail:
   if (nErr) {
     if (h)
       remote_handle_close(h);
-    else
-      FASTRPC_PUT_REF(domain);
+    FASTRPC_PUT_REF(domain);
     if (0 == check_rpc_error(nErr)) {
       FARF(ERROR, "Error 0x%x: %s failed for %s (errno %s)\n", nErr, __func__,
            name, strerror(errno));
@@ -2149,9 +2146,9 @@ int remote_handle_close(remote_handle h) {
 
   PRINT_WARN_USE_DOMAINS();
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_close_domain(domain, h)));
-  FASTRPC_PUT_REF(domain);
   fastrpc_update_module_list(NON_DOMAIN_LIST_DEQUEUE, domain, h, NULL, NULL,
                              FASTRPC_RESERVED_HANDLE_PRIO);
+  FASTRPC_PUT_REF(domain);
 bail:
   if (nErr != AEE_SUCCESS) {
     if (is_process_exiting(domain)) {
@@ -2921,7 +2918,6 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
 
   FARF(RUNTIME_RPC_HIGH, "Entering %s, req %d, data %p, size %d\n", __func__,
        req, data, datalen);
-  FASTRPC_GET_REF(domain);
   switch (req) {
   case FASTRPC_THREAD_PARAMS: {
     struct remote_rpc_thread_params *params =
@@ -2940,14 +2936,18 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
              params->domain);
         goto bail;
       }
+      FASTRPC_GET_REF(params->domain);
       VERIFY(AEE_SUCCESS ==
              (nErr = store_domain_thread_params(params->domain, params->prio,
                                                 params->stack_size)));
+      FASTRPC_PUT_REF(params->domain);
     } else {
       /* If domain is -1, then set parameters for all domains */
       FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
+        FASTRPC_GET_REF(ii);
         VERIFY(AEE_SUCCESS == (nErr = store_domain_thread_params(
                                    ii, params->prio, params->stack_size)));
+        FASTRPC_PUT_REF(ii);
       }
     }
     FARF(ALWAYS,
@@ -2964,12 +2964,16 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     VERIFYC(um != NULL, AEE_EBADPARM);
     if (um->domain != -1) {
       VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(um->domain), AEE_EBADPARM);
+      FASTRPC_GET_REF(um->domain);
       VERIFY(AEE_SUCCESS ==
              (nErr = set_unsigned_pd_attribute(um->domain, um->enable)));
+      FASTRPC_PUT_REF(um->domain);
     } else {
       FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
+        FASTRPC_GET_REF(ii);
         VERIFY(AEE_SUCCESS ==
                (nErr = set_unsigned_pd_attribute(ii, um->enable)));
+        FASTRPC_PUT_REF(ii);
       }
     }
     FARF(ALWAYS, "%s Unsigned PD enable %d request for domain %d", __func__,
@@ -2999,12 +3003,16 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     }
     if (params->domain != -1) {
       VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(params->domain), AEE_EBADPARM);
+      FASTRPC_GET_REF(params->domain);
       VERIFY(AEE_SUCCESS == (nErr = store_domain_thread_params(
                                  params->domain, thread_priority, -1)));
+      FASTRPC_PUT_REF(params->domain);
     } else {
       FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
+        FASTRPC_GET_REF(ii);
         VERIFY(AEE_SUCCESS ==
                (nErr = store_domain_thread_params(ii, thread_priority, -1)));
+        FASTRPC_PUT_REF(ii);
       }
     }
     FARF(ALWAYS, "%s DSP thread priority request for domain %d, priority %d",
@@ -3019,7 +3027,9 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
             AEE_EBADPARM);
     VERIFYC(dp, AEE_EBADPARM);
     domain = dp->domain;
+    FASTRPC_GET_REF(dp->domain);
     VERIFY(AEE_SUCCESS == (nErr = fastrpc_dsp_process_clean(domain)));
+    FASTRPC_PUT_REF(dp->domain);
     FARF(ALWAYS, "%s Remote process kill request for domain %d", __func__,
          domain);
     break;
@@ -3036,10 +3046,14 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     VERIFYC(datalen == sizeof(struct remote_rpc_session_close), AEE_EBADPARM);
     if (sclose->domain != -1) {
       VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(sclose->domain), AEE_EBADPARM);
+      FASTRPC_GET_REF(sclose->domain);
       VERIFY(AEE_SUCCESS == (nErr = close_domain_session(sclose->domain)));
+      FASTRPC_PUT_REF(sclose->domain);
     } else {
       FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
+        FASTRPC_GET_REF(ii);
         VERIFY(AEE_SUCCESS == (nErr = close_domain_session(ii)));
+        FASTRPC_PUT_REF(ii);
       }
     }
     FARF(ALWAYS, "%s Fastrpc session close request for domain %d\n", __func__,
@@ -3053,12 +3067,16 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     VERIFYC(datalen == sizeof(struct remote_rpc_control_pd_dump), AEE_EBADPARM);
     VERIFYC(pddump != NULL, AEE_EBADPARM);
     if (pddump->domain != -1) {
+      FASTRPC_GET_REF(pddump->domain);
       VERIFY(AEE_SUCCESS ==
              (nErr = set_pd_dump_attribute(pddump->domain, pddump->enable)));
+      FASTRPC_PUT_REF(pddump->domain);
     } else {
       FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
+        FASTRPC_GET_REF(ii);
         VERIFY(AEE_SUCCESS ==
                (nErr = set_pd_dump_attribute(ii, pddump->enable)));
+        FASTRPC_PUT_REF(ii);
       }
     }
     FARF(ALWAYS, "%s PD dump request to enable(%d) for domain %d", __func__,
@@ -3079,11 +3097,13 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
      * If any request causes exception on DSP, DSP returns AEE_EBADSTATE for the
      * request thread.
      */
+    FASTRPC_GET_REF(domain);
     if ((handle = get_adsp_current_process1_handle(domain)) != INVALID_HANDLE) {
       ret = adsp_current_process1_exception(handle);
     } else {
       ret = adsp_current_process_exception();
     }
+    FASTRPC_PUT_REF(domain);
     ret = (ret == AEE_SUCCESS) ? AEE_ERPC : ret;
     VERIFYC(ret == (int)(DSP_AEE_EOFFSET + AEE_EBADSTATE), ret);
     FARF(ALWAYS,
@@ -3097,11 +3117,11 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     int ret_val = -1;
     struct handle_list *hlist;
 
-    VERIFYC(NULL != (hlist = get_hlist(domain)), AEE_EBADDOMAIN);
     VERIFYC(datalen == sizeof(struct remote_process_type), AEE_EBADPARM);
     VERIFYC(typ, AEE_EBADPARM);
     domain = typ->domain;
     VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
+    VERIFYC(NULL != (hlist = get_hlist(domain)), AEE_EBADDOMAIN);
     ret_val = hlist->unsigned_module;
     if (ret_val != PROCESS_TYPE_UNSIGNED && ret_val != PROCESS_TYPE_SIGNED) {
       typ->process_type = -1;
@@ -3120,12 +3140,16 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     domain = notif->domain;
     VERIFYC(IS_VALID_EFFECTIVE_DOMAIN_ID(domain), AEE_EBADPARM);
     if (domain != -1) {
+      FASTRPC_GET_REF(domain);
       VERIFYC(is_status_notif_version2_supported(domain), AEE_EUNSUPPORTED);
       VERIFY(AEE_SUCCESS == (nErr = fastrpc_notif_register(domain, notif)));
+      FASTRPC_PUT_REF(domain);
     } else {
       FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
+        FASTRPC_GET_REF(ii);
         VERIFYC(is_status_notif_version2_supported(ii), AEE_EUNSUPPORTED);
         VERIFY(AEE_SUCCESS == (nErr = fastrpc_notif_register(ii, notif)));
+        FASTRPC_PUT_REF(ii);
       }
     }
     FARF(ALWAYS, "%s Register PD status notification request for domain %d\n",
@@ -3155,8 +3179,10 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
                     "unsigned PDs");
         goto bail;
       }
+      FASTRPC_GET_REF(params->domain);
       VERIFY(AEE_SUCCESS == (nErr = store_domain_pd_initmem_size(
                                  params->domain, params->pd_initmem_size)));
+      FASTRPC_PUT_REF(params->domain);
     } else {
       struct handle_list *hlist;
       /* If domain is -1, then set parameters for all domains */
@@ -3170,8 +3196,10 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
                "is not supported for unsigned PDs",
                __func__, ii);
         } else {
+          FASTRPC_GET_REF(ii);
           VERIFY(AEE_SUCCESS == (nErr = store_domain_pd_initmem_size(
                                      ii, params->pd_initmem_size)));
+          FASTRPC_PUT_REF(ii);
         }
       }
     }
@@ -3296,7 +3324,6 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
     break;
   }
 bail:
-  FASTRPC_PUT_REF(domain);
   if (nErr != AEE_SUCCESS) {
     FARF(ERROR, "Error 0x%x: %s failed for request ID %d (errno %s)", nErr,
          __func__, req, strerror(errno));
