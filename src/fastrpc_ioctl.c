@@ -204,9 +204,7 @@ int ioctl_setmode(int dev, int mode) {
   return AEE_EUNSUPPORTED;
 }
 
-int ioctl_control(int dev, int req, void *c) {
-  return AEE_EUNSUPPORTED;
-}
+int ioctl_control(int dev, int req, void *c) { return AEE_EUNSUPPORTED; }
 
 int ioctl_getperf(int dev, int key, void *data, int *datalen) {
   return AEE_EUNSUPPORTED;
@@ -216,13 +214,9 @@ int ioctl_signal_create(int dev, uint32_t signal, uint32_t flags) {
   return AEE_EUNSUPPORTED;
 }
 
-int ioctl_signal_destroy(int dev, uint32_t signal) {
-  return AEE_EUNSUPPORTED;
-}
+int ioctl_signal_destroy(int dev, uint32_t signal) { return AEE_EUNSUPPORTED; }
 
-int ioctl_signal_signal(int dev, uint32_t signal) {
-  return AEE_EUNSUPPORTED;
-}
+int ioctl_signal_signal(int dev, uint32_t signal) { return AEE_EUNSUPPORTED; }
 
 int ioctl_signal_wait(int dev, uint32_t signal, uint32_t timeout_usec) {
   return AEE_EUNSUPPORTED;
@@ -246,8 +240,8 @@ int ioctl_optimization(int dev, uint32_t max_concurrency) {
 }
 
 int ioctl_mdctx_manage(int dev, int req, void *user_ctx,
-	unsigned int *domain_ids, unsigned int num_domain_ids, uint64_t *ctx)
-{
-	// TODO: Implement this for opensource
-	return AEE_EUNSUPPORTED;
+                       unsigned int *domain_ids, unsigned int num_domain_ids,
+                       uint64_t *ctx) {
+  // TODO: Implement this for opensource
+  return AEE_EUNSUPPORTED;
 }

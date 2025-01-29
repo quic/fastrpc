@@ -57,9 +57,9 @@ __QAIC_IMPL(apps_remotectl_open)(const char *name, uint32 *handle, char *dlStr,
   remote_handle64 local;
   VERIFY(AEE_SUCCESS ==
          (nErr = mod_table_open(name, handle, dlStr, dlerrorLen, dlErr)));
-  VERIFY(AEE_SUCCESS ==
-         (nErr = fastrpc_update_module_list(
-              REVERSE_HANDLE_LIST_PREPEND, domain, (remote_handle)*handle, &local, NULL)));
+  VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
+                             REVERSE_HANDLE_LIST_PREPEND, domain,
+                             (remote_handle)*handle, &local, NULL)));
 bail:
   return nErr;
 }
@@ -72,16 +72,16 @@ __QAIC_IMPL(apps_remotectl_close)(uint32 handle, char *errStr, int errStrLen,
 
   if (AEE_SUCCESS !=
       (nErr = mod_table_close(handle, errStr, errStrLen, dlErr))) {
-    if(!is_process_exiting(domain)) {
+    if (!is_process_exiting(domain)) {
       FARF(ERROR,
-          "Error 0x%x: %s: mod_table_close failed for handle:0x%x (dlErr %s)",
-          nErr, __func__, handle, (char *)dlErr);
+           "Error 0x%x: %s: mod_table_close failed for handle:0x%x (dlErr %s)",
+           nErr, __func__, handle, (char *)dlErr);
     }
     goto bail;
   }
-  VERIFY(AEE_SUCCESS ==
-         (nErr = fastrpc_update_module_list(
-              REVERSE_HANDLE_LIST_DEQUEUE, domain, (remote_handle)handle, NULL, NULL)));
+  VERIFY(AEE_SUCCESS == (nErr = fastrpc_update_module_list(
+                             REVERSE_HANDLE_LIST_DEQUEUE, domain,
+                             (remote_handle)handle, NULL, NULL)));
 bail:
   return nErr;
 }
@@ -160,13 +160,13 @@ static void listener(listener_config *me) {
         /* UserPD in CPZ migration. Keep retrying until migration is complete.
          * Also reset the context, as previous context is invalid after CPZ
          * migration
-        */
+         */
         ctx = 0;
         result = -1;
         goto invoke;
       } else if (nErr == (DSP_AEE_EOFFSET + AEE_EBADSTATE)) {
-          /* UserPD in irrecoverable bad state. Exit listener */
-          goto bail;
+        /* UserPD in irrecoverable bad state. Exit listener */
+        goto bail;
       }
       /* For any other error, retry once and exit if error seen again */
       if (me->adsp_listener1_handle != INVALID_HANDLE) {
@@ -180,9 +180,9 @@ static void listener(listener_config *me) {
       }
       if (nErr) {
         FARF(RUNTIME_HIGH,
-               "Error 0x%x: %s response with result 0x%x for ctx 0x%x, handle "
-               "0x%x, sc 0x%x failed\n",
-               nErr, __func__, result, ctx, handle, sc);
+             "Error 0x%x: %s response with result 0x%x for ctx 0x%x, handle "
+             "0x%x, sc 0x%x failed\n",
+             nErr, __func__, result, ctx, handle, sc);
         goto bail;
       }
     }
@@ -302,8 +302,9 @@ bail:
   RPC_FREEIF(outBufs);
   RPC_FREEIF(inBufs);
   if (nErr != AEE_SUCCESS) {
-    if(!is_process_exiting(domain)) {
-      FARF(ERROR,
+    if (!is_process_exiting(domain)) {
+      FARF(
+          ERROR,
           "Error 0x%x: %s response with result 0x%x for ctx 0x%x, handle 0x%x, "
           "sc 0x%x failed : listener thread exited (errno %s)",
           nErr, __func__, result, ctx, handle, sc, strerror(errno));
@@ -344,13 +345,15 @@ static void *listener_start_thread(void *arg) {
    * Otherwise, the init2() call will go to default domain.
    */
   set_thread_context(domain);
-  if ((adsp_listener1_handle = get_adsp_listener1_handle(domain)) != INVALID_HANDLE) {
+  if ((adsp_listener1_handle = get_adsp_listener1_handle(domain)) !=
+      INVALID_HANDLE) {
     nErr = __QAIC_HEADER(adsp_listener1_init2)(adsp_listener1_handle);
     if ((nErr == DSP_AEE_EOFFSET + AEE_ERPC) ||
         nErr == DSP_AEE_EOFFSET + AEE_ENOSUCHMOD) {
       FARF(ERROR, "Error 0x%x: %s domains support not available in listener",
            nErr, __func__);
-      fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, _const_adsp_listener1_handle, NULL, NULL);
+      fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
+                                 _const_adsp_listener1_handle, NULL, NULL);
       adsp_listener1_handle = INVALID_HANDLE;
       VERIFY(AEE_SUCCESS == (nErr = __QAIC_HEADER(adsp_listener_init2)()));
     } else if (nErr == AEE_SUCCESS) {

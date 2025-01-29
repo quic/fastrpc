@@ -28,8 +28,8 @@
 #define DEBUF_BUF_TRACE "frpc_dbgbuf:"
 
 #define IS_PERSIST_BUF_DATA(len, level)                                        \
-  ((len > 0) && (len < MAX_FARF_LEN) && (level == HAP_LEVEL_RPC_CRITICAL || \
-						  level == HAP_LEVEL_CRITICAL))
+  ((len > 0) && (len < MAX_FARF_LEN) &&                                        \
+   (level == HAP_LEVEL_RPC_CRITICAL || level == HAP_LEVEL_CRITICAL))
 
 typedef struct persist_buffer {
   /* Debug logs to be printed on dsp side */

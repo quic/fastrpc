@@ -33,7 +33,6 @@
 #include "rpcmem_internal.h"
 #include "verify.h"
 
-
 #define PERF_MODE 2
 #define PERF_OFF 0
 #define PERF_KERNEL_MASK (0x1)
@@ -55,7 +54,6 @@
    !std_strncmp((name), "perf_sync_inv", 13))
 
 #define PERF_CAPABILITY_CHECK (1 << 1)
-
 
 extern boolean fastrpc_config_is_perfkernel_enabled(void);
 extern boolean fastrpc_config_is_perfdsp_enabled(void);
@@ -249,7 +247,8 @@ static int perf_dsp_enable(int domain) {
       FARF(ALWAYS,
            "Warning 0x%x: %s: adsp_perf1 domains not supported for domain %d\n",
            nErr, __func__, domain);
-      fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, _const_adsp_perf1_handle, NULL, NULL);
+      fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
+                                 _const_adsp_perf1_handle, NULL, NULL);
       gperf.adsp_perf_handle = INVALID_HANDLE;
       VERIFY(0 == (nErr = adsp_perf_get_keys(keys, PERF_KEY_STR_MAX, &maxLen,
                                              &numKeys)));
