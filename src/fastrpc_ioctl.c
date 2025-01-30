@@ -84,9 +84,10 @@ int ioctl_init(int dev, uint32_t flags, int attr, byte *shell, int shelllen,
   return ioErr;
 }
 
-int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc, void *pra,
-                 int *fds, unsigned int *attrs, void *job, unsigned int *crc,
-                 uint64_t *perf_kernel, uint64_t *perf_dsp) {
+int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc,
+                 uint32_t priority, void *pra, int *fds, unsigned int *attrs,
+                 void *job, unsigned int *crc, uint64_t *perf_kernel,
+                 uint64_t *perf_dsp) {
   int ioErr = AEE_SUCCESS;
   struct fastrpc_ioctl_invoke invoke = {0};
 
