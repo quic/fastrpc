@@ -745,7 +745,7 @@ int fastrpc_set_remote_uthread_params(int domain) {
            "Warning 0x%x: %s: remotectl1 domains not supported for domain %d\n",
            nErr, __func__, domain);
       fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                 _const_remotectl1_handle, NULL, NULL,
+                                 NULL, handle, NULL,
                                  FASTRPC_RESERVED_HANDLE_PRIO);
 
       // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls are
@@ -1090,7 +1090,7 @@ bail:
   return nErr;
 }
 
-static int fastrpc_free_handle(int domain, QList *me, remote_handle64 remote) {
+static int fastrpc_free_handle(int domain, QList *me, remote_handle64 local) {
   struct handle_list *hlist = NULL;
 
   hlist = get_hlist(domain);
@@ -1101,7 +1101,7 @@ static int fastrpc_free_handle(int domain, QList *me, remote_handle64 remote) {
     QNode *pn = NULL, *pnn = NULL;
     QLIST_NEXTSAFE_FOR_ALL(me, pn, pnn) {
       struct handle_info *hi = STD_RECOVER_REC(struct handle_info, qn, pn);
-      if (hi->remote == remote) {
+      if (hi->local == local) {
         QNode_DequeueZ(&hi->qn);
         if (hi->name)
           free(hi->name);
@@ -1138,7 +1138,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
     break;
   }
   case DOMAIN_LIST_DEQUEUE: {
-    VERIFY(AEE_SUCCESS == (nErr = fastrpc_free_handle(domain, &hlist->ql, h)));
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_free_handle(domain, &hlist->ql, local)));
     if (IS_CONST_HANDLE(h)) {
       pthread_mutex_lock(&hlist->lmut);
       hlist->constCount--;
@@ -1159,7 +1159,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
     break;
   }
   case NON_DOMAIN_LIST_DEQUEUE: {
-    VERIFY(AEE_SUCCESS == (nErr = fastrpc_free_handle(domain, &hlist->nql, h)));
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_free_handle(domain, &hlist->nql, local)));
     pthread_mutex_lock(&hlist->lmut);
     hlist->nondomainsCount--;
     pthread_mutex_unlock(&hlist->lmut);
@@ -1174,7 +1174,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 h,
     break;
   }
   case REVERSE_HANDLE_LIST_DEQUEUE: {
-    VERIFY(AEE_SUCCESS == (nErr = fastrpc_free_handle(domain, &hlist->rql, h)));
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_free_handle(domain, &hlist->rql, local)));
     pthread_mutex_lock(&hlist->lmut);
     hlist->reverseCount--;
     pthread_mutex_unlock(&hlist->lmut);
@@ -1926,7 +1926,7 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
                "%d\n",
                nErr, __func__, domain);
           fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                     _const_remotectl1_handle, NULL, NULL,
+                                     NULL, handle, NULL,
                                      FASTRPC_RESERVED_HANDLE_PRIO);
 
           // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
@@ -2103,7 +2103,7 @@ int remote_handle_close_domain(int domain, remote_handle h) {
                "%d\n",
                nErr, __func__, domain);
           fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                     _const_remotectl1_handle, NULL, NULL,
+                                     NULL, handle, NULL,
                                      FASTRPC_RESERVED_HANDLE_PRIO);
 
           // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
@@ -2146,7 +2146,7 @@ int remote_handle_close(remote_handle h) {
 
   PRINT_WARN_USE_DOMAINS();
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_close_domain(domain, h)));
-  fastrpc_update_module_list(NON_DOMAIN_LIST_DEQUEUE, domain, h, NULL, NULL,
+  fastrpc_update_module_list(NON_DOMAIN_LIST_DEQUEUE, domain, NULL, h, NULL,
                              FASTRPC_RESERVED_HANDLE_PRIO);
   FASTRPC_PUT_REF(domain);
 bail:
@@ -2203,7 +2203,7 @@ int remote_handle64_close(remote_handle64 handle) {
        "%s: closed module %s with handle 0x%" PRIx64 " remote handle 0x%" PRIx64
        ", num of open handles: %u",
        __func__, hi->name, handle, remote, hlist->domainsCount - 1);
-  fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, handle, NULL, NULL,
+  fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain, NULL, handle, NULL,
                              FASTRPC_RESERVED_HANDLE_PRIO);
   FASTRPC_PUT_REF(domain);
 bail:
@@ -2260,7 +2260,7 @@ static int manage_adaptive_qos(int domain, uint32_t enable) {
              "%d\n",
              nErr, __func__, domain);
         fastrpc_update_module_list(DOMAIN_LIST_DEQUEUE, domain,
-                                   _const_remotectl1_handle, NULL, NULL,
+                                   NULL, handle, NULL,
                                    FASTRPC_RESERVED_HANDLE_PRIO);
 
         // Set remotectlhandle to INVALID_HANDLE, so that all subsequent calls
