@@ -43,7 +43,8 @@ jobs:
         
         # Compile the source code
         chmod 777 gitcompile
-        ./gitcompile --host=aarch64-linux-gnu
+        # CFLAGS="-Werror" - Treat all warnings as errors during compilation
+        ./gitcompile --host=aarch64-linux-gnu CFLAGS="-Werror"
 
     - name: Verify the compiled binaries
       run: |
