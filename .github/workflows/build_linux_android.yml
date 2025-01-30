@@ -44,7 +44,8 @@ jobs:
         echo "Compile the source code"
         chmod 777 gitcompile
         make -v
-        ./gitcompile --host=aarch64-linux-android
+        # CFLAGS="-Werror" - Treat all warnings as errors during compilation
+        ./gitcompile --host=aarch64-linux-android CFLAGS="-Werror"
 
     - name: Verify the compiled binaries
       run: |

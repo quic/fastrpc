@@ -81,7 +81,7 @@ sync and compile using the below command.
 ```
 git clone https://github.com/quic/fastrpc
 cd fastrpc
-./gitcompile --host=aarch64-linux-gnu
+./gitcompile --host=aarch64-linux-gnu CFLAGS="-Werror"
 ```
 
 ###Steps to generate Android binaries on Ubuntu build machine
@@ -110,7 +110,7 @@ sync and compile using the below command.
 ```
 git clone https://github.com/quic/fastrpc
 cd fastrpc
-./gitcompile --host=aarch64-linux-android
+./gitcompile --host=aarch64-linux-android CFLAGS="-Werror"
 ```
 
 ## Testing
