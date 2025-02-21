@@ -8,6 +8,8 @@
 #include <string.h>
 #include <sys/time.h>
 #include <limits.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 #include "AEEStdErr.h"
 #include "fastrpc_config.h"
@@ -124,8 +126,8 @@ static void print_dbgbuf_data(char *data, int size) {
       persist_buf.size = strlen(DEBUF_BUF_TRACE) + 1;
     }
     len = snprintf(persist_buf.buf + persist_buf.size,
-                   DEBUG_BUF_SIZE - persist_buf.size, "%llu:%d:%d:dom:%d: %s\n",
-                   GetTime(), getpid(), gettid(), get_current_domain(), data);
+                   DEBUG_BUF_SIZE - persist_buf.size, "%llu:%d:%ld:dom:%d: %s\n",
+                   GetTime(), getpid(), syscall(SYS_gettid), get_current_domain(), data);
     persist_buf.size += (len + 1);
   }
   pthread_mutex_unlock(&persist_buf.mut);
@@ -180,7 +182,7 @@ void HAP_debug_runtime(int level, const char *file, int line,
     if (log == NULL) {
       return;
     }
-    snprintf(log, MAX_FARF_LEN, "%d:%d:%s:%s:%d: %s", getpid(), gettid(),
+    snprintf(log, MAX_FARF_LEN, "%d:%ld:%s:%s:%d: %s", getpid(), syscall(SYS_gettid),
              __progname, file, line, buf);
   }
 
@@ -265,11 +267,11 @@ void HAP_debug(const char *msg, int level, const char *filename, int line) {
   newlines = get_newlines(msg);
   level = hap_2_android_log_level(level);
   if (newlines)
-    printf("ADSPRPC: %d %d %c %s: %s:%d: %s", getpid(), gettid(),
+    printf("ADSPRPC: %d %ld %c %s: %s:%d: %s", getpid(), syscall(SYS_gettid),
            android_log_level_to_char(level), __progname, short_filename, line,
            msg);
   else
-    printf("ADSPRPC: %d %d %c %s: %s:%d: %s\n", getpid(), gettid(),
+    printf("ADSPRPC: %d %ld %c %s: %s:%d: %s\n", getpid(), syscall(SYS_gettid),
            android_log_level_to_char(level), __progname, short_filename, line,
            msg);
   fflush(stdout);
