@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 /* Header file used by all other modules
  * will contain the most critical defines

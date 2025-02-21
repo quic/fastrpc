@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 
 #define FARF_ERROR 1
 #define FARF_HIGH 1
@@ -1340,7 +1341,7 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
       frpc_timer.sc = sc;
       frpc_timer.handle = handle;
       frpc_timer.timeout_millis = rpc_timeout;
-      frpc_timer.tid = gettid();
+      frpc_timer.tid = syscall(SYS_gettid);
       fastrpc_add_timer(&frpc_timer);
     }
   }
