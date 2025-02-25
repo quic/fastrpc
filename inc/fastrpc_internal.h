@@ -535,7 +535,7 @@ remote_handle64 get_adsp_perf1_handle(int domain);
   * @returns: 0 on success, valid non-zero error code on failure
   *
   **/
-int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle, remote_handle64 *local, const char *name);
+int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle, remote_handle64 *local, const char *name, int fd);
 
 /**
   * @brief functions to wrap ioctl syscalls for downstream and upstream kernel
