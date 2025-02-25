@@ -440,6 +440,22 @@ int fdlist_fd_from_buf(void *buf, int bufLen, int *nova, void **base, int *attr,
   return 0;
 }
 
+void* get_source_vaddr(int fd, int domain) {
+  struct static_map *tNode = NULL;
+  QNode *pn, *pnn;
+  /* Search for mapping in current session static map list */
+  pthread_mutex_lock(&smaplst[domain].mut);
+  QLIST_NEXTSAFE_FOR_ALL(&smaplst[domain].ql, pn, pnn) {
+    tNode = STD_RECOVER_REC(struct static_map, qn, pn);
+    if (tNode->map.fd == fd) {
+      break;
+    }
+  }
+  pthread_mutex_unlock(&smaplst[domain].mut);
+  
+  return (void*)tNode->map.vaddrin;
+}
+
 int fastrpc_mmap(int domain, int fd, void *vaddr, int offset, size_t length,
                  enum fastrpc_map_flags flags) {
   struct fastrpc_map map = {0};

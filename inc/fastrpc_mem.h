@@ -56,3 +56,5 @@ int remote_mmap64_internal(int fd, uint32_t flags, uint64_t vaddrin, int64_t siz
 int fastrpc_buffer_ref(int domain, int fd, int ref, void **va, size_t *size);
 
 #endif //FASTRPC_MEM_H
+
+void* get_source_vaddr(int fd, int domain);

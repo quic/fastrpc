@@ -46,6 +46,7 @@ __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl_open)(const char* name, int* ha
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl_close)(int handle, char* dlerror, int dlerrorLen, int* nErr) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl_grow_heap)(uint32 phyAddr, uint32 nSize) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl_set_param)(int reqID, const uint32* params, int paramsLen) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl_open_v2)(const char* name, const char* buf, int bufLen, int* handle, char* dlerror, int dlerrorLen, int* nErr) __QAIC_HEADER_ATTRIBUTE;
 #ifdef __cplusplus
 }
 #endif

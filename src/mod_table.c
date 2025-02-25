@@ -123,15 +123,6 @@ struct const_mod {
   char uri[1];
 };
 
-struct parsed_uri {
-  const char *file;
-  const char *sym;
-  const char *ver;
-  int filelen;
-  int symlen;
-  int verlen;
-};
-
 struct open_mod {
   void *dlhandle;
   invoke_fn invoke;
@@ -359,7 +350,7 @@ static int notqmark(struct sbuf *buf) { return sbuf_notchar(buf, '?'); }
 static int notandoreq(struct sbuf *buf) { return sbuf_notchars(buf, "&="); }
 static int notand(struct sbuf *buf) { return sbuf_notchar(buf, '&'); }
 
-static int parse_uri(const char *uri, int urilen, struct parsed_uri *out) {
+int parse_uri(const char *uri, int urilen, struct parsed_uri *out) {
   // "file:///librhtest_skel.so?rhtest_skel_handle_invoke&_modver=1.0"
   int nErr = 0;
   char *name, *value;
