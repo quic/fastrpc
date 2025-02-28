@@ -8,7 +8,7 @@ fastrpc_test_SOURCES = fastrpc_test.c
 fastrpc_test_CFLAGS = -I$(top_srcdir)/inc -DUSE_SYSLOG
 
 # Define the linker flags for the test program
-fastrpc_test_LDADD = -ldl -llog $(top_builddir)/src/libadsprpc.la $(top_builddir)/src/libadsp_default_listener.la
+fastrpc_test_LDADD = -ldl -llog $(top_builddir)/src/libadsprpc.la
 
 # If compiling for Android, include the Android-specific flags
 if ANDROID_CC
