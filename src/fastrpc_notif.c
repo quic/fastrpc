@@ -115,6 +115,7 @@ void fastrpc_notif_domain_deinit(int domain) {
          __func__);
     pthread_mutex_lock(&me->notif_mutex);
     me->deinit_started = 1;
+    /* Send a signal to terminate the notification thread if it is waiting in the kernel */
     if (me->waiting_for_notif)
        pthread_kill(me->thread, SIGUSR1);
     pthread_mutex_unlock(&me->notif_mutex);
