@@ -30,10 +30,15 @@
 #include "verify.h"
 #include "fastrpc_hash_table.h"
 
+/* DSP user pd up status notification */
+#define FASTRPC_USERPD_UP 0
+
 typedef struct {
   pthread_t thread;
   int init_done;
   int deinit_started;
+  int waiting_for_notif;
+  pthread_mutex_t notif_mutex;
   ADD_DOMAIN_HASH();
 } notif_config;
 
@@ -108,17 +113,19 @@ void fastrpc_notif_domain_deinit(int domain) {
   if (me->thread) {
     FARF(ALWAYS, "%s: Waiting for FastRPC notification worker thread to join",
          __func__);
+    pthread_mutex_lock(&me->notif_mutex);
     me->deinit_started = 1;
-    err = fastrpc_exit_notif_thread(domain);
-    if (err) {
-      pthread_kill(me->thread, SIGUSR1);
-    }
+    if (me->waiting_for_notif)
+       pthread_kill(me->thread, SIGUSR1);
+    pthread_mutex_unlock(&me->notif_mutex);
+
     pthread_join(me->thread, 0);
     me->thread = 0;
     FARF(ALWAYS, "%s: Fastrpc notification worker thread joined", __func__);
   }
   me->init_done = 0;
-  return;
+  pthread_mutex_destroy(&me->notif_mutex);
+   return;
 }
 
 int fastrpc_notif_domain_init(int domain) {
@@ -134,7 +141,9 @@ int fastrpc_notif_domain_init(int domain) {
     goto bail;
   }
   me->thread = 0;
-  VERIFY(AEE_SUCCESS ==
+  me->waiting_for_notif = 0;
+  pthread_mutex_init(&me->notif_mutex, NULL);
+   VERIFY(AEE_SUCCESS ==
          (nErr = pthread_create(&me->thread, 0, notif_fastrpc_thread,
                                 (void *)me)));
   // Register signal handler to interrupt thread, while thread is waiting in
@@ -222,9 +231,28 @@ void fastrpc_cleanup_notif_list() {
 int get_remote_notif_response(int domain) {
   int nErr = AEE_SUCCESS, dev;
   int dom = -1, session = -1, status = -1;
+  notif_config *me = NULL;
+
+  GET_HASH_NODE(notif_config, domain, me);
+  if (!me && !me->init_done) {
+    nErr = AEE_EBADPARM;
+    goto bail;
+  }
 
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_session_dev(domain, &dev)));
+  pthread_mutex_lock(&me->notif_mutex);
+  if (me->deinit_started) {
+    pthread_mutex_unlock(&me->notif_mutex);
+    goto bail;
+  }
+  me->waiting_for_notif = 1;
+  pthread_mutex_unlock(&me->notif_mutex);
   nErr = ioctl_invoke2_notif(dev, &dom, &session, &status);
+
+  pthread_mutex_lock(&me->notif_mutex);
+  me->waiting_for_notif = 0;
+  pthread_mutex_unlock(&me->notif_mutex);
+
   if (nErr) {
     nErr = convert_kernel_to_user_error(nErr, errno);
     goto bail;
@@ -232,26 +260,15 @@ int get_remote_notif_response(int domain) {
   FARF(ALWAYS, "%s: received status notification %u for domain %d, session %d",
        __func__, status, dom, session);
   fastrpc_notify_status(dom, session, status);
+  /* If the status is not FASTRPC_USERPD_UP, notification thread should exit. */
+  if (status != FASTRPC_USERPD_UP)
+    nErr = AEE_EEXPIRED;
+
 bail:
   if (nErr && (errno != EBADF) && (nErr != AEE_EEXPIRED)) {
     FARF(ERROR,
          "Error 0x%x: %s failed to get notification response data errno %s",
          nErr, __func__, strerror(errno));
   }
-  return nErr;
-}
-
-// Make IOCTL call to exit notif thread
-int fastrpc_exit_notif_thread(int domain) {
-  int nErr = AEE_SUCCESS, dev;
-
-  VERIFY(AEE_SUCCESS == (nErr = fastrpc_session_dev(domain, &dev)));
-  nErr = ioctl_control(dev, DSPRPC_NOTIF_WAKE, NULL);
-bail:
-  if (nErr)
-    FARF(ERROR,
-         "Error 0x%x: %s failed for domain %d (errno: %s), ignore if ioctl not "
-         "supported, try pthread kill ",
-         nErr, __func__, domain, strerror(errno));
   return nErr;
 }
