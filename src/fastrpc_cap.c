@@ -21,13 +21,13 @@
 
 #define BUF_SIZE 50
 
-const char * RPROC_SUBSYSTEM_NAME[] = {"adsp", "mss", "spss", "cdsp", "cdsp1", "reserved", "reserved", "reserved"};
+const char * RPROC_SUBSYSTEM_NAME[] = {"adsp", "mss", "spss", "cdsp", "cdsp1", "gdsp0", "gdsp1", "reserved"};
 
 static inline uint32_t fastrpc_check_if_dsp_present_pil(uint32_t domain) {
 	uint32_t domain_supported = 0;
 	struct stat sb;
 	// mark rest of the list as reserved to avoid out of bound access
-	const char *SUBSYSTEM_DEV_NAME[] = {"/dev/subsys_adsp", "", "/dev/subsys_slpi", "/dev/subsys_cdsp", "/dev/subsys_cdsp1", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved"};
+	const char *SUBSYSTEM_DEV_NAME[] = {"/dev/subsys_adsp", "", "/dev/subsys_slpi", "/dev/subsys_cdsp", "/dev/subsys_cdsp1", "/dev/subsys_gdsp0", "/dev/subsys_gdsp1", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved", "reserved"};
 
 	// If device file is present, then target supports that DSP
 	if (!stat(SUBSYSTEM_DEV_NAME[domain], &sb)) {
