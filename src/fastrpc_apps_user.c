@@ -134,7 +134,7 @@ static void check_multilib_util(void);
 
 /* Array to store fastrpc library names. */
 static const char *fastrpc_library[NUM_DOMAINS] = {
-    "libadsprpc.so", "libmdsprpc.so", "libsdsprpc.so", "libcdsprpc.so", "libcdsprpc.so"};
+    "libadsprpc.so", "libmdsprpc.so", "libsdsprpc.so", "libcdsprpc.so", "libcdsprpc.so", "libgdsp0rpc.so", "libgdsp0rpc.so"};
 
 /* Array to store env variable names. */
 static char *fastrpc_dsp_lib_refcnt[NUM_DOMAINS];
@@ -262,7 +262,7 @@ const char *ANDROID_DEBUG_VAR_NAME[] = {"fastrpc.process.attrs",
                                         "persist.fastrpc.process.attrs",
                                         "ro.build.type"};
 
-const char *SUBSYSTEM_NAME[] = {"adsp", "mdsp", "sdsp", "cdsp", "cdsp1", "reserved", "reserved", "reserved"};
+const char *SUBSYSTEM_NAME[] = {"adsp", "mdsp", "sdsp", "cdsp", "cdsp1", "gdsp0", "gdsp1", "reserved"};
 
 /* Strings for trace event logging */
 #define INVOKE_BEGIN_TRACE_STR "fastrpc_msg: userspace_call: begin"
@@ -776,6 +776,12 @@ static int get_domain_from_domain_name(const char *domain_name,
     } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[CDSP_DOMAIN_ID],
                             std_strlen(SUBSYSTEM_NAME[CDSP_DOMAIN_ID]))) {
       domain = CDSP_DOMAIN_ID;
+    } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[GDSP0_DOMAIN_ID],
+                            std_strlen(SUBSYSTEM_NAME[GDSP0_DOMAIN_ID]))) {
+      domain = GDSP0_DOMAIN_ID;
+    } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[GDSP1_DOMAIN_ID],
+                            std_strlen(SUBSYSTEM_NAME[GDSP1_DOMAIN_ID]))) {
+      domain = GDSP1_DOMAIN_ID;
     } else {
       FARF(ERROR, "ERROR: %s Invalid domain name: %s\n", __func__, domain_name);
     }
@@ -802,6 +808,12 @@ static const char *get_domain_from_id(int domain_id) {
     break;
   case SDSP_DOMAIN_ID:
     uri_domain_suffix = SDSP_DOMAIN;
+    break;
+  case GDSP0_DOMAIN_ID:
+    uri_domain_suffix = GDSP0_DOMAIN;
+    break;
+  case GDSP1_DOMAIN_ID:
+    uri_domain_suffix = GDSP1_DOMAIN;
     break;
   default:
     uri_domain_suffix = "invalid domain";
@@ -3049,6 +3061,12 @@ int get_domain_from_name(const char *uri, uint32_t type) {
     } else if (!std_strncmp(uri, CDSP_DOMAIN_NAME,
                             std_strlen(CDSP_DOMAIN_NAME))) {
       domain = CDSP_DOMAIN_ID;
+    } else if (!std_strncmp(uri, GDSP0_DOMAIN_NAME,
+                            std_strlen(GDSP0_DOMAIN_NAME))) {
+      domain = GDSP0_DOMAIN_ID;
+    } else if (!std_strncmp(uri, GDSP1_DOMAIN_NAME,
+                            std_strlen(GDSP1_DOMAIN_NAME))) {
+      domain = GDSP1_DOMAIN_ID;
     } else {
       domain = INVALID_DOMAIN_ID;
       FARF(ERROR, "Invalid domain name: %s\n", uri);
@@ -3066,6 +3084,10 @@ int get_domain_from_name(const char *uri, uint32_t type) {
       domain = CDSP1_DOMAIN_ID;
     } else if (std_strstr(uri, CDSP_DOMAIN)) {
       domain = CDSP_DOMAIN_ID;
+    } else if (std_strstr(uri, GDSP0_DOMAIN)) {
+      domain = GDSP0_DOMAIN_ID;
+    } else if (std_strstr(uri, GDSP1_DOMAIN)) {
+      domain = GDSP1_DOMAIN_ID;
     } else {
       domain = INVALID_DOMAIN_ID;
       FARF(ERROR, "Invalid domain name: %s\n", uri);
@@ -3155,6 +3177,8 @@ static int attach_guestos(int domain) {
   case CDSP_DOMAIN_ID:
   case SDSP_DOMAIN_ID:
   case CDSP1_DOMAIN_ID:
+  case GDSP0_DOMAIN_ID:
+  case GDSP1_DOMAIN_ID:
     attach = USERPD;
     break;
   default:
@@ -3260,6 +3284,12 @@ static const char *get_domain_name(int domain_id) {
   case CDSP1_DOMAIN_ID:
     name = CDSP1RPC_DEVICE;
     break;
+  case GDSP0_DOMAIN_ID:
+    name = GDSP0RPC_DEVICE;
+    break;
+  case GDSP1_DOMAIN_ID:
+    name = GDSP1RPC_DEVICE;
+    break;
   default:
     name = DEFAULT_DEVICE;
     break;
@@ -3323,6 +3353,8 @@ static int open_device_node(int domain_id) {
     break;
   case CDSP_DOMAIN_ID:
   case CDSP1_DOMAIN_ID:
+  case GDSP0_DOMAIN_ID:
+  case GDSP1_DOMAIN_ID:
     dev = open(get_secure_domain_name(domain), O_NONBLOCK);
     if ((dev < 0) && ((errno == ENOENT) || (errno == EACCES))) {
       FARF(RUNTIME_RPC_HIGH,
@@ -3376,8 +3408,8 @@ static int close_device_node(int domain_id, int dev) {
 
 #ifndef NO_HAL
   int sess_id = GET_SESSION_ID_FROM_DOMAIN_ID(domain_id);
-  if ((domain == CDSP_DOMAIN_ID) ||
-   (domain == CDSP1_DOMAIN_ID)) &&
+  if ((domain == CDSP_DOMAIN_ID) || (domain == CDSP1_DOMAIN_ID) ||
+   (domain == GDSP0_DOMAIN_ID) || (domain == GDSP1_DOMAIN_ID)) &&
    dsp_client_instance[sess_id]) {
     nErr = close_hal_session(dsp_client_instance[sess_id], domain_id, dev);
     FARF(ALWAYS, "%s: close device %d thru HAL on session %d\n", __func__, dev,
@@ -3574,7 +3606,8 @@ static int fastrpc_enable_kernel_optimizations(int domain) {
       dom = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain);
   const uint32_t max_concurrency = 25;
 
-  if (((dom != CDSP_DOMAIN_ID) && (dom != CDSP1_DOMAIN_ID)) || (hlist[domain].dsppd != USERPD))
+  if (((dom != CDSP_DOMAIN_ID) && (dom != CDSP1_DOMAIN_ID) &&
+  	(dom != GDSP0_DOMAIN_ID) && (dom != GDSP1_DOMAIN_ID)) || (hlist[domain].dsppd != USERPD))
     goto bail;
   errno = 0;
 
@@ -4027,7 +4060,7 @@ static int domain_init(int domain, int *dev) {
   VERIFY(AEE_SUCCESS == (nErr = fastrpc_mem_open(domain)));
   VERIFY(AEE_SUCCESS == (nErr = apps_mem_init(domain)));
 
-  if (dom == CDSP_DOMAIN_ID || dom == CDSP1_DOMAIN_ID) {
+  if (dom == CDSP_DOMAIN_ID || dom == CDSP1_DOMAIN_ID || dom == GDSP0_DOMAIN_ID || dom == GDSP1_DOMAIN_ID) {
     panic_handle = get_adsp_current_process1_handle(domain);
     if (panic_handle != INVALID_HANDLE) {
       int ret = -1;
@@ -4347,7 +4380,7 @@ __CONSTRUCTOR_ATTRIBUTE__
 static void multidsplib_env_init(void) {
   const char *local_fastrpc_lib_refcnt[NUM_DOMAINS] = {
       "FASTRPC_ADSP_REFCNT", "FASTRPC_MDSP_REFCNT", "FASTRPC_SDSP_REFCNT",
-      "FASTRPC_CDSP_REFCNT", "FASTRPC_CDSP1_REFCNT"};
+      "FASTRPC_CDSP_REFCNT", "FASTRPC_CDSP1_REFCNT", "FASTRPC_GDSP0_REFCNT", "FASTRPC_GDSP1_REFCNT"};
   char buf[64] = {0};
   size_t env_name_len = 0;
   char *env_name = NULL;
