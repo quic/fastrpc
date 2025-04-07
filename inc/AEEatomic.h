@@ -47,13 +47,16 @@ DESCRIPTION:  Fast Atomic ops
 extern "C" {
 #endif /* #ifdef __cplusplus */
 
-uint32 atomic_Add(uint32 * volatile puDest, int nAdd);
-uint32 atomic_Exchange(uint32 * volatile puDest, uint32 uVal);
-uint32 atomic_CompareAndExchange(uint32 * volatile puDest, uint32 uExchange, uint32 uCompare);
-uint32 atomic_CompareOrAdd(uint32 * volatile puDest, uint32 uCompare, int nAdd);
+uint32 atomic_Add(uint32 *volatile puDest, int nAdd);
+uint32 atomic_Exchange(uint32 *volatile puDest, uint32 uVal);
+uint32 atomic_CompareAndExchange(uint32 *volatile puDest, uint32 uExchange,
+                                 uint32 uCompare);
+uint32 atomic_CompareOrAdd(uint32 *volatile puDest, uint32 uCompare, int nAdd);
 
-uint64 atomic_CompareAndExchange64(uint64 * volatile puDest, uint64 uExchange, uint64 uCompare);
-uintptr_t atomic_CompareAndExchangeUP(uintptr_t * volatile puDest, uintptr_t uExchange, uintptr_t uCompare);
+uint64 atomic_CompareAndExchange64(uint64 *volatile puDest, uint64 uExchange,
+                                   uint64 uCompare);
+uintptr_t atomic_CompareAndExchangeUP(uintptr_t *volatile puDest,
+                                      uintptr_t uExchange, uintptr_t uCompare);
 #ifdef __cplusplus
 }
 #endif /* #ifdef __cplusplus */
@@ -195,4 +198,3 @@ See Also:
 =======================================================================*/
 
 #endif /* #ifndef AEEATOMIC_H */
-

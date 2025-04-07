@@ -43,8 +43,8 @@ struct fastrpc_notif {
   remote_rpc_notif_register_t notif;
 };
 
-struct other_handle_list {                   // For non-domain and reverse handle list
-	QList ql;
+struct other_handle_list { // For non-domain and reverse handle list
+  QList ql;
 };
 
 /* Mutex to protect notif_list */
@@ -102,7 +102,7 @@ void fastrpc_notif_domain_deinit(int domain) {
   GET_HASH_NODE(notif_config, domain, me);
   if (!me) {
     FARF(ALWAYS, "Warning: %s: unable to find hash-node for domain %d",
-              __func__, domain);
+         __func__, domain);
     return;
   }
   if (me->thread) {

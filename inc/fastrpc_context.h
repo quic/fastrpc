@@ -10,38 +10,38 @@
 #include "uthash.h"
 
 typedef struct fastrpc_context {
-	/* Hash table handle */
-	UT_hash_handle hh;
+  /* Hash table handle */
+  UT_hash_handle hh;
 
-	/* Array of effective domain ids on which context is created */
-	unsigned int *effec_domain_ids;
+  /* Array of effective domain ids on which context is created */
+  unsigned int *effec_domain_ids;
 
-	/* Array of domains on which context is created */
-	unsigned int *domains;
+  /* Array of domains on which context is created */
+  unsigned int *domains;
 
-	/* Array of device fds opened for each session */
-	int *devs;
+  /* Array of device fds opened for each session */
+  int *devs;
 
-	/* Number of effective domain ids on which context is created */
-	unsigned int num_domain_ids;
+  /* Number of effective domain ids on which context is created */
+  unsigned int num_domain_ids;
 
-	/* Kernel-generated context id - key for hash-table */
-	uint64_t ctxid;
+  /* Kernel-generated context id - key for hash-table */
+  uint64_t ctxid;
 
-	/* Mutex for context */
-	pthread_mutex_t mut;
+  /* Mutex for context */
+  pthread_mutex_t mut;
 } fastrpc_context;
 
 typedef struct fastrpc_context_table {
-	/* Hash-table */
-	fastrpc_context *table;
+  /* Hash-table */
+  fastrpc_context *table;
 
-	/* Mutex for hash-table */
-	pthread_mutex_t mut;
+  /* Mutex for hash-table */
+  pthread_mutex_t mut;
 
-	/* Flag to indicate context table init is done */
-	bool init;
-}  fastrpc_context_table;
+  /* Flag to indicate context table init is done */
+  bool init;
+} fastrpc_context_table;
 
 /**
  * Initialize the fastrpc-context table
@@ -92,7 +92,7 @@ int fastrpc_destroy_context(uint64_t uctx);
  *
  * Returns 0 on success
  */
-int fastrpc_context_get_domains(uint64_t uctx,
-	unsigned int **effec_domain_ids, unsigned int *num_domain_ids);
+int fastrpc_context_get_domains(uint64_t uctx, unsigned int **effec_domain_ids,
+                                unsigned int *num_domain_ids);
 
 #endif // FASTRPC_CONTEXT_H

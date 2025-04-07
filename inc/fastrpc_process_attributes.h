@@ -16,34 +16,34 @@
 
 /*
  * enum represents the unique id corresponding to hlos id.
- * Do not modify the existing id. Add new ids for sending any new parameters from hlos
- * and ensure that it is matching with dsp param id.
+ * Do not modify the existing id. Add new ids for sending any new parameters
+ * from hlos and ensure that it is matching with dsp param id.
  */
 
 enum proc_param_id {
-	/* HLOS process id */
-	HLOS_PID_ID = 0,
+  /* HLOS process id */
+  HLOS_PID_ID = 0,
 
-	/* Thread parameters */
-	THREAD_PARAM_ID,
+  /* Thread parameters */
+  THREAD_PARAM_ID,
 
-	/* Process attributes */
-	PROC_ATTR_ID,
+  /* Process attributes */
+  PROC_ATTR_ID,
 
-	/* Panic error codes */
-	PANIC_ERR_CODES_ID,
+  /* Panic error codes */
+  PANIC_ERR_CODES_ID,
 
-	/* HLOS process effective domain id */
-	HLOS_PROC_EFFEC_DOM_ID,
+  /* HLOS process effective domain id */
+  HLOS_PROC_EFFEC_DOM_ID,
 
-	/*Get list of the .so's present in the custom DSP_LIBRARY_PATH set by user*/
-	CUSTOM_DSP_SEARCH_PATH_LIBS_ID,
+  /*Get list of the .so's present in the custom DSP_LIBRARY_PATH set by user*/
+  CUSTOM_DSP_SEARCH_PATH_LIBS_ID,
 
-	/* HLOS process session id */
-	HLOS_PROC_SESS_ID,
+  /* HLOS process session id */
+  HLOS_PROC_SESS_ID,
 
-	/* Maximum supported ids to unpack from proc attr shared buf */
-	PROC_ATTR_BUF_MAX_ID = HLOS_PROC_SESS_ID + 1
+  /* Maximum supported ids to unpack from proc attr shared buf */
+  PROC_ATTR_BUF_MAX_ID = HLOS_PROC_SESS_ID + 1
 };
 
 #endif // FASTRPC_PROCESS_ATTRIBUTES_H
