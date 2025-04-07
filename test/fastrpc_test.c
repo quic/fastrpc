@@ -12,7 +12,7 @@ typedef int (*run_test_t)(int domain_id, bool is_unsignedpd_enabled);
 
 static void print_usage() {
     printf("Usage:\n"
-           "    fastrpc_test [-d domain] [-U unsigned_PD] -p path\n\n"
+           "    fastrpc_test [-d domain] [-U unsigned_PD] [-t target] [-a arch_version]\n\n"
            "Options:\n"
            "-d domain: Run on a specific domain.\n"
            "    0: Run the example on ADSP\n"
@@ -24,17 +24,21 @@ static void print_usage() {
            "    0: Run on signed PD.\n"
            "    1: Run on unsigned PD.\n"
            "        Default Value: 1\n"
-           "-p path: Specify the relative path to the shared object directory.\n"
-           "    Example: -p ./calculator\n"
-           "        This option is mandatory.\n"
+           "-t target: Specify the target platform (android or linux).\n"
+           "    Default Value: linux\n"
+           "-a arch_version: Specify the architecture version (v68 or v75).\n"
+           "    Default Value: v68\n"
     );
 }
 
 int main(int argc, char *argv[]) {
     int domain_id = 3;  // Default domain ID for CDSP
     bool is_unsignedpd_enabled = true;  // Default to unsigned PD
-    const char *lib_path = NULL;  // No default path
+    const char *target = "linux";  // Default target platform
+    const char *arch_version = "v68";  // Default architecture version
     char abs_lib_path[PATH_MAX];
+    char ld_lib_path[PATH_MAX];
+    char dsp_lib_path[PATH_MAX];
     DIR *dir;
     struct dirent *entry;
     char full_lib_path[PATH_MAX];
@@ -43,7 +47,7 @@ int main(int argc, char *argv[]) {
     int nErr = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, "d:U:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "d:U:t:a:")) != -1) {
         switch (opt) {
             case 'd':
                 domain_id = atoi(optarg);
@@ -51,8 +55,16 @@ int main(int argc, char *argv[]) {
             case 'U':
                 is_unsignedpd_enabled = atoi(optarg) != 0;
                 break;
-            case 'p':
-                lib_path = optarg;
+            case 't':
+                target = optarg;
+                break;
+            case 'a':
+                arch_version = optarg;
+                if (strcmp(arch_version, "v68") != 0 && strcmp(arch_version, "v75") != 0) {
+                    printf("\nERROR: Invalid architecture version (-a). Must be v68 or v75.\n");
+                    print_usage();
+                    return -1;
+                }
                 break;
             default:
                 print_usage();
@@ -60,23 +72,31 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (lib_path == NULL) {
-        printf("\nERROR: Path (-p) is mandatory.\n");
-        print_usage();
+    // Construct the absolute library path
+    snprintf(abs_lib_path, sizeof(abs_lib_path), "%s", target);
+
+    if (realpath(abs_lib_path, abs_lib_path) == NULL) {
+        fprintf(stderr, "Error resolving path %s: %s\n", abs_lib_path, strerror(errno));
         return -1;
     }
 
-    if (realpath(lib_path, abs_lib_path) == NULL) {
-        fprintf(stderr, "Error resolving path %s: %s\n", lib_path, strerror(errno));
+    // Construct the absolute DSP library path
+    snprintf(dsp_lib_path, sizeof(dsp_lib_path), "%s", arch_version);
+
+    if (realpath(dsp_lib_path, dsp_lib_path) == NULL) {
+        fprintf(stderr, "Error resolving path %s: %s\n", dsp_lib_path, strerror(errno));
         return -1;
     }
 
-    if (setenv("LD_LIBRARY_PATH", abs_lib_path, 1) != 0) {
+    // Construct LD_LIBRARY_PATH and DSP_LIBRARY_PATH
+    snprintf(ld_lib_path, sizeof(ld_lib_path), "%s", abs_lib_path);
+
+    if (setenv("LD_LIBRARY_PATH", ld_lib_path, 1) != 0) {
         fprintf(stderr, "Error setting LD_LIBRARY_PATH: %s\n", strerror(errno));
         return -1;
     }
 
-    if (setenv("DSP_LIBRARY_PATH", abs_lib_path, 1) != 0) {
+    if (setenv("DSP_LIBRARY_PATH", dsp_lib_path, 1) != 0) {
         fprintf(stderr, "Error setting DSP_LIBRARY_PATH: %s\n", strerror(errno));
         return -1;
     }

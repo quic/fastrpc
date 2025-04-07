@@ -7,8 +7,12 @@ fastrpc_test_SOURCES = fastrpc_test.c
 # Define the compiler flags for the test program
 fastrpc_test_CFLAGS = -I$(top_srcdir)/inc -DUSE_SYSLOG
 
+if ANDROID_CC
+USE_LOG = -llog
+endif
+
 # Define the linker flags for the test program
-fastrpc_test_LDADD = -ldl -llog $(top_builddir)/src/libadsprpc.la
+fastrpc_test_LDADD = -ldl $(USE_LOG) $(top_builddir)/src/libadsprpc.la
 
 # If compiling for Android, include the Android-specific flags
 if ANDROID_CC
