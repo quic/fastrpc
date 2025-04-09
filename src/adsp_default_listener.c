@@ -38,6 +38,11 @@
 #define MDSP_SECURE_DEVICE_NAME "fastrpc-mdsp-secure"
 #define CDSP_SECURE_DEVICE_NAME "fastrpc-cdsp-secure"
 #define CDSP1_SECURE_DEVICE_NAME "fastrpc-cdsp1-secure"
+#define ADSP_DEVICE_NAME "fastrpc-adsp"
+#define SDSP_DEVICE_NAME "fastrpc-sdsp"
+#define MDSP_DEVICE_NAME "fastrpc-mdsp"
+#define CDSP_DEVICE_NAME "fastrpc-cdsp"
+#define CDSP1_DEVICE_NAME "fastrpc-cdsp1"
 
 // Array of supported domain names and its corresponding ID's.
 static domain_t supported_domains[] = {{ADSP_DOMAIN_ID, ADSP_DOMAIN},
@@ -87,6 +92,34 @@ static const char *get_secure_device_name(int domain_id) {
 	return name;
 }
 
+static const char *get_default_device_name(int domain_id) {
+	const char *name;
+	int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
+
+	switch (domain) {
+	case ADSP_DOMAIN_ID:
+		name = ADSP_DEVICE_NAME;
+		break;
+	case SDSP_DOMAIN_ID:
+		name = SDSP_DEVICE_NAME;
+		break;
+	case MDSP_DOMAIN_ID:
+		name = MDSP_DEVICE_NAME;
+		break;
+	case CDSP_DOMAIN_ID:
+		name = CDSP_DEVICE_NAME;
+		break;
+	case CDSP1_DOMAIN_ID:
+		name = CDSP1_DEVICE_NAME;
+		break;
+	default:
+		name = DEFAULT_DEVICE;
+		break;
+	}
+
+	return name;
+}
+
 /**
  * fastrpc_dev_exists() - Check if device exists
  * @dev_name: Device name
@@ -111,22 +144,23 @@ static boolean fastrpc_dev_exists(const char* dev_name)
 }
 
 /**
- * fastrpc_wait_for_secure_device() - Wait for secure device node
+ * fastrpc_wait_for_device() - Wait for fastrpc device nodes
  * @domain: Domain ID
  *
  * Return:
  *	0 - Success
  *	Non-zero - Failure
  */
-static int fastrpc_wait_for_secure_device(int domain)
+static int fastrpc_wait_for_device(int domain)
 {
 	int inotify_fd = -1, watch_fd = -1, err = 0;
-	const char *dev_name = NULL;
+	const char *sec_dev_name = NULL, *def_dev_name = NULL;
 	struct pollfd pfd[1];
 
-	dev_name = get_secure_device_name(domain);
+	sec_dev_name = get_secure_device_name(domain);
+	def_dev_name = get_default_device_name(domain);
 
-	if (fastrpc_dev_exists(dev_name))
+	if (fastrpc_dev_exists(sec_dev_name) || fastrpc_dev_exists(def_dev_name))
 		return 0;
 
 	inotify_fd = inotify_init();
@@ -142,7 +176,7 @@ static int fastrpc_wait_for_secure_device(int domain)
 		return AEE_EINVALIDFD;
 	}
 
-	if (fastrpc_dev_exists(dev_name))
+	if (fastrpc_dev_exists(sec_dev_name) || fastrpc_dev_exists(def_dev_name))
 		goto bail;
 
 	memset(pfd, 0 , sizeof(pfd));
@@ -178,7 +212,8 @@ static int fastrpc_wait_for_secure_device(int domain)
 			event = (struct inotify_event *) ptr;
 			/* Check if the event corresponds to the creation of the device node. */
 			if (event->wd == watch_fd && (event->mask & IN_CREATE) &&
-				(std_strcmp(dev_name, event->name) == 0)) {
+				((std_strcmp(sec_dev_name, event->name) == 0) ||
+				(std_strcmp(def_dev_name, event->name) == 0))) {
 				/* Device node created, process proceed to open and use it. */
 				VERIFY_IPRINTF("Device node %s created!\n", event->name);
 				goto bail; /* Exit the loop after device creation is detected. */
@@ -223,7 +258,7 @@ int adsp_default_listener_start(int argc, char *argv[]) {
     VERIFYC(NULL != (dsp_domain = get_domain_uri(domain_id)),
             AEE_EINVALIDDOMAIN);
 
-    VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(domain_id)), AEE_ECONNREFUSED);
+    VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_device(domain_id)), AEE_ECONNREFUSED);
     // Allocate memory for URI. Example: "ITRANSPORT_PREFIX
     // createstaticpd:audiopd&dom=adsp"
     namelen = strlen(ITRANSPORT_PREFIX CREATE_STATICPD) + strlen(argv[1]) +
@@ -259,7 +294,7 @@ int adsp_default_listener_start(int argc, char *argv[]) {
 
     // If domain name part of arguments, use domains API
     if (domain_id != INVALID_DOMAIN_ID) {
-      VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(domain_id)), AEE_ECONNREFUSED);
+      VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_device(domain_id)), AEE_ECONNREFUSED);
       VERIFY(AEE_SUCCESS == (nErr = remote_handle64_open(argv[1], &fd)));
       goto start_listener;
     }
@@ -283,7 +318,7 @@ int adsp_default_listener_start(int argc, char *argv[]) {
                 strlen(ITRANSPORT_PREFIX ATTACH_GUESTOS) + 1);
   }
 
-  VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_secure_device(DEFAULT_DOMAIN_ID)), AEE_ECONNREFUSED);
+  VERIFYC(AEE_SUCCESS == (nErr = fastrpc_wait_for_device(DEFAULT_DOMAIN_ID)), AEE_ECONNREFUSED);
   // Default case: Open non-domain static process handle
   VERIFY_IPRINTF("%s started with arguments %s\n", __func__, name);
   VERIFY(AEE_SUCCESS == (nErr = remote_handle_open(name, (remote_handle *)&fd)));
