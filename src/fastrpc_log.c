@@ -1,6 +1,7 @@
 // Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+#define _GNU_SOURCE
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -8,6 +9,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include "AEEStdErr.h"
 #include "fastrpc_config.h"
