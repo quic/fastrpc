@@ -7,7 +7,7 @@
 //#ifndef VERIFY_PRINT_INFO
 //#define VERIFY_PRINT_INFO
 //#endif // VERIFY_PRINT_INFO
-
+#define _GNU_SOURCE
 #ifndef VERIFY_PRINT_WARN
 #define VERIFY_PRINT_WARN
 #endif // VERIFY_PRINT_WARN
