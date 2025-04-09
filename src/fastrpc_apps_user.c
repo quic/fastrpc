@@ -2222,10 +2222,12 @@ static int update_kernel_wakelock_status(int domain, int dev,
   nErr = ioctl_control(dev, DSPRPC_CONTROL_WAKELOCK, &wl);
   if (nErr) {
     if (errno == EBADRQC || errno == ENOTTY || errno == ENXIO ||
-        errno == EINVAL) {
+        errno == EINVAL || nErr == AEE_EUNSUPPORTED) {
       VERIFY_WPRINTF(
           "Warning: %s: kernel does not support wakelock management (%s)",
           __func__, strerror(errno));
+      fastrpc_wake_lock_enable[domain] = 0;
+      fastrpc_wake_lock_deinit();
       return AEE_SUCCESS;
     }
     FARF(ERROR,
