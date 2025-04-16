@@ -510,7 +510,7 @@ int fastrpc_get_property_int(fastrpc_properties UserPropKey, int defValue) {
   if (((int)UserPropKey > NO_ANDROIDP_DEBUG_VAR_NAME_ARRAY_ELEMENTS)) {
     FARF(
         ERROR,
-        "%s: Index %d out-of-bound for ANDROIDP_DEBUG_VAR_NAME array of len %d",
+        "<test change>%s: Index %d out-of-bound for ANDROIDP_DEBUG_VAR_NAME array of len %d",
         __func__, UserPropKey, NO_ANDROIDP_DEBUG_VAR_NAME_ARRAY_ELEMENTS);
     return defValue;
   }
