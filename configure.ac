@@ -45,5 +45,7 @@ AM_PROG_CC_C_O
 
 AC_CONFIG_FILES([
 Makefile
-src/Makefile])
+src/Makefile
+test/Makefile
+])
 AC_OUTPUT
