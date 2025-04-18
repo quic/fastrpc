@@ -105,6 +105,17 @@ int mod_table_register_const_handle(remote_handle handle, const char* in_name, i
  */
 int mod_table_register_const_handle1(remote_handle remote, remote_handle64 local, const char* uri, int (*pfn)(remote_handle64 h, uint32 sc, remote_arg* pra));
 
+struct parsed_uri {
+  const char *file;
+  const char *sym;
+  const char *ver;
+  int filelen;
+  int symlen;
+  int verlen;
+};
+
+int parse_uri(const char *uri, int urilen, struct parsed_uri *out);
+
 #ifdef __cplusplus
 }
 #endif
