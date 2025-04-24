@@ -18,3 +18,16 @@ fastrpc_test_LDADD = -ldl $(USE_LOG)
 if ANDROID_CC
 fastrpc_test_CFLAGS += -DANDROID
 endif
+
+TESTS = \
+	calculator \
+	hap_example \
+	multithreading
+
+DSPS = v68 v75
+
+testlibdir = $(libdir)/fastrpc_test
+testlib_DATA = $(foreach test,$(TESTS),linux/lib$(test).so)
+
+testdspdir = $(datadir)/fastrpc_test
+nobase_testdsp_DATA = $(foreach test,$(TESTS),$(foreach dsp,$(DSPS),$(dsp)/lib$(test)_skel.so))
