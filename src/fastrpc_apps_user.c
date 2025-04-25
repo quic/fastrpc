@@ -225,8 +225,7 @@ const char *ENV_DEBUG_VAR_NAME[] = {"FASTRPC_PROCESS_ATTRS",
                                     "FASTRPC_PERF_FREQ",
                                     "FASTRPC_DEBUG_SYSTRACE",
                                     "FASTRPC_DEBUG_PDDUMP",
-                                    "FASTRPC_PROCESS_ATTRS_PERSISTENT",
-                                    "ro.debuggable"};
+                                    "FASTRPC_PROCESS_ATTRS_PERSISTENT"};
 
 const char *SUBSYSTEM_NAME[] = {"adsp", "mdsp", "sdsp", "cdsp", "cdsp1", "reserved", "reserved", "reserved"};
 
