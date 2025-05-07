@@ -114,7 +114,8 @@ struct fastrpc_ioctl_invoke {
 struct fastrpc_ioctl_invoke_v2 {
 	struct fastrpc_ioctl_invoke inv;
 	__u64 crc;
-	__u32 reserved[16];
+	__u64 poll_timeout;
+	__u32 reserved[14];
 };
 
 struct fastrpc_ioctl_alloc_dma_buf {
