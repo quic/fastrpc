@@ -1,63 +1,152 @@
-name: CI - Linux GNU Compilation
+name: CI - fastrpc Linux GNU Compilation
 
 on:
   push:
     branches:
-    - 'main'
-    - 'development'
+      - main
+      - development
   pull_request:
     branches:
-    - 'main'
-    - 'development'
+      - main
+      - development
   workflow_dispatch:
+  workflow_call:
+    outputs:
+      artifacts_url:
+        description: "URL to retrieve FastRPC build artifacts"
+        value: ${{ jobs.create-output.outputs.url }}
+
+env:
+  BASE_ARTIFACT_URL: https://quic-yocto-fileserver-1029608027416.us-central1.run.app
+  BUILD_ID: ${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
+  Q_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
-
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Git checkout
-      uses: actions/checkout@v4
+      - name: Git checkout
+        uses: actions/checkout@v4
 
-    - name: Install auto tools
-      run: |
-        sudo apt-get install automake
-    
-    - name: Download Linaro tools and untar
-      run: |
-        wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
-        tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+      - name: Install auto tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y automake
 
-    - name: Set Up Build Environment and compile code for LE platform
-      run: |
-  
-        # Set Up Build Environment
-        export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
-        export CC=aarch64-linux-gnu-gcc
-        export CXX=aarch64-linux-gnu-g++
-        export AS=aarch64-linux-gnu-as
-        export LD=aarch64-linux-gnu-ld
-        export RANLIB=aarch64-linux-gnu-ranlib
-        export STRIP=aarch64-linux-gnu-strip
-        
-        # Compile the source code
-        chmod 777 gitcompile
-        ./gitcompile --host=aarch64-linux-gnu
+      - name: Download Linaro tools and untar
+        run: |
+          wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+          tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
 
-    - name: Verify the compiled binaries
-      run: |
-        echo "Verify the compiled binaries"
-        Files=("src/.libs/libadsp_default_listener.so
-          src/.libs/libadsprpc.so
-          src/.libs/libcdsp_default_listener.so
-          src/.libs/libcdsprpc.so
-          src/.libs/libsdsp_default_listener.so
-          src/.libs/libsdsprpc.so
-          src/adsprpcd
-          src/cdsprpcd
-          src/sdsprpcd")
-        for File in $Files
-        do 
-         if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
-        done
+      - name: Set Up Build Environment and compile code for LE platform
+        run: |
+          export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
+          export CC=aarch64-linux-gnu-gcc
+          export CXX=aarch64-linux-gnu-g++
+          export AS=aarch64-linux-gnu-as
+          export LD=aarch64-linux-gnu-ld
+          export RANLIB=aarch64-linux-gnu-ranlib
+          export STRIP=aarch64-linux-gnu-strip
+
+          chmod +x gitcompile
+          ./gitcompile --host=aarch64-linux-gnu
+
+      - name: Verify the compiled binaries
+        run: |
+          echo "Verifying compiled binaries..."
+          Files=(
+            "src/.libs/libadsp_default_listener.so"
+            "src/.libs/libadsprpc.so"
+            "src/.libs/libcdsp_default_listener.so"
+            "src/.libs/libcdsprpc.so"
+            "src/.libs/libsdsp_default_listener.so"
+            "src/.libs/libsdsprpc.so"
+            "src/adsprpcd"
+            "src/cdsprpcd"
+            "src/sdsprpcd"
+          )
+          for File in "${Files[@]}"; do
+            if [ -f "$File" ]; then
+              echo "$File - Exists"
+            else
+              echo "$File - Not Found"
+              exit 1
+            fi
+          done
+
+      - name: Archive FastRPC binaries
+        run: |
+          mkdir -p fastrpc-artifacts
+          cp src/.libs/*.so src/adsprpcd src/cdsprpcd src/sdsprpcd fastrpc-artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastrpc-artifacts
+          path: fastrpc-artifacts/
+
+      - name: Publish artifacts to file server
+        run: |
+          echo "Uploading to file server..."
+          echo "BASE_ARTIFACT_URL: ${BASE_ARTIFACT_URL}"
+          echo "BUILD_ID: ${BUILD_ID}"
+          echo "Full URL: ${BASE_ARTIFACT_URL}/${BUILD_ID}/fastrpc-artifacts/"
+          echo "${BASE_ARTIFACT_URL}/${BUILD_ID}/fastrpc-artifacts/" > build_url
+
+
+      - name: Upload build URL
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_url
+          path: build_url
+
+  test:
+    name: Install FastRPC Binaries
+    runs-on: ubuntu-22.04
+    needs: build
+
+    steps:
+      - name: Construct and print download URL
+        run: |
+          ARTIFACT_URL="${BASE_ARTIFACT_URL}/${BUILD_ID}/fastrpc-artifacts/fastrpc-artifacts.zip"
+          echo "Downloading from: $ARTIFACT_URL"
+          echo $ARTIFACT_URL > artifact_url.txt
+
+      - name: Download and extract artifacts
+        run: |
+          cd /tmp
+          ARTIFACT_URL=$(cat $GITHUB_WORKSPACE/artifact_url.txt)
+          wget --header="Authentication: ${Q_GITHUB_TOKEN}" "$ARTIFACT_URL" -O fastrpc.zip
+          if [ -f fastrpc.zip ]; then
+            echo "Download successful."
+          else
+            echo "Download failed."
+            exit 1
+          fi
+          unzip fastrpc.zip -d fastrpc
+
+      - name: Install binaries
+        run: |
+          sudo cp /tmp/fastrpc/*.so /usr/lib64/
+          sudo cp /tmp/fastrpc/adsprpcd /usr/bin/
+          sudo cp /tmp/fastrpc/cdsprpcd /usr/bin/
+          sudo cp /tmp/fastrpc/sdsprpcd /usr/bin/
+          sudo chmod +x /usr/bin/adsprpcd /usr/bin/cdsprpcd /usr/bin/sdsprpcd
+
+  create-output:
+    needs: build
+    outputs:
+      url: ${{ steps.print-output.outputs.url }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download build_url artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build_url
+
+      - name: Print and set output
+        id: print-output
+        run: |
+          url=$(cat build_url)
+          echo "url=${url}" >> $GITHUB_OUTPUT

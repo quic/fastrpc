@@ -1,0 +1,129 @@
+name: Fastrpc lava Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  BASE_ARTIFACT_URL: https://quic-yocto-fileserver-1029608027416.us-central1.run.app/qualcomm-linux/meta-qcom-15010641606-1
+
+jobs:
+  prepare-job-list:
+    runs-on: ubuntu-latest
+    outputs:
+      jobmatrix: ${{ steps.listjobs.outputs.jobmatrix }}
+    steps:
+      - name: Clone fastrpc repository
+        uses: actions/checkout@v4
+        with:
+          repository: quic/fastrpc
+          path: fastrpc
+          fetch-depth: 0
+
+      - name: Clone meta-qcom repository
+        uses: actions/checkout@v4
+        with:
+          repository: qualcomm-linux/meta-qcom
+          path: meta-qcom
+          fetch-depth: 0
+
+      - name: Print trigger
+        run: |
+          echo "Triggered by ${{ github.event_name }}"
+
+      - name: "List jobs"
+        id: listjobs
+        run: |
+          JOBFILES=$(find meta-qcom/ci/lava/ -name *.yaml)
+          JOBFILES=$(echo "$JOBFILES" | sed -e "s/^/\"/" | sed -e "s/$/\",/" | tr -d "\n" | sed -e "s/.$//")
+          JOBFILES="[${JOBFILES}]"
+          J=$(jq -cn --argjson jobfiles "$JOBFILES" '{target: $jobfiles}')
+          echo "jobmatrix=$J" >> $GITHUB_OUTPUT
+          echo "Preparing test job files"
+
+  submit-job:
+    needs: prepare-job-list
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.prepare-job-list.outputs.jobmatrix) }}
+    steps:
+      - name: Clone fastrpc repository
+        uses: actions/checkout@v4
+        with:
+          repository: quic/fastrpc
+          path: fastrpc
+          fetch-depth: 0
+
+      - name: Clone meta-qcom repository
+        uses: actions/checkout@v4
+        with:
+          repository: qualcomm-linux/meta-qcom
+          path: meta-qcom
+          fetch-depth: 0
+
+      - name: "Update test definition ${{ matrix.target }}"
+        run: |
+          TARGET=${{ matrix.target }}
+          FIND_PATH="${TARGET#*/}"
+          DEVICE_TYPE_PATH="${FIND_PATH%/*}"
+          DEVICE_TYPE="${DEVICE_TYPE_PATH#*/}"
+          DEVICE_TYPE=$(basename "$DEVICE_TYPE_PATH")
+          BUILD_FILE_NAME="core-image-base-${DEVICE_TYPE}.rootfs.qcomflash.tar.gz"
+          BUILD_DOWNLOAD_URL="${BASE_ARTIFACT_URL}/${DEVICE_TYPE}/${BUILD_FILE_NAME}"
+          sed -i "s|{{DEVICE_TYPE}}|${DEVICE_TYPE}|g" "${{ matrix.target }}"
+          sed -i "s|{{GITHUB_SHA}}|${GITHUB_SHA}|g" "${{ matrix.target }}"
+          sed -i "s|{{BUILD_DOWNLOAD_URL}}|${BUILD_DOWNLOAD_URL}|g" "${{ matrix.target }}"
+          sed -i "s|{{BUILD_FILE_NAME}}|${BUILD_FILE_NAME}|g" "${{ matrix.target }}"
+          sed -i "s|{{GITHUB_RUN_ID}}|${GITHUB_RUN_ID}|g" "${{ matrix.target }}"
+          cat "${{ matrix.target }}"
+
+      - name: Submit ${{ matrix.target }}
+        timeout-minutes: 20
+        uses: foundriesio/lava-action@v6
+        with:
+          lava_token: ${{ secrets.LAVATOKEN }}
+          lava_url: 'lava.infra.foundries.io'
+          job_definition: ${{ matrix.target }}
+          wait_for_job: true
+          fail_action_on_failure: false
+          save_result_as_artifact: true
+          save_job_details: true
+
+  publish-test-results:
+    name: "Publish Tests Results"
+    needs: submit-job
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: "List files"
+        run: |
+          echo $GITHUB_WORKSPACE
+          ls -R $GITHUB_WORKSPACE
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "${{ github.workspace }}/artifacts/**/*.xml"
+
+      - name: Publish Test Job Details
+        run: |
+          for json_file in $(find ${{ github.workspace }} -name "test-job-*.json")
+          do
+              DEVICE_TYPE=$(cat "$json_file" | jq -r ".requested_device_type")
+              URL=$(cat "$json_file" | jq -r ".url")
+              JOB_ID=$(cat "$json_file" | jq -r ".id")
+              echo " * [Job $JOB_ID on $EVICE_TYPE"
+              echo " * [Job $JOB_ID on $DEVICETYPE" >> $GITHUB_STEP_SUMMARY
+          done
