@@ -129,5 +129,20 @@ sdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=2 -DUSE_SYSLOG -DNO_HA
 sdsprpcd_LDADD =  -ldl $(USE_LOG)
 
 
-otherincludedir = $(includedir)/fastrpc
-otherinclude_HEADERS = $(top_srcdir)/inc/*.h
+# Export fastrpc headers
+fastrpc_includedir       = $(includedir)
+fastrpc_include_HEADERS  = $(top_srcdir)/inc/AEEatomic.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/AEEQList.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/AEEstd.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/AEEStdDef.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/AEEStdErr.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/AEEVaList.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/remote.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/remote64.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/rpcmem.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/verify.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/HAP_farf.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/HAP_pls.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/HAP_debug.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/dspqueue.h
+fastrpc_include_HEADERS += $(top_srcdir)/inc/adsp_default_listener1.h
