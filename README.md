@@ -126,4 +126,4 @@ Linaro documentation @ https://git.codelinaro.org/linaro/qcomlt/fastrpc/-/wikis/
 Thanks for your interest in contributing to FastRPC! Please read our [Contributions Page](CONTRIBUTING.md) for more information on contributing features or bug fixes. We look forward to your participation!
 
 ## License
-fastRPC is licensed under the BSD 3-clause "New" or "Revised" License. Check out the [LICENSE](LICENSE) for more details.
+fastRPC is licensed under the BSD 3-clause "New" or "Revised" License. Check out the [LICENSE](LICENSE.txt) for more details.
