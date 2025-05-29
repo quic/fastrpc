@@ -114,7 +114,7 @@ sudo make install
 
 ## Testing
 
-Use Hexagon SDK examples to verify. For example, run `calculator_walkthrough.py` for validating the basic functionality of FastRPC.
+For detailed instructions on testing FastRPC, please refer to the [README.md](test/README.md) in the `test` directory.
 
 ## Resources
 
