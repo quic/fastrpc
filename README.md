@@ -116,6 +116,56 @@ sudo make install
 
 For detailed instructions on testing FastRPC, please refer to the [README.md](test/README.md) in the `test` directory.
 
+## Logging Control and Verbosity
+
+Both VERIFY and FARF are logging mechanisms used in fastRPC. While VERIFY is a legacy module, FARF is commonly utilized on both DSP (Digital Signal Processor) and HLOS (High-Level Operating System).
+
+### Verify Logging Macros
+
+- `VERIFY_IPRINTF(format, ...)`: This macro is enabled by `VERIFY_PRINT_INFO` and is used for debug logs.
+- `VERIFY_EPRINTF(format, ...)`: Enabled by `VERIFY_PRINT_ERROR`, this macro is used for error logs.
+- `VERIFY_WPRINTF(format, ...)`: This macro is enabled by `VERIFY_PRINT_WARN` and is used for warnings.
+- `VERIFY_EPRINTF_ALWAYS(format, ...)`: This macro does not require any enabling macros and is used for logs that should always be printed.
+
+**Example:**
+
+```c
+#include "verify.h"
+#define VERIFY_PRINT_ERROR
+
+VERIFY_EPRINTF("Error: Operation failed with result %d\n", result);
+```
+
+### Farf Logging
+
+The FARF API is a macro used to print debug logs. It allows developers to selectively enable or disable certain types of messages based on their priority level. The priority levels include LOW, MEDIUM, HIGH, ERROR, FATAL, and ALWAYS.
+
+**Key Points:**
+
+- **Usage:** FARF is used similarly to the `printf` function, where the first parameter is the level of the message, and the rest are the message contents.
+- **Levels:** The FARF levels allow users to control the verbosity of the logs. For example, setting a FARF level to 1 enables the corresponding FARF macros to be compiled in.
+- **Runtime FARF:** Runtime FARF messages are prefixed with "RUNTIME_" and can be enabled or disabled at runtime. These messages are always compiled in but can be controlled during execution.
+- **Implementation:** To use FARF, the header file `HAP_farf.h` needs to be included in the build. This inclusion is typically sufficient to enable FARF.
+
+**Example Code:**
+
+```c
+#define FARF_LOW 1
+#include "HAP_farf.h"
+
+FARF(LOW, "LOW message");
+FARF(HIGH, "HIGH message"); // This message will not be compiled in
+```
+
+### Log Files
+
+- **adsprpcd.farf:** This file is used to configure the FARF logging levels. You can specify which levels of logs should be enabled.
+- **adsprpcd.debugconfig:** This file can be used to configure additional debug settings.
+
+### Logging from DSP
+
+Logs from the DSP can be obtained using the logging mechanisms described above. When userspace and kernel logs indicate that an error is received from the DSP, you can use the FARF and VERIFY macros to capture and analyze the logs for troubleshooting.
+
 ## Resources
 
 - Hexagon SDK documentation: [Hexagon SDK](https://developer.qualcomm.com/software/hexagon-dsp-sdk)
