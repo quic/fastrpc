@@ -166,6 +166,25 @@ FARF(HIGH, "HIGH message"); // This message will not be compiled in
 
 Logs from the DSP can be obtained using the logging mechanisms described above. When userspace and kernel logs indicate that an error is received from the DSP, you can use the FARF and VERIFY macros to capture and analyze the logs for troubleshooting.
 
+## Bug Reporting Guidelines
+
+When reporting bugs, please provide the following details to facilitate debugging:
+
+- **Platform/SoC Name:** Specify the name of the platform or System on Chip (SoC) being used.
+- **User Space Library Version/HLOS Build Details:** Include the version of the user space library and details of the High-Level Operating System (HLOS) build.
+- **Kernel Version:** Provide the version of the kernel.
+- **stdout & stderr for User Space:** Share the standard output and standard error logs for the user space.
+- **dmesg Logs:** Include the dmesg logs.
+- **User Library Logs:** Can be captured from /var/log/syslog
+- **QXDM/mini-dm Logs:** Provide QXDM or mini-dm logs. Note that the Hexagon SDK includes mini-dm for collecting logs from the DSP.
+- **Tests Run & Parameters:** Detail the tests that were run along with their parameters, including any environment variables explicitly set for FastRPC.
+- **Custom Test Code:** If a custom test was conducted, please share a code snippet or the complete code to reproduce the issue.
+- **Performance Logs:** For performance-related issues, provide performance logs enabled by setting specific environment variables. The following environment variables can be used:
+  - `export FASTRPC_PERF_KERNEL=1`
+  - `export FASTRPC_PERF_ADSP=1`
+  - `export FASTRPC_PERF_FREQ=1`
+- **ftrace Logs:** Include ftrace logs for performance issues.
+
 ## Resources
 
 - Hexagon SDK documentation: [Hexagon SDK](https://developer.qualcomm.com/software/hexagon-dsp-sdk)
