@@ -333,7 +333,6 @@ static void *dsp_client_instance[NUM_SESSIONS];
 
 static int domain_init(int domain, int *dev);
 static void domain_deinit(int domain);
-static int open_device_node(int domain_id);
 static int close_device_node(int domain_id, int dev);
 extern int apps_mem_table_init(void);
 extern void apps_mem_table_deinit(void);
@@ -3265,26 +3264,7 @@ static const char *get_domain_name(int domain_id) {
   return name;
 }
 
-/* Opens device node based on the domain
- This function takes care of the backward compatibility to open
- approriate device for following configurations of the device nodes
- 1. 4 different device nodes
- 2. 1 device node (adsprpc-smd)
- 3. 2 device nodes (adsprpc-smd, adsprpc-smd-secure)
- Algorithm
- For ADSP, SDSP, MDSP domains:
-   Open secure device node fist
-     if no secure device, open actual device node
-     if still no device, open default node
-     if failed to open the secure node due to permission,
-     open default node
- For CDSP domain:
-   Open secure device node fist
-    If the node does not exist or if no permission, open actual device node
-    If still no device, open default node
-    If no permission to access the default node, access thorugh HAL.
-*/
-static int open_device_node(int domain_id) {
+int open_device_node(int domain_id) {
   int dev = -1, nErr = 0;
   int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
   int sess_id = GET_SESSION_ID_FROM_DOMAIN_ID(domain_id);

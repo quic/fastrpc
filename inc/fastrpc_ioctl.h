@@ -170,6 +170,38 @@ struct fastrpc_ioctl_capability {
 	__u32 reserved[4];
 };
 
+/**
+  * @brief internal data strcutures used in remote handle control
+  *  fastrpc_ctrl_latency -
+  *  fastrpc_ctrl_smmu - Allows the PD to use the shared SMMU context banks
+  *  fastrpc_ctrl_kalloc - feature to allow the kernel allocate memory
+  *                        for signed PD memory needs.
+  *  fastrpc_ctrl_wakelock - enabled wake lock in user space and kernel
+  *                          improves the response latency time of remote calls
+  *  fastrpc_ctrl_pm - timeout (in ms) for which the system should stay awake
+  *
+  **/
+struct fastrpc_ctrl_latency {
+	uint32_t enable;
+	uint32_t latency;
+};
+
+struct fastrpc_ctrl_smmu {
+	uint32_t sharedcb;
+};
+
+struct fastrpc_ctrl_kalloc {
+	uint32_t kalloc_support;
+};
+
+struct fastrpc_ctrl_wakelock {
+	uint32_t enable;
+};
+
+struct fastrpc_ctrl_pm {
+	uint32_t timeout;
+};
+
 struct fastrpc_ioctl_control {
 	__u32 req;
 	union {

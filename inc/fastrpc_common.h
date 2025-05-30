@@ -212,4 +212,25 @@ int fastrpc_get_property_string(fastrpc_properties UserPropertyKey, char * value
  */
 bool is_process_exiting(int domain);
 
+/* Opens device node based on the domain
+ * This function takes care of the backward compatibility to open
+ * approriate device for following configurations of the device nodes
+ * 1. 4 different device nodes
+ * 2. 1 device node (adsprpc-smd)
+ * 3. 2 device nodes (adsprpc-smd, adsprpc-smd-secure)
+ * Algorithm
+ * For ADSP, SDSP, MDSP domains:
+ *   Open secure device node fist
+ *     if no secure device, open actual device node
+ *     if still no device, open default node
+ *     if failed to open the secure node due to permission,
+ *     open default node
+ * For CDSP domain:
+ *   Open secure device node fist
+ *    If the node does not exist or if no permission, open actual device node
+ *    If still no device, open default node
+ *    If no permission to access the default node, access thorugh HAL.
+ */
+int open_device_node(int domain_id);
+
 #endif //FASTRPC_COMMON_H
