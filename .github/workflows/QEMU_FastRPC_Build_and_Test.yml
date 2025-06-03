@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout repository
@@ -22,12 +22,8 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential qemu-system-x86
-
-    - name: Install auto tools
-      run: |
-        sudo apt-get install automake
-    
+        sudo apt-get install -y build-essential qemu-system-x86 gcc g++ make autoconf automake libtool automake
+   
     - name: Download Linaro tools and untar
       run: |
         wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
@@ -35,7 +31,6 @@ jobs:
 
     - name: Set Up Build Environment and compile code for LE platform
       run: |
-  
         # Set Up Build Environment
         export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
         export CC=aarch64-linux-gnu-gcc
