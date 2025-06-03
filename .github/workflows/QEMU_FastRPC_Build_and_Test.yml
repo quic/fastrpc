@@ -1,0 +1,60 @@
+name: FastRPC Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential qemu-system-x86
+
+    - name: Clone FastRPC repository
+      run: |
+        git clone https://github.com/quic/fastrpc
+        cd fastrpc
+        ./gitcompile
+
+    - name: Build test binary
+      run: |
+        echo '#include <stdio.h>' > test.c
+        echo 'int main() { printf("hello\n"); return 0; }' >> test.c
+        gcc -static -o test test.c
+
+    - name: Create initramfs
+      run: |
+        mkdir -p initramfs/bin
+        cp test initramfs/bin/
+        echo '#!/bin/sh' > initramfs/init
+        echo 'exec /bin/test' >> initramfs/init
+        chmod +x initramfs/init
+        (cd initramfs && find . | cpio -H newc -o > ../initramfs.cpio)
+
+    - name: Run QEMU
+      run: |
+        wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.16.tar.xz
+        tar -xf linux-5.10.16.tar.xz
+        cd linux-5.10.16
+        make defconfig
+        make -j$(nproc) bzImage
+        qemu-system-x86_64 -kernel arch/x86/boot/bzImage -initrd ../initramfs.cpio -append "console=ttyS0" -nographic | tee qemu_output.log
+
+    - name: Check QEMU output
+      run: |
+        if grep -q "hello" qemu_output.log; then
+          echo "Test passed: 'hello' message found in QEMU boot logs."
+        else
+          echo "Test failed: 'hello' message not found in QEMU boot logs."
+          exit 1
