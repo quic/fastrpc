@@ -22,7 +22,9 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential qemu-system-x86 gcc g++ make autoconf automake libtool automake
+        sudo apt-get install -y build-essential gcc g++ make autoconf automake libtool automake \
+        libelf-dev flex bison qemu-system-x86
+
    
     - name: Download Linaro tools and untar
       run: |
