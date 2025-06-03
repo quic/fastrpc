@@ -4,10 +4,12 @@ name: FastRPC Build and Test
 on:
   push:
     branches:
-      - main
+      - 'main'
+      - 'development'
   pull_request:
     branches:
-      - main
+      - 'main'
+      - 'development'
 
 jobs:
   build:
