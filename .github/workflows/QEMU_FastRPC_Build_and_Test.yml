@@ -60,19 +60,18 @@ jobs:
         do 
          if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
         done
-
     - name: Build test binary
       run: |
         echo '#include <stdio.h>' > test.c
-        echo 'int main() { printf("hello\n"); return 0; }' >> test.c
-        gcc -static -o test test.c
+        echo 'int main() { printf("hello\\n"); return 0; }' >> test.c
+        gcc -static -o test_hello test.c
 
     - name: Create initramfs
       run: |
         mkdir -p initramfs/bin
-        cp test initramfs/bin/
+        cp test_hello initramfs/bin/
         echo '#!/bin/sh' > initramfs/init
-        echo 'exec /bin/test' >> initramfs/init
+        echo 'exec /bin/test_hello' >> initramfs/init
         chmod +x initramfs/init
         (cd initramfs && find . | cpio -H newc -o > ../initramfs.cpio)
 
