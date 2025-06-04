@@ -94,9 +94,11 @@ jobs:
         echo -e '#!/bin/sh\necho "Init started"\nexec /bin/cdsprpcd\nexec /bin/sh' > initramfs/init
         cat initramfs/init
         chmod +x initramfs/init
+
+        ls -la initramfs
     
         # Create initrd.img using cpio
-        (cd initramfs && find . | cpio -H newc -o | gzip > ../initrd.img)
+        (cd initramfs && find . | cpio -H newc -o | tee ../initrd.cpio | gzip > ../initrd.img)
     
     - name: Create disk image and populate it
       run: |
