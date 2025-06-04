@@ -62,29 +62,48 @@ jobs:
         do 
          if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
         done
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison \
+          qemu-system-x86 mkinitramfs util-linux
+    
     - name: Build test binary
       run: |
-        echo '#include <stdio.h>' > test.c
-        echo 'int main() { printf("hello\\n"); return 0; }' >> test.c
+        echo -e '#include <stdio.h>\nint main() { printf("hello\\n"); return 0; }' > test.c
         gcc -static -o test_hello test.c
-
+    
     - name: Create initramfs
       run: |
         mkdir -p initramfs/bin
+        cp test_hello initramfs/bin/
         echo -e '#!/bin/sh\nexec /bin/test_hello' > initramfs/init
         chmod +x initramfs/init
-        gcc -static -o test_hello test.c
-        cp test_hello initramfs/bin/
-        (cd initramfs && find . | cpio -H newc -o > ../initramfs.cpio)
-
+        (cd initramfs && find . | cpio -H newc -o > ../initrd.img)
+    
+    - name: Create disk image
+      run: |
+        dd if=/dev/zero of=disk1.img bs=4096 count=51200
+        mkfs.ext4 disk1.img
+        sudo mkdir -p /mnt/tmpmnt
+        sudo mount disk1.img /mnt/tmpmnt
+        sudo cp -rf initramfs/* /mnt/tmpmnt
+        sudo mkdir -p /mnt/tmpmnt/sys /mnt/tmpmnt/proc /mnt/tmpmnt/dev
+        sudo umount /mnt/tmpmnt
+    
+    - name: Download precompiled kernel
+      run: |
+        wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-5.10.16/arch/x86/boot/bzImage -O bzImage
+    
     - name: Run QEMU
       run: |
-        wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.16.tar.xz
-        tar -xf linux-5.10.16.tar.xz
-        cd linux-5.10.16
-        make defconfig
-        make -j$(nproc) bzImage
-        qemu-system-x86_64 -kernel arch/x86/boot/bzImage -initrd ../initramfs.cpio -append "console=ttyS0" -nographic | tee qemu_output.log
+        qemu-system-x86_64 -m 256 -nographic \
+          -kernel arch/x86/boot/bzImage \
+          -initrd initrd.img \
+          -hda disk1.img \
+          --append "root=/dev/sda console=ttyS0 init=/init"
+
 
     - name: Check QEMU output
       run: |
