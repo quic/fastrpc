@@ -71,10 +71,10 @@ jobs:
     - name: Create initramfs
       run: |
         mkdir -p initramfs/bin
-        cp test_hello initramfs/bin/
-        echo '#!/bin/sh' > initramfs/init
-        echo 'exec /bin/test_hello' >> initramfs/init
+        echo -e '#!/bin/sh\nexec /bin/test_hello' > initramfs/init
         chmod +x initramfs/init
+        gcc -static -o test_hello test.c
+        cp test_hello initramfs/bin/
         (cd initramfs && find . | cpio -H newc -o > ../initramfs.cpio)
 
     - name: Run QEMU
