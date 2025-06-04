@@ -96,7 +96,8 @@ jobs:
         chmod +x initramfs/init
 
         ls -la initramfs
-    
+        (cd initramfs && find . | cpio -H newc -o)
+
         # Create initrd.img using cpio
         (cd initramfs && find . | cpio -H newc -o | tee ../initrd.cpio | gzip > ../initrd.img)
     
