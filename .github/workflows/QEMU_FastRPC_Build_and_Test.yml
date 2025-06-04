@@ -83,7 +83,7 @@ jobs:
         cp test_hello initramfs/bin/
     
         # Create init script
-        echo -e '#!/bin/sh\nexec /bin/test_hello' > initramfs/init
+        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/test_hello\nexec /bin/sh' > initramfs/init
         chmod +x initramfs/init
     
         # Create initrd.img using cpio
