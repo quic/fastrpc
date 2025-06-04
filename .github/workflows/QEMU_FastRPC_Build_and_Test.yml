@@ -92,12 +92,13 @@ jobs:
         sudo mkdir -p /mnt/tmpmnt/sys /mnt/tmpmnt/proc /mnt/tmpmnt/dev
         sudo umount /mnt/tmpmnt
     
-    - name: Download precompiled kernel
-      run: |
-        wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-5.10.16/arch/x86/boot/bzImage -O bzImage
-    
     - name: Run QEMU
       run: |
+        wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.16.tar.xz
+        tar -xf linux-5.10.16.tar.xz
+        cd linux-5.10.16
+        make defconfig
+        make -j$(nproc) bzImage
         qemu-system-x86_64 -m 256 -nographic \
           -kernel arch/x86/boot/bzImage \
           -initrd initrd.img \
