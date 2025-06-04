@@ -25,7 +25,6 @@ jobs:
         sudo apt-get install -y build-essential gcc g++ make autoconf automake libtool automake \
         libelf-dev flex bison qemu-system-x86
 
-   
     - name: Download Linaro tools and untar
       run: |
         wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
@@ -81,9 +80,19 @@ jobs:
     
         # Copy test binary
         cp test_hello initramfs/bin/
-    
+        cp -rf src/.libs/libadsp_default_listener.so initramfs/lib64
+        cp -rf src/.libs/libadsprpc.so initramfs/lib64
+        cp -rf src/.libs/libcdsp_default_listener.so initramfs/lib64
+        cp -rf src/.libs/libcdsprpc.so initramfs/lib64
+        cp -rf src/.libs/libsdsp_default_listener.so initramfs/lib64
+        cp -rf src/.libs/libsdsprpc.so initramfs/lib64
+        cp -rf src/adsprpcd initramfs/bin
+        cp -rf src/cdsprpcd initramfs/bin
+        cp -rf src/sdsprpcd initramfs/bin
+        
         # Create init script
-        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/test_hello\nexec /bin/sh' > initramfs/init
+        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/cdsprpcd\nexec /bin/sh' > initramfs/init
+        cat initramfs/init
         chmod +x initramfs/init
     
         # Create initrd.img using cpio
