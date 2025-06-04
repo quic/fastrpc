@@ -73,11 +73,11 @@ jobs:
       run: |
         echo -e '#include <stdio.h>\nint main() { printf("hello\\n"); return 0; }' > test.c
         gcc -static -o test_hello test.c
-    
+   
     - name: Create initramfs
       run: |
         # Create a working directory
-        mkdir -p initramfs/{bin,lib,lib64,proc,sys,dev}
+        mkdir -p initramfs/{bin,lib,lib64,proc,sys,dev,init}
     
         # Copy test binary
         cp test_hello initramfs/bin/
@@ -128,7 +128,7 @@ jobs:
           -kernel linux-5.10.16/arch/x86/boot/bzImage \
           -initrd initrd.img \
           -hda disk1.img \
-          --append "root=/dev/sda console=ttyS0 init=/init"
+          --append "console=ttyS0 init=/init root=/dev/ram0"
 
     - name: Check QEMU output
       run: |
