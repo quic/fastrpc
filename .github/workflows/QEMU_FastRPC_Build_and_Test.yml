@@ -76,35 +76,59 @@ jobs:
     
     - name: Create initramfs
       run: |
-        mkdir -p initramfs/bin
+        # Create a working directory
+        mkdir -p initramfs/{bin,lib,lib64,proc,sys,dev}
+    
+        # Copy test binary
         cp test_hello initramfs/bin/
+    
+        # Create init script
         echo -e '#!/bin/sh\nexec /bin/test_hello' > initramfs/init
         chmod +x initramfs/init
-        (cd initramfs && find . | cpio -H newc -o > ../initrd.img)
     
-    - name: Create disk image
+        # Create initrd.img using cpio
+        (cd initramfs && find . | cpio -H newc -o | gzip > ../initrd.img)
+    
+    - name: Create disk image and populate it
       run: |
         dd if=/dev/zero of=disk1.img bs=4096 count=51200
         mkfs.ext4 disk1.img
+    
         sudo mkdir -p /mnt/tmpmnt
         sudo mount disk1.img /mnt/tmpmnt
+    
         sudo cp -rf initramfs/* /mnt/tmpmnt
-        sudo mkdir -p /mnt/tmpmnt/sys /mnt/tmpmnt/proc /mnt/tmpmnt/dev
+        sudo mkdir -p /mnt/tmpmnt/{sys,proc,dev}
+    
+        # Copy required libraries and binaries
+        sudo cp -rf src/.libs/libadsp_default_listener.so /mnt/tmpmnt/lib64
+        sudo cp -rf src/.libs/libadsprpc.so /mnt/tmpmnt/lib64
+        sudo cp -rf src/.libs/libcdsp_default_listener.so /mnt/tmpmnt/lib64
+        sudo cp -rf src/.libs/libcdsprpc.so /mnt/tmpmnt/lib64
+        sudo cp -rf src/.libs/libsdsp_default_listener.so /mnt/tmpmnt/lib64
+        sudo cp -rf src/.libs/libsdsprpc.so /mnt/tmpmnt/lib64
+        sudo cp -rf src/adsprpcd /mnt/tmpmnt/bin
+        sudo cp -rf src/cdsprpcd /mnt/tmpmnt/bin
+        sudo cp -rf src/sdsprpcd /mnt/tmpmnt/bin
+    
         sudo umount /mnt/tmpmnt
     
-    - name: Run QEMU
+    - name: Download and build Linux kernel
       run: |
         wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.16.tar.xz
         tar -xf linux-5.10.16.tar.xz
         cd linux-5.10.16
+    
         make defconfig
         make -j$(nproc) bzImage
+    
+    - name: Run QEMU
+      run: |
         qemu-system-x86_64 -m 256 -nographic \
-          -kernel arch/x86/boot/bzImage \
+          -kernel linux-5.10.16/arch/x86/boot/bzImage \
           -initrd initrd.img \
           -hda disk1.img \
           --append "root=/dev/sda console=ttyS0 init=/init"
-
 
     - name: Check QEMU output
       run: |
