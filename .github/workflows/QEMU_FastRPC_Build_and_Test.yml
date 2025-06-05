@@ -74,38 +74,38 @@ jobs:
         mkdir -p initramfs/{bin,lib,lib64,proc,sys,dev}
     
         # Copy test binary
-        cp -rf src/.libs/libadsp_default_listener.so initramfs/lib64
-        cp -rf src/.libs/libadsprpc.so initramfs/lib64
-        cp -rf src/.libs/libcdsp_default_listener.so initramfs/lib64
-        cp -rf src/.libs/libcdsprpc.so initramfs/lib64
-        cp -rf src/.libs/libsdsp_default_listener.so initramfs/lib64
-        cp -rf src/.libs/libsdsprpc.so initramfs/lib64
+        cp -rf src/.libs/libadsp_default_listener.so initramfs/lib
+        cp -rf src/.libs/libadsprpc.so initramfs/lib
+        cp -rf src/.libs/libcdsp_default_listener.so initramfs/lib
+        cp -rf src/.libs/libcdsprpc.so initramfs/lib
+        cp -rf src/.libs/libsdsp_default_listener.so initramfs/lib
+        cp -rf src/.libs/libsdsprpc.so initramfs/lib
 
-        cp -rf src/.libs/libadsp_default_listener.so.1 initramfs/lib64
-        cp -rf src/.libs/libadsprpc.so.1 initramfs/lib64
-        cp -rf src/.libs/libcdsp_default_listener.so.1 initramfs/lib64
-        cp -rf src/.libs/libcdsprpc.so.1 initramfs/lib64
-        cp -rf src/.libs/libsdsp_default_listener.so.1 initramfs/lib64
-        cp -rf src/.libs/libsdsprpc.so.1 initramfs/lib64
+        cp -rf src/.libs/libadsp_default_listener.so.1 initramfs/lib
+        cp -rf src/.libs/libadsprpc.so.1 initramfs/lib
+        cp -rf src/.libs/libcdsp_default_listener.so.1 initramfs/lib
+        cp -rf src/.libs/libcdsprpc.so.1 initramfs/lib
+        cp -rf src/.libs/libsdsp_default_listener.so.1 initramfs/lib
+        cp -rf src/.libs/libsdsprpc.so.1 initramfs/lib
         
-        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 initramfs/lib64
-        cp -rf src/.libs/libadsprpc.so.1.0.0 initramfs/lib64
-        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 initramfs/lib64
-        cp -rf src/.libs/libcdsprpc.so.1.0.0 initramfs/lib64
-        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 initramfs/lib64
-        cp -rf src/.libs/libsdsprpc.so.1.0.0 initramfs/lib64
+        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 initramfs/lib
+        cp -rf src/.libs/libadsprpc.so.1.0.0 initramfs/lib
+        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 initramfs/lib
+        cp -rf src/.libs/libcdsprpc.so.1.0.0 initramfs/lib
+        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 initramfs/lib
+        cp -rf src/.libs/libsdsprpc.so.1.0.0 initramfs/lib
         
         cp -rf src/adsprpcd initramfs/bin
         cp -rf src/cdsprpcd initramfs/bin
         cp -rf src/sdsprpcd initramfs/bin
         
         # Create init script
-        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/cdsprpcd\nexec /bin/sh' > initramfs/init
+        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/sh' > initramfs/init
         cat initramfs/init
         chmod +x initramfs/init
 
         ls -la initramfs
-        ls -la initramfs/lib64
+        ls -la initramfs/lib
         (cd initramfs && find . | cpio -H newc -o)
 
         # Create initrd.img using cpio
