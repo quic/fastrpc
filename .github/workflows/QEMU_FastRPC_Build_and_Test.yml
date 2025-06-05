@@ -67,25 +67,34 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison \
           qemu-system-x86 util-linux initramfs-tools
-    
-    - name: Build test binary
-      run: |
-        echo -e '#include <stdio.h>\nint main() { printf("hello\\n"); return 0; }' > test.c
-        gcc -static -o test_hello test.c
-   
+       
     - name: Create initramfs
       run: |
         # Create a working directory
         mkdir -p initramfs/{bin,lib,lib64,proc,sys,dev}
     
         # Copy test binary
-        cp test_hello initramfs/bin/
         cp -rf src/.libs/libadsp_default_listener.so initramfs/lib64
         cp -rf src/.libs/libadsprpc.so initramfs/lib64
         cp -rf src/.libs/libcdsp_default_listener.so initramfs/lib64
         cp -rf src/.libs/libcdsprpc.so initramfs/lib64
         cp -rf src/.libs/libsdsp_default_listener.so initramfs/lib64
         cp -rf src/.libs/libsdsprpc.so initramfs/lib64
+
+        cp -rf src/.libs/libadsp_default_listener.so.1 initramfs/lib64
+        cp -rf src/.libs/libadsprpc.so.1 initramfs/lib64
+        cp -rf src/.libs/libcdsp_default_listener.so.1 initramfs/lib64
+        cp -rf src/.libs/libcdsprpc.so.1 initramfs/lib64
+        cp -rf src/.libs/libsdsp_default_listener.so.1 initramfs/lib64
+        cp -rf src/.libs/libsdsprpc.so.1 initramfs/lib64
+        
+        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 initramfs/lib64
+        cp -rf src/.libs/libadsprpc.so.1.0.0 initramfs/lib64
+        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 initramfs/lib64
+        cp -rf src/.libs/libcdsprpc.so.1.0.0 initramfs/lib64
+        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 initramfs/lib64
+        cp -rf src/.libs/libsdsprpc.so.1.0.0 initramfs/lib64
+        
         cp -rf src/adsprpcd initramfs/bin
         cp -rf src/cdsprpcd initramfs/bin
         cp -rf src/sdsprpcd initramfs/bin
@@ -96,6 +105,7 @@ jobs:
         chmod +x initramfs/init
 
         ls -la initramfs
+        ls -la initramfs/lib64
         (cd initramfs && find . | cpio -H newc -o)
 
         # Create initrd.img using cpio
