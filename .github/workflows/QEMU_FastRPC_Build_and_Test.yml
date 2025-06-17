@@ -110,6 +110,13 @@ jobs:
 
         # Create initrd.img using cpio
         (cd initramfs && find . | cpio -H newc -o | tee ../initrd.cpio | gzip > ../initrd.img)
+
+        mkdir /tmp/initrd
+        cd /tmp/initrd
+        zcat ../initrd.img | cpio -idmv
+        ls -l init
+        chmod +x init
+        find . | cpio -o -H newc | gzip > ../new_initrd.img
     
     - name: Create disk image and populate it
       run: |
@@ -134,7 +141,7 @@ jobs:
         sudo cp -rf src/sdsprpcd /mnt/tmpmnt/bin
 
         # Create init script
-        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/sh' > /mnt/tmpmnt/init
+        # echo -e '#!/bin/sh\necho "Init started"\nexec /bin/sh' > /mnt/tmpmnt/init
         cat /mnt/tmpmnt/init
         chmod +x /mnt/tmpmnt/init
         
@@ -153,7 +160,7 @@ jobs:
       run: |
         qemu-system-x86_64 -m 256 -nographic \
           -kernel linux-5.10.16/arch/x86/boot/bzImage \
-          -initrd initrd.img \
+          -initrd new_initrd.img \
           -hda disk1.img \
           --append "console=ttyS0 init=/init root=/dev/ram0"
 
