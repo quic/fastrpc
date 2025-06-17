@@ -71,98 +71,62 @@ jobs:
     - name: Create initramfs
       run: |
         # Create a working directory
-        mkdir -p initramfs/{bin,lib,lib64,proc,sys,dev}
-    
+        wget https://github.qualcomm.com/bjorande/ramdisk/releases/download/v2.0/ramdisk-qcom-armv8a.cpio.gz
+
+        cd firmware_dir && find . | cpio -o -H newc | gzip -9 > ../firmware-hamoa.cpio.gz
+        
         # Copy test binary
-        cp -rf src/.libs/libadsp_default_listener.so initramfs/lib
-        cp -rf src/.libs/libadsprpc.so initramfs/lib
-        cp -rf src/.libs/libcdsp_default_listener.so initramfs/lib
-        cp -rf src/.libs/libcdsprpc.so initramfs/lib
-        cp -rf src/.libs/libsdsp_default_listener.so initramfs/lib
-        cp -rf src/.libs/libsdsprpc.so initramfs/lib
+        cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsprpc.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsprpc.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsprpc.so fastrpc_dir/usr/lib/
 
-        cp -rf src/.libs/libadsp_default_listener.so.1 initramfs/lib
-        cp -rf src/.libs/libadsprpc.so.1 initramfs/lib
-        cp -rf src/.libs/libcdsp_default_listener.so.1 initramfs/lib
-        cp -rf src/.libs/libcdsprpc.so.1 initramfs/lib
-        cp -rf src/.libs/libsdsp_default_listener.so.1 initramfs/lib
-        cp -rf src/.libs/libsdsprpc.so.1 initramfs/lib
+        cp -rf src/.libs/libadsp_default_listener.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsprpc.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsprpc.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsprpc.so.1 fastrpc_dir/usr/lib/
         
-        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 initramfs/lib
-        cp -rf src/.libs/libadsprpc.so.1.0.0 initramfs/lib
-        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 initramfs/lib
-        cp -rf src/.libs/libcdsprpc.so.1.0.0 initramfs/lib
-        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 initramfs/lib
-        cp -rf src/.libs/libsdsprpc.so.1.0.0 initramfs/lib
+        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
         
-        cp -rf src/adsprpcd initramfs/bin
-        cp -rf src/cdsprpcd initramfs/bin
-        cp -rf src/sdsprpcd initramfs/bin
-        
-        # Create init script
-        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/sh' > initramfs/init
-        cat initramfs/init
-        chmod +x initramfs/init
+        cp -rf src/adsprpcd fastrpc_dir/usr/bin/
+        cp -rf src/cdsprpcd fastrpc_dir/usr/bin/
+        cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
 
-        ls -la initramfs
-        ls -la initramfs/lib
-        (cd initramfs && find . | cpio -H newc -o)
-
-        # Create initrd.img using cpio
-        (cd initramfs && find . | cpio -H newc -o | tee ../initrd.cpio | gzip > ../initrd.img)
-
-        mkdir /tmp/initrd
-        cd /tmp/initrd
-        zcat ../initrd.img | cpio -idmv
-        ls -l init
-        chmod +x init
-        find . | cpio -o -H newc | gzip > ../new_initrd.img
-    
-    - name: Create disk image and populate it
-      run: |
-        dd if=/dev/zero of=disk1.img bs=4096 count=51200
-        mkfs.ext4 disk1.img
-    
-        sudo mkdir -p /mnt/tmpmnt
-        sudo mount disk1.img /mnt/tmpmnt
-    
-        sudo cp -rf initramfs/* /mnt/tmpmnt
-        sudo mkdir -p /mnt/tmpmnt/{sys,proc,dev}
-    
-        # Copy required libraries and binaries
-        sudo cp -rf src/.libs/libadsp_default_listener.so /mnt/tmpmnt/lib64
-        sudo cp -rf src/.libs/libadsprpc.so /mnt/tmpmnt/lib64
-        sudo cp -rf src/.libs/libcdsp_default_listener.so /mnt/tmpmnt/lib64
-        sudo cp -rf src/.libs/libcdsprpc.so /mnt/tmpmnt/lib64
-        sudo cp -rf src/.libs/libsdsp_default_listener.so /mnt/tmpmnt/lib64
-        sudo cp -rf src/.libs/libsdsprpc.so /mnt/tmpmnt/lib64
-        sudo cp -rf src/adsprpcd /mnt/tmpmnt/bin
-        sudo cp -rf src/cdsprpcd /mnt/tmpmnt/bin
-        sudo cp -rf src/sdsprpcd /mnt/tmpmnt/bin
-
-        # Create init script
-        # echo -e '#!/bin/sh\necho "Init started"\nexec /bin/sh' > /mnt/tmpmnt/init
-        cat /mnt/tmpmnt/init
-        chmod +x /mnt/tmpmnt/init
-        
-        sudo umount /mnt/tmpmnt
+        cd fastrpc_dir && find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
+        cat ramdisk-qcom-armv8a.cpio.gz firmware-hamoa.cpio.gz fastrpc.cpio.gz > ramdisk.gz
+        cd tar-install ; find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
     
     - name: Download and build Linux kernel
       run: |
-        wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.10.16.tar.xz
-        tar -xf linux-5.10.16.tar.xz
-        cd linux-5.10.16
-    
-        make defconfig
-        make -j$(nproc) bzImage
+        git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git hamoa
+        cd hamoa
+
+        umask 0022
+        make LLVM=1 ARCH=arm64 defconfig
+        make LLVM=1 ARCH=arm64 -j99 dir-pkg INSTALL_MOD_STRIP=1
     
     - name: Run QEMU
       run: |
-        qemu-system-x86_64 -m 256 -nographic \
-          -kernel linux-5.10.16/arch/x86/boot/bzImage \
-          -initrd new_initrd.img \
-          -hda disk1.img \
-          --append "console=ttyS0 init=/init root=/dev/ram0"
+        qemu-system-aarch64 \
+          -machine virt \
+          -cpu cortex-a53 \
+          -m 1024 \
+          -nographic \
+          -kernel arch/arm64/boot/Image \
+          -append "earlycon clk_ignore_unused pd_ignore_unused audit=0 console=ttyAMA0" \
+          -initrd ramdisk.gz \
+          -dtb arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
+          -no-reboot
+
 
     - name: Check QEMU output
       run: |
