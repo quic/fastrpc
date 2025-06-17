@@ -103,7 +103,7 @@ jobs:
 
         cd fastrpc_dir && find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
         cat ramdisk-qcom-armv8a.cpio.gz firmware-hamoa.cpio.gz fastrpc.cpio.gz > ramdisk.gz
-        cd tar-install ; find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
+        cd tar-install && find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
     
     - name: Download and build Linux kernel
       run: |
