@@ -132,7 +132,12 @@ jobs:
         sudo cp -rf src/adsprpcd /mnt/tmpmnt/bin
         sudo cp -rf src/cdsprpcd /mnt/tmpmnt/bin
         sudo cp -rf src/sdsprpcd /mnt/tmpmnt/bin
-    
+
+        # Create init script
+        echo -e '#!/bin/sh\necho "Init started"\nexec /bin/sh' > /mnt/tmpmnt/init
+        cat /mnt/tmpmnt/init
+        chmod +x /mnt/tmpmnt/init
+        
         sudo umount /mnt/tmpmnt
     
     - name: Download and build Linux kernel
