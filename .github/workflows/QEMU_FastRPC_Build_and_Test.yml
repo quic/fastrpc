@@ -65,7 +65,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y lld clang tar xz-utils
+        sudo apt-get install -y tar xz-utils llvm clang lld llvm-dev llvm-tools
         sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison \
           qemu-system-x86 util-linux initramfs-tools
 
