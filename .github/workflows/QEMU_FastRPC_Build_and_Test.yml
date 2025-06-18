@@ -67,12 +67,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison \
           qemu-system-x86 util-linux initramfs-tools
-       
+
+    - name: Authenticated download
+      run: |
+        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+           -L -o ramdisk-qcom-armv8a.cpio.gz \
+           https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+
     - name: Create initramfs
       run: |
-        # Create a working directory
-        wget https://github.qualcomm.com/bjorande/ramdisk/releases/download/v2.0/ramdisk-qcom-armv8a.cpio.gz
-
         cd firmware_dir && find . | cpio -o -H newc | gzip -9 > ../firmware-hamoa.cpio.gz
         
         # Copy test binary
