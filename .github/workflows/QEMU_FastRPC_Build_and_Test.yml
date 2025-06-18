@@ -73,10 +73,20 @@ jobs:
         curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
            -L -o ramdisk-qcom-armv8a.cpio.gz \
            https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
-
-    - name: Create initramfs
+    
+    - name: Download and build Linux kernel
       run: |
-        cd firmware_dir && find . | cpio -o -H newc | gzip -9 > ../firmware-hamoa.cpio.gz
+        git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
+        cd linux
+
+        umask 0022
+        make LLVM=1 ARCH=arm64 defconfig
+        make LLVM=1 ARCH=arm64 -j99 dir-pkg INSTALL_MOD_STRIP=1
+
+    - name: Create ramdisk file including fastrpc binaries
+      run: |
+        mkdir -p fastrpc_dir/usr/lib/
+        mkdir -p fastrpc_dir/usr/bin/
         
         # Copy test binary
         cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
@@ -105,17 +115,9 @@ jobs:
         cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
 
         cd fastrpc_dir && find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
-        cat ramdisk-qcom-armv8a.cpio.gz firmware-hamoa.cpio.gz fastrpc.cpio.gz > ramdisk.gz
-        cd tar-install && find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
-    
-    - name: Download and build Linux kernel
-      run: |
-        git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git hamoa
-        cd hamoa
-
-        umask 0022
-        make LLVM=1 ARCH=arm64 defconfig
-        make LLVM=1 ARCH=arm64 -j99 dir-pkg INSTALL_MOD_STRIP=1
+        cd ..
+        cat ramdisk-qcom-armv8a.cpio.gz fastrpc.cpio.gz > ramdisk.gz
+        cd linux/tar-install && find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
     
     - name: Run QEMU
       run: |
