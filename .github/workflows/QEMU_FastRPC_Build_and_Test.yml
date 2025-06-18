@@ -65,6 +65,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
+        sudo apt-get install -y lld clang
         sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison \
           qemu-system-x86 util-linux initramfs-tools
 
@@ -81,7 +82,7 @@ jobs:
 
         umask 0022
         make LLVM=1 ARCH=arm64 defconfig
-        make LLVM=1 ARCH=arm64 -j99 dir-pkg INSTALL_MOD_STRIP=1
+        make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
 
     - name: Create ramdisk file including fastrpc binaries
       run: |
