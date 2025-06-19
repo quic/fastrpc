@@ -86,7 +86,7 @@ jobs:
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
-        cp linux-firmware/qcom/sm8250/* firmware_dir/lib/firmware/qcom/x1e80100/
+        cp -rf linux-firmware/qcom/sm8250/* firmware_dir/lib/firmware/qcom/x1e80100/
 
     - name: Authenticated download
       run: |
