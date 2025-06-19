@@ -19,12 +19,31 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Install yq
+      run: sudo snap install yq
+    
+    - name: Read paths from config.yaml
+      id: config
+      run: |
+        echo "adsp=$(yq '.paths.adsp' CI/LAVA/sa8775p/config.yaml)" >> $GITHUB_OUTPUT
+        echo "cdsp=$(yq '.paths.cdsp' CI/LAVA/sa8775p/config.yaml)" >> $GITHUB_OUTPUT
+        echo "cdsp1=$(yq '.paths.cdsp' CI/LAVA/sa8775p/config.yaml)" >> $GITHUB_OUTPUT
+        echo "gdsp0=$(yq '.paths.cdsp' CI/LAVA/sa8775p/config.yaml)" >> $GITHUB_OUTPUT
+        echo "gdsp1=$(yq '.paths.cdsp' CI/LAVA/sa8775p/config.yaml)" >> $GITHUB_OUTPUT
+        echo "firmware=$(yq '.paths.firmware' CI/LAVA/sa8775p/config.yaml)" >> $GITHUB_OUTPUT
+    
+    - name: Copy DSP and firmware files
+      run: |
+        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
+        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
+        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/x1e80100/
+
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential gcc g++ make autoconf automake libtool automake \
-        libelf-dev flex bison qemu-system-x86 qemu-system-arm qemu-efi qemu-utils qemu-system-aarch64
-
+        libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev util-linux initramfs-tools
+        
     - name: Download Linaro tools and untar
       run: |
         wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
@@ -62,17 +81,13 @@ jobs:
          if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
         done
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y tar xz-utils llvm clang lld llvm-dev
-        sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison \
-          qemu-system-x86 util-linux initramfs-tools
-
     - name: Create directories
       run: |
         mkdir -p firmware_dir/usr/lib/dsp/adsp
         mkdir -p firmware_dir/usr/lib/dsp/cdsp
+        mkdir -p firmware_dir/usr/lib/dsp/cdsp1
+        mkdir -p firmware_dir/usr/lib/dsp/gdsp0
+        mkdir -p firmware_dir/usr/lib/dsp/gdsp1
         mkdir -p firmware_dir/lib/firmware/qcom/x1e80100
         mkdir -p fastrpc_dir/usr/lib/
         mkdir -p fastrpc_dir/usr/bin/
@@ -81,14 +96,17 @@ jobs:
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
-        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00082-SM8250-1/*.so firmware_dir/usr/lib/dsp/adsp
-        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/CDSP.HT.2.3.c1-00076-SM8250-1/*.so firmware_dir/usr/lib/dsp/cdsp
+        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
+        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
+        cp ${{ steps.config.outputs.cdsp1 }}/*.so firmware_dir/usr/lib/dsp/cdsp1
+        cp ${{ steps.config.outputs.gdsp0 }}/*.so firmware_dir/usr/lib/dsp/gdsp0
+        cp ${{ steps.config.outputs.gdsp1 }}/*.so firmware_dir/usr/lib/dsp/gdsp1
 
-    - name: Download linux-firmware
+    - name: Download dsp-linux-firmware
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
-        cp -rf linux-firmware/qcom/sm8250/* firmware_dir/lib/firmware/qcom/x1e80100/
+        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/x1e80100/
 
     - name: Download ramdisk
       run: |
@@ -100,7 +118,6 @@ jobs:
       run: |
         git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
         cd linux
-
         umask 0022
         make LLVM=1 ARCH=arm64 defconfig
         make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
@@ -108,7 +125,6 @@ jobs:
 
     - name: Create ramdisk file including fastrpc binaries
       run: |
-        
         # Copy fastrpc binary
         cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
         cp -rf src/.libs/libadsprpc.so fastrpc_dir/usr/lib/
@@ -150,43 +166,33 @@ jobs:
 
         cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
         cd linux/tar-install && find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
+        cd ../..
 
-    - name: Clone target repository
+    - name: Upload file to remote server
       run: |
-        git clone https://github.com/quic-mtharu/qemu-ramdisk-artifacts.git
-        cd qemu-ramdisk-artifacts
-  
-        # Copy ramdisk.gz to target directory
-        cp ramdisk.gz qemu-ramdisk-artifacts/qemu-ramdisk-artifacts/
-
-        # Commit changes
-        cd qemu-ramdisk-artifacts
-        git config --global user.email "quic_mtharu@quicinc.com"
-        git config --global user.name "Tharun Kumar Merugu"
-        git add qemu-ramdisk-artifacts/ramdisk.gz
-        git commit -m "Add ramdisk.gz"
-
-        # Push changes
-        cd qemu-ramdisk-artifacts
-        git push origin main
-
-    - name: Run QEMU
-      run: |
-        qemu-system-aarch64 \
-          -machine virt \
-          -cpu cortex-a53 \
-          -m 1024 \
-          -nographic \
-          -kernel arch/arm64/boot/Image \
-          -append "earlycon clk_ignore_unused pd_ignore_unused audit=0 console=ttyAMA0" \
-          -initrd ramdisk.gz \
-          -dtb arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
-          -no-reboot
-
-    - name: Check QEMU output
-      run: |
-        if grep -q "hello" qemu_output.log; then
-          echo "Test passed: 'hello' message found in QEMU boot logs."
+        FILE_PATH="ramdisk.gz"
+        REMOTE_URL="https://quic-yocto-fileserver-1029608027416.us-central1.run.app/qualcomm-linux/meta-qcom/15760629931-1/qcom-armv8a/"
+        
+        if [ -f "$FILE_PATH" ]; then
+          echo "Uploading $FILE_PATH to $REMOTE_URL"
+          curl -X PUT -T "$FILE_PATH" "$REMOTE_URL" --fail --silent --show-error
+          echo "Upload successful"
         else
-          echo "Test failed: 'hello' message not found in QEMU boot logs."
+          echo "File $FILE_PATH does not exist"
           exit 1
+        fi
+    
+    - name: Verify upload
+      run: |
+        FILE_NAME=$(basename "ramdisk.gz")
+        REMOTE_FILE_URL="${REMOTE_URL}${FILE_NAME}"
+        
+        echo "Verifying upload at $REMOTE_FILE_URL"
+        HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "$REMOTE_FILE_URL")
+        
+        if [ "$HTTP_STATUS" -eq 200 ]; then
+          echo "File successfully uploaded and accessible at $REMOTE_FILE_URL"
+        else
+          echo "Failed to verify upload. HTTP status code: $HTTP_STATUS"
+          exit 1
+        fi
