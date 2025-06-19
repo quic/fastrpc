@@ -134,7 +134,7 @@ jobs:
         cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
 
          # Copy fastrpc test binary
-        cp -rf test/.libs/fastrpc_test/* fastrpc_dir/usr/bin
+        cp -rf test/fastrpc_test fastrpc_dir/usr/bin
         cp -rf test/linux/* fastrpc_dir/usr/bin
         cp -rf test/v75/* fastrpc_dir/usr/bin
         
@@ -148,6 +148,25 @@ jobs:
 
         cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
         cd linux/tar-install && find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
+
+    - name: Clone target repository
+      run: |
+        git clone https://github.com/quic-mtharu/qemu-ramdisk-artifacts.git
+        cd qemu-ramdisk-artifacts
+  
+        # Copy ramdisk.gz to target directory
+        cp ramdisk.gz qemu-ramdisk-artifacts/qemu-ramdisk-artifacts/
+
+        # Commit changes
+        cd qemu-ramdisk-artifacts
+        git config --global user.email "quic-mtharu@qti.qualcomm.com"
+        git config --global user.name "Tharun Kumar Merugu"
+        git add qemu-ramdisk-artifacts/ramdisk.gz
+        git commit -m "Add ramdisk.gz"
+
+        # Push changes
+        cd qemu-ramdisk-artifacts
+        git push origin main
 
     - name: Run QEMU
       run: |
