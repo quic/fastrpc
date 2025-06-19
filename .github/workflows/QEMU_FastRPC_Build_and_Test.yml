@@ -80,7 +80,7 @@ jobs:
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
-        cp hexagon-dsp-binaries/trunk/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00055-SM8250-2/*.so firmware_dir/usr/lib/dsp/
+        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00055-SM8250-2/*.so firmware_dir/usr/lib/dsp/
 
     - name: Download linux-firmware
       run: |
