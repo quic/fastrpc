@@ -69,6 +69,23 @@ jobs:
         sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison \
           qemu-system-x86 util-linux initramfs-tools
 
+    - name: Create directories
+      run: |
+        mkdir -p firmware_dir/usr/lib/dsp
+        mkdir -p firmware_dir/lib/firmware/qcom/x1e80100
+        mkdir -p fastrpc_dir/usr/lib/
+        mkdir -p fastrpc_dir/usr/bin/
+        
+    - name: Download hexagon-dsp-binaries
+      run: |
+        git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
+        cp hexagon-dsp-binaries/trunk/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00055-SM8250-2/*.so firmware_dir/usr/lib/dsp/
+
+    - name: Download linux-firmware
+      run: |
+        git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+        cp linux-firmware/qcom/sm8250/* firmware_dir/lib/firmware/qcom/x1e80100/
+
     - name: Authenticated download
       run: |
         curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
@@ -83,13 +100,12 @@ jobs:
         umask 0022
         make LLVM=1 ARCH=arm64 defconfig
         make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+        cd ..
 
     - name: Create ramdisk file including fastrpc binaries
       run: |
-        mkdir -p fastrpc_dir/usr/lib/
-        mkdir -p fastrpc_dir/usr/bin/
         
-        # Copy test binary
+        # Copy fastrpc binary
         cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
         cp -rf src/.libs/libadsprpc.so fastrpc_dir/usr/lib/
         cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/usr/lib/
@@ -115,11 +131,22 @@ jobs:
         cp -rf src/cdsprpcd fastrpc_dir/usr/bin/
         cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
 
-        cd fastrpc_dir && find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
+         # Copy fastrpc test binary
+        cp -rf test/.libs/fastrpc_test/* fastrpc_dir/usr/bin
+        cp -rf test/linux/* fastrpc_dir/usr/bin
+        cp -rf test/v75/* fastrpc_dir/usr/bin
+        
+        cd firmware_dir
+        find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
         cd ..
-        cat ramdisk-qcom-armv8a.cpio.gz fastrpc.cpio.gz > ramdisk.gz
+
+        cd fastrpc_dir 
+        find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
+        cd ..
+
+        cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
         cd linux/tar-install && find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
-    
+
     - name: Run QEMU
       run: |
         qemu-system-aarch64 \
@@ -132,7 +159,6 @@ jobs:
           -initrd ramdisk.gz \
           -dtb arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
           -no-reboot
-
 
     - name: Check QEMU output
       run: |
