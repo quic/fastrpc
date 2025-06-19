@@ -71,7 +71,8 @@ jobs:
 
     - name: Create directories
       run: |
-        mkdir -p firmware_dir/usr/lib/dsp
+        mkdir -p firmware_dir/usr/lib/dsp/adsp
+        mkdir -p firmware_dir/usr/lib/dsp/cdsp
         mkdir -p firmware_dir/lib/firmware/qcom/x1e80100
         mkdir -p fastrpc_dir/usr/lib/
         mkdir -p fastrpc_dir/usr/bin/
@@ -80,7 +81,8 @@ jobs:
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
-        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00055-SM8250-2/*.so firmware_dir/usr/lib/dsp/
+        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00082-SM8250-1/*.so firmware_dir/usr/lib/dsp/adsp
+        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/CDSP.HT.2.3.c1-00076-SM8250-1/*.so firmware_dir/usr/lib/dsp/cdsp
 
     - name: Download linux-firmware
       run: |
@@ -88,7 +90,7 @@ jobs:
         ls -la linux-firmware
         cp -rf linux-firmware/qcom/sm8250/* firmware_dir/lib/firmware/qcom/x1e80100/
 
-    - name: Authenticated download
+    - name: Download ramdisk
       run: |
         curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
            -L -o ramdisk-qcom-armv8a.cpio.gz \
@@ -159,7 +161,7 @@ jobs:
 
         # Commit changes
         cd qemu-ramdisk-artifacts
-        git config --global user.email "quic-mtharu@qti.qualcomm.com"
+        git config --global user.email "quic_mtharu@quicinc.com"
         git config --global user.name "Tharun Kumar Merugu"
         git add qemu-ramdisk-artifacts/ramdisk.gz
         git commit -m "Add ramdisk.gz"
