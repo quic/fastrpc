@@ -79,11 +79,13 @@ jobs:
     - name: Download hexagon-dsp-binaries
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
+        ls -la hexagon-dsp-binaries
         cp hexagon-dsp-binaries/trunk/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00055-SM8250-2/*.so firmware_dir/usr/lib/dsp/
 
     - name: Download linux-firmware
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+        ls -la linux-firmware
         cp linux-firmware/qcom/sm8250/* firmware_dir/lib/firmware/qcom/x1e80100/
 
     - name: Authenticated download
