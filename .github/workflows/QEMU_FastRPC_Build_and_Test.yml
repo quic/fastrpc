@@ -32,12 +32,6 @@ jobs:
         echo "gdsp1=$(yq '.paths.cdsp' CI/LAVA/sa8775p/config.yml)" >> $GITHUB_OUTPUT
         echo "firmware=$(yq '.paths.firmware' CI/LAVA/sa8775p/config.yml)" >> $GITHUB_OUTPUT
     
-    - name: Copy DSP and firmware files
-      run: |
-        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
-        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
-        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/x1e80100/
-
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -91,7 +85,7 @@ jobs:
         mkdir -p firmware_dir/lib/firmware/qcom/x1e80100
         mkdir -p fastrpc_dir/usr/lib/
         mkdir -p fastrpc_dir/usr/bin/
-        
+
     - name: Download hexagon-dsp-binaries
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
