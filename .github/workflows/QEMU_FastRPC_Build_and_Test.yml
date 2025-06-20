@@ -25,8 +25,14 @@ jobs:
     - name: Install mkbootimg
       run: sudo apt-get update && sudo apt-get install -y android-sdk-libsparse-utils
 
-    - name: Locate mkbootimg
-      run: which mkbootimg
+    - name: Install mkbootimg from AOSP
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        pip install intelhex
+        git clone https://android.googlesource.com/platform/system/tools/mkbootimg
+        sudo cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg
+        sudo chmod +x /usr/local/bin/mkbootimg
 
     - name: Install dependencies
       run: |
@@ -171,7 +177,7 @@ jobs:
 
     - name: Create boot image using mkbootimg
       run: |
-        mkbootimg \
+        /usr/local/bin/mkbootimg \
           --header_version 2 \
           --kernel linux/tar-install/arch/arm64/boot/Image \
           --dtb linux/tar-install/arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
