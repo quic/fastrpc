@@ -25,6 +25,9 @@ jobs:
     - name: Install mkbootimg
       run: sudo apt-get update && sudo apt-get install -y android-sdk-libsparse-utils
 
+    - name: Locate mkbootimg
+      run: which mkbootimg
+
     - name: Install dependencies
       run: |
         sudo apt-get update
