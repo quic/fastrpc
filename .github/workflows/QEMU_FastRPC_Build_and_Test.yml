@@ -21,7 +21,16 @@ jobs:
 
     - name: Install yq
       run: sudo snap install yq
-    
+
+    - name: Install mkbootimg
+      run: sudo apt-get update && sudo apt-get install -y android-sdk-libsparse-utils
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential gcc g++ make autoconf automake libtool automake \
+        libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev util-linux initramfs-tools
+
     - name: Read paths from config.yaml
       id: config
       run: |
@@ -31,12 +40,6 @@ jobs:
         echo "gdsp0=$(yq '.paths.cdsp' CI/LAVA/sa8775p/config.yml)" >> $GITHUB_OUTPUT
         echo "gdsp1=$(yq '.paths.cdsp' CI/LAVA/sa8775p/config.yml)" >> $GITHUB_OUTPUT
         echo "firmware=$(yq '.paths.firmware' CI/LAVA/sa8775p/config.yml)" >> $GITHUB_OUTPUT
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential gcc g++ make autoconf automake libtool automake \
-        libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev util-linux initramfs-tools
         
     - name: Download Linaro tools and untar
       run: |
@@ -163,10 +166,20 @@ jobs:
         find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
         cd ../..
 
+    - name: Create boot image using mkbootimg
+      run: |
+        mkbootimg \
+          --header_version 2 \
+          --kernel linux/tar-install/arch/arm64/boot/Image \
+          --dtb linux/tar-install/arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
+          --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
+          --ramdisk ramdisk.gz \
+          --output boot-x1e-crd.img
+
     - name: Upload Compiled Image
       uses: actions/upload-artifact@v4
       with:
-        name: ramdisk.gz
-        path: ramdisk.gz
+        name: boot-x1e-crd.img
+        path: boot-x1e-crd.img
 
 
