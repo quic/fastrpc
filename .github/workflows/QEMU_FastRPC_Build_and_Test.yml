@@ -14,8 +14,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/aosp-docker/android:latest
+    container:
+      image: lineageos4microg/docker-lineage-cicd:latest
 
     steps:
     - name: Checkout repository
