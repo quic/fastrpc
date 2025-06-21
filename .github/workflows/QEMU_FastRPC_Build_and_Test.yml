@@ -20,26 +20,26 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Install yq
-      run: sudo snap install yq
-
-    - name: Install mkbootimg
-      run: sudo apt-get update && sudo apt-get install -y android-sdk-libsparse-utils
-
-    - name: Install mkbootimg from AOSP
+    - name: Install yq (without sudo)
       run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-pip
+        wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
+        chmod +x yq
+        mv yq /usr/local/bin/yq || mv yq ./yq  # fallback if /usr/local/bin is not writable
+
+    - name: Install mkbootimg from AOSP (manual setup)
+      run: |
+        apt-get update && apt-get install -y python3-pip git
         pip install intelhex
         git clone https://android.googlesource.com/platform/system/tools/mkbootimg
-        sudo cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg
-        sudo chmod +x /usr/local/bin/mkbootimg
+        cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
+        chmod +x /usr/local/bin/mkbootimg || chmod +x ./mkbootimg
 
-    - name: Install dependencies
+    - name: Install build dependencies (without sudo)
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential gcc g++ make autoconf automake libtool automake \
-        libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev util-linux initramfs-tools
+        apt-get update && apt-get install -y \
+          build-essential gcc g++ make autoconf automake libtool \
+          libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev \
+          util-linux initramfs-tools
 
     - name: Read paths from config.yaml
       id: config
