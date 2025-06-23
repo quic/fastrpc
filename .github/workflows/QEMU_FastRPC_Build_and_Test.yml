@@ -139,7 +139,7 @@ jobs:
         cd linux
         umask 0022
         make LLVM=1 ARCH=arm64 defconfig
-        make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+        make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
         cd ..
 
     - name: Create ramdisk file including fastrpc binaries
@@ -186,14 +186,13 @@ jobs:
         cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
         cd linux/tar-install
         find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
-        cd ../..
 
     - name: Create boot image using mkbootimg
       run: |
         python3 mkbootimg/mkbootimg.py  \
           --header_version 2 \
-          --kernel linux/tar-install/arch/arm64/boot/Image \
-          --dtb linux/tar-install/arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
+          --kernel linux/arch/arm64/boot/Image \
+          --dtb linux/arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
           --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
           --ramdisk ramdisk.gz \
           --output boot-x1e-crd.img
