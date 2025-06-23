@@ -25,6 +25,8 @@ jobs:
         wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
         chmod +x yq
         mv yq /usr/local/bin/yq || mv yq ./yq  # fallback if /usr/local/bin is not writable
+        pip install intelhex gki
+
 
     - name: Install mkbootimg from AOSP (manual setup)
       run: |
