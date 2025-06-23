@@ -71,21 +71,28 @@ jobs:
         chmod 777 gitcompile
         ./gitcompile --host=aarch64-linux-gnu
 
-    - name: Verify the compiled binaries
+    - name: Verify fastrpc compiled binaries
+      shell: sh
       run: |
         echo "Verify the compiled binaries"
-        Files=("src/.libs/libadsp_default_listener.so
-          src/.libs/libadsprpc.so
-          src/.libs/libcdsp_default_listener.so
-          src/.libs/libcdsprpc.so
-          src/.libs/libsdsp_default_listener.so
-          src/.libs/libsdsprpc.so
-          src/adsprpcd
-          src/cdsprpcd
-          src/sdsprpcd")
+        Files="src/.libs/libadsp_default_listener.so
+        src/.libs/libadsprpc.so
+        src/.libs/libcdsp_default_listener.so
+        src/.libs/libcdsprpc.so
+        src/.libs/libsdsp_default_listener.so
+        src/.libs/libsdsprpc.so
+        src/adsprpcd
+        src/cdsprpcd
+        src/sdsprpcd"
+    
         for File in $Files
         do 
-         if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
+          if [ -f "$File" ]; then
+            echo "$File - Exists"
+          else
+            echo "$File - Not Exists"
+            exit 1
+          fi
         done
 
     - name: Create directories
