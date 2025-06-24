@@ -1,9 +1,15 @@
 name: Nightly Kernel Build
 
+# Trigger the workflow on push or pull request to main or development branches
 on:
-  schedule:
-    - cron: '0 2 * * *'  # Runs every day at 2 AM UTC
-  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+      - 'development'
+  pull_request:
+    branches:
+      - 'main'
+      - 'development'
 
 jobs:
   build-kernel:
