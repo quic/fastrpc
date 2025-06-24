@@ -20,7 +20,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Install yq (without sudo)
+    - name: 1. Install yq (without sudo)
       run: |
         wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
         chmod +x yq
@@ -30,7 +30,7 @@ jobs:
         pip3 --version
         # pip3 install intelhex gki
 
-    - name: Install mkbootimg from AOSP (manual setup)
+    - name: 2. Install mkbootimg from AOSP (manual setup)
       run: |
         apt-get update && apt-get install -y python3-pip git
         pip install intelhex
@@ -39,26 +39,26 @@ jobs:
         cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
         chmod +x /usr/local/bin/mkbootimg || chmod +x ./mkbootimg
 
-    - name: Install build dependencies (without sudo)
+    - name: 3. Install build dependencies (without sudo)
       run: |
         apt-get update && apt-get install -y \
           build-essential gcc g++ make autoconf automake libtool \
           libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev \
           util-linux initramfs-tools
 
-    - name: Read paths from config.yaml
+    - name: 4. Read paths from config.yaml
       id: config
       run: |
         echo "adsp=$(yq '.paths.adsp' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
         echo "cdsp=$(yq '.paths.cdsp' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
         echo "firmware=$(yq '.paths.firmware' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
         
-    - name: Download Linaro tools and untar
+    - name: 5. Download Linaro tools and untar
       run: |
         wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
         tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
 
-    - name: Set Up Build Environment and compile code for LE platform
+    - name: 6. Set Up Build Environment and compile code for LE platform
       run: |
         # Set Up Build Environment
         export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
@@ -73,7 +73,7 @@ jobs:
         chmod 777 gitcompile
         ./gitcompile --host=aarch64-linux-gnu
 
-    - name: Verify fastrpc compiled binaries
+    - name: 7. Verify fastrpc compiled binaries
       shell: sh
       run: |
         echo "Verify the compiled binaries"
@@ -97,37 +97,52 @@ jobs:
           fi
         done
 
-    - name: Create directories
+    - name: 8. Create directories and verify required directories
       run: |
+        # Create directories
         mkdir -p firmware_dir/usr/lib/dsp/adsp
         mkdir -p firmware_dir/usr/lib/dsp/cdsp
-        mkdir -p firmware_dir/usr/lib/dsp/cdsp1
-        mkdir -p firmware_dir/usr/lib/dsp/gdsp0
-        mkdir -p firmware_dir/usr/lib/dsp/gdsp1
         mkdir -p firmware_dir/lib/firmware/qcom/sm8250
-        mkdir -p fastrpc_dir/usr/lib/
-        mkdir -p fastrpc_dir/usr/bin/
+        mkdir -p fastrpc_dir/usr/lib
+        mkdir -p fastrpc_dir/usr/bin
 
-    - name: Download hexagon-dsp-binaries
+        # Verify directory structure
+        echo "Verifying created directories:"
+        for dir in \
+          firmware_dir/usr/lib/dsp/adsp \
+          firmware_dir/usr/lib/dsp/cdsp \
+          firmware_dir/lib/firmware/qcom/sm8250 \
+          fastrpc_dir/usr/lib \
+          fastrpc_dir/usr/bin
+        do
+          if [ -d "$dir" ]; then
+            echo "[OK] $dir exists"
+          else
+            echo "[ERROR] $dir is missing"
+            exit 1
+          fi
+        done
+
+    - name: 9. Download hexagon-dsp-binaries
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
         cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
         cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
 
-    - name: Download dsp-linux-firmware
+    - name: 10. Download dsp-linux-firmware
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
         cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sm8250/
 
-    - name: Download ramdisk
+    - name: 11. Download ramdisk
       run: |
         curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
            -L -o ramdisk-qcom-armv8a.cpio.gz \
            https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
     
-    - name: Download and build Linux kernel
+    - name: 12. Download and build Linux kernel
       run: |
         git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
         cd linux
@@ -136,7 +151,7 @@ jobs:
         make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
         cd ..
 
-    - name: Create ramdisk file including fastrpc binaries
+    - name: 13. Create ramdisk file including fastrpc binaries
       run: |
         # Copy fastrpc binary
         cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
@@ -181,7 +196,7 @@ jobs:
         cd linux/tar-install
         find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
 
-    - name: Create boot image using mkbootimg
+    - name: 14. Create boot image using mkbootimg
       run: |
         python3 mkbootimg/mkbootimg.py  \
           --header_version 2 \
@@ -189,12 +204,12 @@ jobs:
           --dtb linux/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
           --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
           --ramdisk ramdisk.gz \
-          --output boot.img
+          --output sm8250_boot.img
 
-    - name: Upload Compiled Image
+    - name: 15. Upload Compiled Image
       uses: actions/upload-artifact@v4
       with:
-        name: boot.img
-        path: boot.img
+        name: sm8250_boot.img
+        path: sm8250_boot.img
 
 

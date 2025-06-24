@@ -1,4 +1,4 @@
-name: Build Boot Image with FastRPC Modules
+name: sa8775p Build Boot Image with FastRPC Modules
 
 # Trigger the workflow on push or pull request to main or development branches
 on:
@@ -104,6 +104,7 @@ jobs:
 
       # Step 9: Create required directories
       - name: 9. Create directories and verify required directories
+        shell: bash
         run: |
           # Create directories
           mkdir -p firmware_dir/usr/lib/dsp/{adsp,cdsp,cdsp1,gdsp0,gdsp1}
@@ -130,7 +131,6 @@ jobs:
             fi
           done
 
-
       # Step 10: Download hexagon-dsp-binaries and copy .so files
       - name: 10. Download hexagon-dsp-binaries
         run: |
@@ -153,17 +153,27 @@ jobs:
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -L -o ramdisk-qcom-armv8a.cpio.gz  https://github.com/quic-mtharu/qemu-ramdisk-artifacts/raw/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
 
       # Step 13: Download Linux kernel artifacts
-      - name: 13. Download Kernel Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-kernel-artifacts
-          path: ./linux-kernel-artifacts
+      - name: Download and build Linux kernel
+        run: |
+          git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux-kernel-artifacts
+          cd linux-kernel-artifacts
+          umask 0022
+          make LLVM=1 ARCH=arm64 defconfig
+          make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
+          cd ..
+
+      # Step 13: Download Linux kernel artifacts
+      #- name: 13. Download Kernel Artifacts
+      #  uses: actions/download-artifact@v4
+      #  with:
+      #    name: linux-kernel-artifacts
+      #    path: ./linux-kernel-artifacts
 
       # Step 13.1: Validate kernel and dtb paths
-      - name: 13.1. Validate kernel and dtb paths
-        run: |
-          test -f linux-kernel-artifacts/tar-install/arch/arm64/boot/Image
-          test -f linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
+      #- name: 13.1. Validate kernel and dtb paths
+      #  run: |
+      #    test -f linux-kernel-artifacts/tar-install/arch/arm64/boot/Image
+      #    test -f linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
 
 
       # Step 14: Create ramdisk file including fastrpc binaries
@@ -187,11 +197,11 @@ jobs:
             --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
             --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0"
             --ramdisk ramdisk.gz
-            --output boot.img
+            --output sa8775p_boot.img
 
       # Step 16: Upload the compiled boot image as an artifact
       - name: 16. Upload Compiled Image
         uses: actions/upload-artifact@v4
         with:
-          name: boot.img
-          path: boot.img
+          name: sa8775p_boot.img
+          path: sa8775p_boot.img
