@@ -211,5 +211,3 @@ jobs:
       with:
         name: sm8250_boot.img
         path: sm8250_boot.img
-
-

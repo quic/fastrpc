@@ -191,12 +191,12 @@ jobs:
       # Step 15: Create boot image using mkbootimg
       - name: 15. Create boot image using mkbootimg
         run: |
-          python3 mkbootimg/mkbootimg.py
-            --header_version 2
-            --kernel linux-kernel-artifacts/arch/arm64/boot/Image
-            --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
-            --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0"
-            --ramdisk ramdisk.gz
+          python3 mkbootimg/mkbootimg.py \
+            --header_version 2 \
+            --kernel linux-kernel-artifacts/arch/arm64/boot/Image \
+            --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb \
+            --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
+            --ramdisk ramdisk.gz \
             --output sa8775p_boot.img
 
       # Step 16: Upload the compiled boot image as an artifact
