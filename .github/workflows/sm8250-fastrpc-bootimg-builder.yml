@@ -24,7 +24,7 @@ jobs:
       run: |
         wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
         chmod +x yq
-        mv yq /usr/local/bin/yq || mv yq ./yq  # fallback if /usr/local/bin is not writable
+        mv yq /vendor/local/bin/yq || mv yq ./yq  # fallback if /vendor/local/bin is not writable
         apt-get update && apt-get install -y python3 python3-pip
         python3 --version
         pip3 --version
@@ -36,15 +36,15 @@ jobs:
         pip install intelhex
         git clone https://android.googlesource.com/platform/system/tools/mkbootimg
         export PYTHONPATH=$PWD/mkbootimg:$PYTHONPATH
-        cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
-        chmod +x /usr/local/bin/mkbootimg || chmod +x ./mkbootimg
+        cp mkbootimg/mkbootimg.py /vendor/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
+        chmod +x /vendor/local/bin/mkbootimg || chmod +x ./mkbootimg
 
     - name: 3. Install build dependencies (without sudo)
       run: |
         apt-get update && apt-get install -y \
-          build-essential gcc g++ make autoconf automake libtool \
-          libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev \
-          util-linux initramfs-tools
+        build-essential gcc g++ make autoconf automake libtool \
+        libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev \
+        util-linux initramfs-tools
 
     - name: 4. Read paths from config.yaml
       id: config
@@ -100,20 +100,20 @@ jobs:
     - name: 8. Create directories and verify required directories
       run: |
         # Create directories
-        mkdir -p firmware_dir/usr/lib/dsp/adsp
-        mkdir -p firmware_dir/usr/lib/dsp/cdsp
+        mkdir -p firmware_dir/vendor/lib/dsp/adsp
+        mkdir -p firmware_dir/vendor/lib/dsp/cdsp
         mkdir -p firmware_dir/lib/firmware/qcom/sm8250
-        mkdir -p fastrpc_dir/usr/lib
-        mkdir -p fastrpc_dir/usr/bin
+        mkdir -p fastrpc_dir/vendor/lib
+        mkdir -p fastrpc_dir/vendor/bin
 
         # Verify directory structure
         echo "Verifying created directories:"
         for dir in \
-          firmware_dir/usr/lib/dsp/adsp \
-          firmware_dir/usr/lib/dsp/cdsp \
+          firmware_dir/vendor/lib/dsp/adsp \
+          firmware_dir/vendor/lib/dsp/cdsp \
           firmware_dir/lib/firmware/qcom/sm8250 \
-          fastrpc_dir/usr/lib \
-          fastrpc_dir/usr/bin
+          fastrpc_dir/vendor/lib \
+          fastrpc_dir/vendor/bin
         do
           if [ -d "$dir" ]; then
             echo "[OK] $dir exists"
@@ -127,8 +127,8 @@ jobs:
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
-        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
-        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
+        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/vendor/lib/dsp/adsp
+        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/vendor/lib/dsp/cdsp
 
     - name: 10. Download dsp-linux-firmware
       run: |
@@ -154,35 +154,35 @@ jobs:
     - name: 13. Create ramdisk file including fastrpc binaries
       run: |
         # Copy fastrpc binary
-        cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libadsprpc.so fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libcdsprpc.so fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libsdsp_default_listener.so fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libsdsprpc.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libadsprpc.so fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libcdsprpc.so fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libsdsprpc.so fastrpc_dir/vendor/lib/
 
-        cp -rf src/.libs/libadsp_default_listener.so.1 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libadsprpc.so.1 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libcdsp_default_listener.so.1 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libcdsprpc.so.1 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libsdsp_default_listener.so.1 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libsdsprpc.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsp_default_listener.so.1 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libadsprpc.so.1 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so.1 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libcdsprpc.so.1 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so.1 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libsdsprpc.so.1 fastrpc_dir/vendor/lib/
         
-        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libadsprpc.so.1.0.0 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libcdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
-        cp -rf src/.libs/libsdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libadsprpc.so.1.0.0 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libcdsprpc.so.1.0.0 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 fastrpc_dir/vendor/lib/
+        cp -rf src/.libs/libsdsprpc.so.1.0.0 fastrpc_dir/vendor/lib/
         
-        cp -rf src/adsprpcd fastrpc_dir/usr/bin/
-        cp -rf src/cdsprpcd fastrpc_dir/usr/bin/
-        cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
+        cp -rf src/adsprpcd fastrpc_dir/vendor/bin/
+        cp -rf src/cdsprpcd fastrpc_dir/vendor/bin/
+        cp -rf src/sdsprpcd fastrpc_dir/vendor/bin/
 
          # Copy fastrpc test binary
-        cp -rf test/fastrpc_test fastrpc_dir/usr/bin
-        cp -rf test/linux/* fastrpc_dir/usr/bin
-        cp -rf test/v75/* fastrpc_dir/usr/bin
+        cp -rf test/fastrpc_test fastrpc_dir/vendor/bin
+        cp -rf test/linux/* fastrpc_dir/vendor/bin
+        cp -rf test/v75/* fastrpc_dir/vendor/bin
         
         cd firmware_dir
         find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
