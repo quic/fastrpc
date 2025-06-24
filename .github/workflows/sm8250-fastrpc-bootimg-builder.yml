@@ -1,5 +1,5 @@
 
-name: FastRPC Build and Test
+name: sm8250 Build Boot Image with FastRPC Modules
 
 on:
   push:
@@ -49,12 +49,9 @@ jobs:
     - name: Read paths from config.yaml
       id: config
       run: |
-        echo "adsp=$(yq '.paths.adsp' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
-        echo "cdsp=$(yq '.paths.cdsp' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
-        echo "cdsp1=$(yq '.paths.cdsp' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
-        echo "gdsp0=$(yq '.paths.cdsp' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
-        echo "gdsp1=$(yq '.paths.cdsp' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
-        echo "firmware=$(yq '.paths.firmware' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
+        echo "adsp=$(yq '.paths.adsp' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
+        echo "cdsp=$(yq '.paths.cdsp' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
+        echo "firmware=$(yq '.paths.firmware' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
         
     - name: Download Linaro tools and untar
       run: |
@@ -107,7 +104,7 @@ jobs:
         mkdir -p firmware_dir/usr/lib/dsp/cdsp1
         mkdir -p firmware_dir/usr/lib/dsp/gdsp0
         mkdir -p firmware_dir/usr/lib/dsp/gdsp1
-        mkdir -p firmware_dir/lib/firmware/qcom/x1e80100
+        mkdir -p firmware_dir/lib/firmware/qcom/sm8250
         mkdir -p fastrpc_dir/usr/lib/
         mkdir -p fastrpc_dir/usr/bin/
 
@@ -117,15 +114,12 @@ jobs:
         ls -la hexagon-dsp-binaries
         cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
         cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
-        cp ${{ steps.config.outputs.cdsp1 }}/*.so firmware_dir/usr/lib/dsp/cdsp1
-        cp ${{ steps.config.outputs.gdsp0 }}/*.so firmware_dir/usr/lib/dsp/gdsp0
-        cp ${{ steps.config.outputs.gdsp1 }}/*.so firmware_dir/usr/lib/dsp/gdsp1
 
     - name: Download dsp-linux-firmware
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
-        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/x1e80100/
+        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sm8250/
 
     - name: Download ramdisk
       run: |
@@ -192,15 +186,15 @@ jobs:
         python3 mkbootimg/mkbootimg.py  \
           --header_version 2 \
           --kernel linux/arch/arm64/boot/Image \
-          --dtb linux/arch/arm64/boot/dts/qcom/x1e80100-crd.dtb \
+          --dtb linux/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
           --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
           --ramdisk ramdisk.gz \
-          --output boot-x1e-crd.img
+          --output boot.img
 
     - name: Upload Compiled Image
       uses: actions/upload-artifact@v4
       with:
-        name: boot-x1e-crd.img
-        path: boot-x1e-crd.img
+        name: boot.img
+        path: boot.img
 
 
