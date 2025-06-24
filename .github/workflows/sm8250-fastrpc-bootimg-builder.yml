@@ -31,7 +31,7 @@ jobs:
         # pip3 install intelhex gki
 
     - name: 2. Install mkbootimg from AOSP (manual setup)
-      run: |
+      run: |git p
         apt-get update && apt-get install -y python3-pip git
         pip install intelhex
         git clone https://android.googlesource.com/platform/system/tools/mkbootimg
