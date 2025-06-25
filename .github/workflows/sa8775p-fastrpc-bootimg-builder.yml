@@ -153,28 +153,27 @@ jobs:
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -L -o ramdisk-qcom-armv8a.cpio.gz  https://github.com/quic-mtharu/qemu-ramdisk-artifacts/raw/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
 
       # Step 13: Download Linux kernel artifacts
-      - name: Download and build Linux kernel
-        run: |
-          git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux-kernel-artifacts
-          cd linux-kernel-artifacts
-          umask 0022
-          make LLVM=1 ARCH=arm64 defconfig
-          make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
-          cd ..
+      #- name: Download and build Linux kernel
+      #  run: |
+      #    git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux-kernel-artifacts
+      #    cd linux-kernel-artifacts
+      #    umask 0022
+      #    make LLVM=1 ARCH=arm64 defconfig
+      #    make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
+      #    cd ..
 
       # Step 13: Download Linux kernel artifacts
-      #- name: 13. Download Kernel Artifacts
-      #  uses: actions/download-artifact@v4
-      #  with:
-      #    name: linux-kernel-artifacts
-      #    path: ./linux-kernel-artifacts
+      - name: 13. Download Kernel Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-kernel-artifacts
+          path: ./linux-kernel-artifacts
 
       # Step 13.1: Validate kernel and dtb paths
-      #- name: 13.1. Validate kernel and dtb paths
-      #  run: |
-      #    test -f linux-kernel-artifacts/tar-install/arch/arm64/boot/Image
-      #    test -f linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
-
+      - name: 13.1. Validate kernel and dtb paths
+        run: |
+          test -f linux-kernel-artifacts/tar-install/arch/arm64/boot/Image
+          test -f linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
 
       # Step 14: Create ramdisk file including fastrpc binaries
       - name: 14. Create ramdisk file including fastrpc binaries

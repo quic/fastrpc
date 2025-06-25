@@ -31,7 +31,7 @@ jobs:
         # pip3 install intelhex gki
 
     - name: 2. Install mkbootimg from AOSP (manual setup)
-      run: |git p
+      run: |
         apt-get update && apt-get install -y python3-pip git
         pip install intelhex
         git clone https://android.googlesource.com/platform/system/tools/mkbootimg
@@ -142,14 +142,28 @@ jobs:
            -L -o ramdisk-qcom-armv8a.cpio.gz \
            https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
     
-    - name: 12. Download and build Linux kernel
+    # Step 12: Download Linux kernel artifacts
+    #- name: Download and build Linux kernel
+    #  run: |
+    #    git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux-kernel-artifacts
+    #    cd linux-kernel-artifacts
+    #    umask 0022
+    #    make LLVM=1 ARCH=arm64 defconfig
+    #    make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
+    #    cd ..
+
+    # Step 12: Download Linux kernel artifacts
+    - name: 12. Download Kernel Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: linux-kernel-artifacts
+        path: ./linux-kernel-artifacts
+
+    # Step 12.1: Validate kernel and dtb paths
+    - name: 12.1. Validate kernel and dtb paths
       run: |
-        git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
-        cd linux
-        umask 0022
-        make LLVM=1 ARCH=arm64 defconfig
-        make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
-        cd ..
+        test -f linux-kernel-artifacts/tar-install/arch/arm64/boot/Image
+        test -f linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
 
     - name: 13. Create ramdisk file including fastrpc binaries
       run: |
