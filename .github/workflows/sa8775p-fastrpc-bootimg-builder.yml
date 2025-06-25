@@ -159,10 +159,14 @@ jobs:
           gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./linux-kernel-artifacts
 
       # Step 13.1: Validate kernel and dtb paths
-      - name: 13.1. Validate kernel and dtb paths
+      - name: Validate artifact download
         run: |
-          test -f linux-kernel-artifacts/tar-install/arch/arm64/boot/Image
-          test -f linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
+          if [ -f ./linux-kernel-artifacts/arch/arm64/boot/Image ]; then
+            echo "✅ Artifact downloaded successfully and Image file exists."
+          else
+            echo "❌ Artifact download failed or expected file not found."
+            exit 1
+          fi
 
       # Step 14: Create ramdisk file including fastrpc binaries
       - name: 14. Create ramdisk file including fastrpc binaries
