@@ -184,15 +184,13 @@ jobs:
         cd ..
 
     # Step 13: Download Linux kernel artifacts
-    - name: Download Kernel Artifacts from Specific Run
-      uses: actions/download-artifact@v4
-      with:
-        name: linux-kernel-artifacts
-        path: ./linux-kernel-artifacts
-        repository: quic/fastrpc
-        run-id: 15867457800
-        merge-multiple: false
+    - name: Download artifact using curl
+      run: |
+        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -L "https://github.com/quic/fastrpc/actions/runs/15867457800/artifacts/3398331980/zip" \
+            -o linux-kernel-artifacts.zip
 
+        unzip linux-kernel-artifacts.zip -d ./linux-kernel-artifacts
 
     # Step 13.1: Validate kernel and dtb paths
     - name: 13.1. Validate kernel and dtb paths
