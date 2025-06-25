@@ -32,6 +32,7 @@ jobs:
           umask 0022
           make LLVM=1 ARCH=arm64 defconfig
           make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+          cd ..
 
       - name: 4. Upload Kernel Artifacts
         uses: actions/upload-artifact@v4

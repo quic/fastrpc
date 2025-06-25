@@ -24,7 +24,7 @@ jobs:
       run: |
         wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
         chmod +x yq
-        mv yq /vendor/local/bin/yq || mv yq ./yq  # fallback if /vendor/local/bin is not writable
+        mv yq /usr/local/bin/yq || mv yq ./yq  # fallback if /usr/local/bin is not writable
         apt-get update && apt-get install -y python3 python3-pip
         python3 --version
         pip3 --version
@@ -36,8 +36,8 @@ jobs:
         pip install intelhex
         git clone https://android.googlesource.com/platform/system/tools/mkbootimg
         export PYTHONPATH=$PWD/mkbootimg:$PYTHONPATH
-        cp mkbootimg/mkbootimg.py /vendor/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
-        chmod +x /vendor/local/bin/mkbootimg || chmod +x ./mkbootimg
+        cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
+        chmod +x /usr/local/bin/mkbootimg || chmod +x ./mkbootimg
 
     - name: 3. Install build dependencies (without sudo)
       run: |
@@ -100,20 +100,20 @@ jobs:
     - name: 8. Create directories and verify required directories
       run: |
         # Create directories
-        mkdir -p firmware_dir/vendor/lib/dsp/adsp
-        mkdir -p firmware_dir/vendor/lib/dsp/cdsp
+        mkdir -p firmware_dir/usr/lib/dsp/adsp
+        mkdir -p firmware_dir/usr/lib/dsp/cdsp
         mkdir -p firmware_dir/lib/firmware/qcom/sm8250
-        mkdir -p fastrpc_dir/vendor/lib
-        mkdir -p fastrpc_dir/vendor/bin
+        mkdir -p fastrpc_dir/usr/lib
+        mkdir -p fastrpc_dir/usr/bin
 
         # Verify directory structure
         echo "Verifying created directories:"
         for dir in \
-          firmware_dir/vendor/lib/dsp/adsp \
-          firmware_dir/vendor/lib/dsp/cdsp \
+          firmware_dir/usr/lib/dsp/adsp \
+          firmware_dir/usr/lib/dsp/cdsp \
           firmware_dir/lib/firmware/qcom/sm8250 \
-          fastrpc_dir/vendor/lib \
-          fastrpc_dir/vendor/bin
+          fastrpc_dir/usr/lib \
+          fastrpc_dir/usr/bin
         do
           if [ -d "$dir" ]; then
             echo "[OK] $dir exists"
@@ -123,12 +123,51 @@ jobs:
           fi
         done
 
+    - name: 12. Copy fastrpc binary and fastrpc test binary
+      run: |
+        # Copy fastrpc binary
+        cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsprpc.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsprpc.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsprpc.so fastrpc_dir/usr/lib/
+
+        cp -rf src/.libs/libadsp_default_listener.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsprpc.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsprpc.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsprpc.so.1 fastrpc_dir/usr/lib/
+        
+        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libadsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libcdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+        cp -rf src/.libs/libsdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+        
+        cp -rf src/adsprpcd fastrpc_dir/usr/bin/
+        cp -rf src/cdsprpcd fastrpc_dir/usr/bin/
+        cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
+
+         # Copy fastrpc test binary
+        cp -rf test/fastrpc_test fastrpc_dir/usr/bin
+        cp -rf test/linux/* fastrpc_dir/usr/bin
+        cp -rf test/v75/* fastrpc_dir/usr/bin
+
+        echo "Listing contents of ./fastrpc_dir"
+        find ./fastrpc_dir
+        cd fastrpc_dir 
+        find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
+        cd ..
+
     - name: 9. Download hexagon-dsp-binaries
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
-        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/vendor/lib/dsp/adsp
-        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/vendor/lib/dsp/cdsp
+        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
+        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
 
     - name: 10. Download dsp-linux-firmware
       run: |
@@ -136,86 +175,50 @@ jobs:
         ls -la linux-firmware
         cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sm8250/
 
-    - name: 11. Download ramdisk
+    - name: 11. list and create a zip file of dsp-firware
       run: |
-        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-           -L -o ramdisk-qcom-armv8a.cpio.gz \
-           https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
-    
-    # Step 12: Download Linux kernel artifacts
-    #- name: Download and build Linux kernel
-    #  run: |
-    #    git clone  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux-kernel-artifacts
-    #    cd linux-kernel-artifacts
-    #    umask 0022
-    #    make LLVM=1 ARCH=arm64 defconfig
-    #    make LLVM=1 ARCH=arm64 -j$99 dir-pkg INSTALL_MOD_STRIP=1
-    #    cd ..
-
-    # Step 12: Download Linux kernel artifacts
-    - name: 12. Download Kernel Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: linux-kernel-artifacts
-        path: ./linux-kernel-artifacts
-
-    # Step 12.1: Validate kernel and dtb paths
-    - name: 12.1. Validate kernel and dtb paths
-      run: |
-        test -f linux-kernel-artifacts/tar-install/arch/arm64/boot/Image
-        test -f linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb
-
-    - name: 13. Create ramdisk file including fastrpc binaries
-      run: |
-        # Copy fastrpc binary
-        cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libadsprpc.so fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libcdsprpc.so fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libsdsp_default_listener.so fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libsdsprpc.so fastrpc_dir/vendor/lib/
-
-        cp -rf src/.libs/libadsp_default_listener.so.1 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libadsprpc.so.1 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libcdsp_default_listener.so.1 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libcdsprpc.so.1 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libsdsp_default_listener.so.1 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libsdsprpc.so.1 fastrpc_dir/vendor/lib/
-        
-        cp -rf src/.libs/libadsp_default_listener.so.1.0.0 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libadsprpc.so.1.0.0 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libcdsprpc.so.1.0.0 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 fastrpc_dir/vendor/lib/
-        cp -rf src/.libs/libsdsprpc.so.1.0.0 fastrpc_dir/vendor/lib/
-        
-        cp -rf src/adsprpcd fastrpc_dir/vendor/bin/
-        cp -rf src/cdsprpcd fastrpc_dir/vendor/bin/
-        cp -rf src/sdsprpcd fastrpc_dir/vendor/bin/
-
-         # Copy fastrpc test binary
-        cp -rf test/fastrpc_test fastrpc_dir/vendor/bin
-        cp -rf test/linux/* fastrpc_dir/vendor/bin
-        cp -rf test/v75/* fastrpc_dir/vendor/bin
-        
+        echo "Listing contents of ./firmware_dir"
+        find ./firmware_dir
         cd firmware_dir
         find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
         cd ..
 
-        cd fastrpc_dir 
-        find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
-        cd ..
+    # Step 13: Download Linux kernel artifacts
+    - name: Download Kernel Artifacts from Specific Run
+      uses: actions/download-artifact@v4
+      with:
+        name: linux-kernel-artifacts
+        path: ./linux-kernel-artifacts
+        repository: quic/fastrpc
+        run-id: 15867457800
+        merge-multiple: false
+
+
+    # Step 13.1: Validate kernel and dtb paths
+    - name: 13.1. Validate kernel and dtb paths
+      run: |
+        cd linux-kernel-artifacts
+        test -f tar-install/lib/modules
+        test -f arch/arm64/boot/Image
+        test -f arch/arm64/boot/dts/qcom/sm8250-mtp.dtb
+
+    - name: 13. Download and create fastrpc included ramdisk file
+      run: |
+        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+           -L -o ramdisk-qcom-armv8a.cpio.gz \
+           https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
 
         cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
-        cd linux/tar-install
-        find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+        cd tar-install 
+        find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
+        cd ..
 
     - name: 14. Create boot image using mkbootimg
       run: |
         python3 mkbootimg/mkbootimg.py  \
           --header_version 2 \
-          --kernel linux/arch/arm64/boot/Image \
-          --dtb linux/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
+          --kernel arch/arm64/boot/Image \
+          --dtb arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
           --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
           --ramdisk ramdisk.gz \
           --output sm8250_boot.img
