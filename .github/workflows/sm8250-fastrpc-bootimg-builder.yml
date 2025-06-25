@@ -123,7 +123,7 @@ jobs:
           fi
         done
 
-    - name: 12. Copy fastrpc binary and fastrpc test binary
+    - name: 9. Copy fastrpc binary and fastrpc test binary
       run: |
         # Copy fastrpc binary
         cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
@@ -162,20 +162,20 @@ jobs:
         find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
         cd ..
 
-    - name: 9. Download hexagon-dsp-binaries
+    - name: 10. Download hexagon-dsp-binaries
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
         cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
         cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
 
-    - name: 10. Download dsp-linux-firmware
+    - name: 11. Download dsp-linux-firmware
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
         cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sm8250/
 
-    - name: 11. list and create a zip file of dsp-firware
+    - name: 12. list and create a zip file of dsp-firware
       run: |
         echo "Listing contents of ./firmware_dir"
         find ./firmware_dir
@@ -191,7 +191,7 @@ jobs:
 
 
     # Step 13.1: Validate kernel and dtb paths
-    - name: Validate artifact download
+    - name: 13.1. Validate artifact download
       run: |
         if [ -f ./linux-kernel-artifacts/arch/arm64/boot/Image ]; then
           echo "✅ Artifact downloaded successfully and Image file exists."
@@ -200,23 +200,23 @@ jobs:
           exit 1
         fi
 
-    - name: 13. Download and create fastrpc included ramdisk file
+    - name: 13.2. Download and create fastrpc included ramdisk file
       run: |
         curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
            -L -o ramdisk-qcom-armv8a.cpio.gz \
            https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
 
         cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
-        cd tar-install 
-        find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../ramdisk.gz
-        cd ..
+        cd linux-kernel-artifacts/tar-install 
+        find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+        cd ../..
 
     - name: 14. Create boot image using mkbootimg
       run: |
         python3 mkbootimg/mkbootimg.py  \
           --header_version 2 \
-          --kernel arch/arm64/boot/Image \
-          --dtb arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
+          --kernel linux-kernel-artifacts/arch/arm64/boot/Image \
+          --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
           --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
           --ramdisk ramdisk.gz \
           --output sm8250_boot.img
