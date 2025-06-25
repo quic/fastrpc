@@ -184,13 +184,11 @@ jobs:
         cd ..
 
     # Step 13: Download Linux kernel artifacts
-    - name: Download artifact using curl
+    - name: 13. Download artifact using gh CLI
       run: |
-        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -L "https://github.com/quic/fastrpc/actions/runs/15867457800/artifacts/3398331980/" \
-            -o linux-kernel-artifacts.zip
+        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+        gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./linux-kernel-artifacts
 
-        unzip linux-kernel-artifacts.zip -d ./linux-kernel-artifacts
 
     # Step 13.1: Validate kernel and dtb paths
     - name: 13.1. Validate kernel and dtb paths
