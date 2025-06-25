@@ -187,7 +187,7 @@ jobs:
     - name: Download artifact using curl
       run: |
         curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -L "https://github.com/quic/fastrpc/actions/runs/15867457800/artifacts/3398331980/zip" \
+            -L "https://github.com/quic/fastrpc/actions/runs/15867457800/artifacts/3398331980/" \
             -o linux-kernel-artifacts.zip
 
         unzip linux-kernel-artifacts.zip -d ./linux-kernel-artifacts
