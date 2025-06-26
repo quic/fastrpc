@@ -126,6 +126,20 @@ struct dspqueue_buffer {
  */
 typedef void (*dspqueue_callback_t)(dspqueue_t queue, AEEResult error, void *context);
 
+/**
+ * Callback function type for all queue callbacks
+ *
+ * @param queue Queue handle from dspqueue_create() / dspqueue_import()
+ * @param error Error code
+ * @param context Client-provided context pointer
+ * @param logical_id      Logical id of domain in context which triggered
+ *                        callback
+ * @param effec_domain_id Effective domain id of remote session which
+ *                        triggered callback
+ */
+typedef void (*dspqueue_mdq_callback_t)(dspqueue_t queue, AEEResult error,
+	void *context, int logical_id, int effec_domain_id);
+
 /* Struct to be used with DSPQUEUE_CREATE request */
 typedef struct dspqueue_create_req {
 	/* [in]: Fastrpc multi-domain context */
@@ -158,13 +172,13 @@ typedef struct dspqueue_create_req {
 	 * this callback can be called concurrently from multiple threads.
 	 * Client is expected to consume each available response packet.
 	 */
-	dspqueue_callback_t packet_callback;
+	dspqueue_mdq_callback_t packet_callback;
 
 	/*
 	 * [in]: Callback function called on unrecoverable errors.
 	 * NULL to disable.
 	 */
-	dspqueue_callback_t error_callback;
+	dspqueue_mdq_callback_t error_callback;
 
 	/* [in]: Context pointer for callback functions */
 	void *callback_context;
