@@ -194,10 +194,17 @@ AEEResult dspsignal_cancel_wait(int domain, uint32_t id);
  */
 void dspsignal_domain_deinit(int domain);
 
-/**
- * Destroy all allocated signals for the process.
+/*
+ * Initialize domain_signals hash-table
+ * Returns 0 on success
  */
-void deinit_process_signals();
+int fastrpc_dspsignal_init(void);
+
+/*
+ * Cleanup domain_signals hash table
+ * Returns none
+ */
+void fastrpc_dspsignal_deinit(void);
 
 #ifdef __cplusplus
 }
