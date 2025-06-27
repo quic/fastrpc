@@ -34,11 +34,11 @@ jobs:
           make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
           cd ..
 
-      - name: 4. Upload Kernel Artifacts
+          find ./linux -print0 | cpio --null -ov --format=newc | gzip -9 > linux-kernel-artifacts.cpio.gz
+
+ 
+      - name: Upload Kernel Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-kernel-artifacts
-          path: |
-            linux/arch/arm64/boot/Image
-            linux/arch/arm64/boot/dts/qcom/**
-            linux/tar-install/**
+          name: linux
+          path: linux-kernel-artifacts.cpio.gz

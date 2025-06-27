@@ -166,14 +166,15 @@ jobs:
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
-        cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
-        cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
+        cp ${{ steps.config.outputs.adsp }}/* firmware_dir/usr/lib/dsp/adsp
+        cp ${{ steps.config.outputs.cdsp }}/* firmware_dir/usr/lib/dsp/cdsp
 
     - name: 11. Download dsp-linux-firmware
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
         cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sm8250/
+        mv firmware_dir/lib/firmware/qcom/sm8250/Thundercomm/RB5/* firmware_dir/lib/firmware/qcom/sm8250/
 
     - name: 12. list and create a zip file of dsp-firware
       run: |
@@ -184,10 +185,16 @@ jobs:
         cd ..
 
     # Step 13: Download Linux kernel artifacts
-    - name: 13. Download artifact using gh CLI
+    - name: 13. Download Linux kernel artifact
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-        gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./linux-kernel-artifacts
+        gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./artifacts
+
+    - name: Extract  Linux kernel archive
+      run: |
+        mkdir -p linux-kernel-artifacts
+        cd linux-kernel-artifacts
+        gzip -dc ../artifacts/linux-kernel-artifacts.cpio.gz | cpio -idmv
 
 
     # Step 13.1: Validate kernel and dtb paths
