@@ -1,0 +1,68 @@
+---
+name: _loading
+description: Load required parameters for the subsequent jobs
+
+on:
+  workflow_call:
+    inputs:
+      DEVICE_TYPE:
+        required: true
+        type: string
+    outputs:
+      build_args:
+        description: The build arguments
+        value: ${{ jobs.loading.outputs.build_args }}
+      adsp_path:
+        description: ADSP path
+        value: ${{ jobs.loading.outputs.adsp_path }}
+      cdsp_path:
+        description: CDSP path
+        value: ${{ jobs.loading.outputs.cdsp_path }}
+      gdsp_path:
+        description: GDSP path
+        value: ${{ jobs.loading.outputs.gdsp_path }}
+      pdsp_path:
+        description: PDSP path
+        value: ${{ jobs.loading.outputs.pdsp_path }}
+      firmware_path:
+        description: Firmware path
+        value: ${{ jobs.loading.outputs.firmware_path }}
+
+jobs:
+  loading:
+    runs-on: ubuntu-latest
+    outputs:
+      build_args: ${{ steps.parse.outputs.build_args }}
+      adsp_path: ${{ steps.parse.outputs.adsp_path }}
+      cdsp_path: ${{ steps.parse.outputs.cdsp_path }}
+      gdsp_path: ${{ steps.parse.outputs.gdsp_path }}
+      pdsp_path: ${{ steps.parse.outputs.pdsp_path }}
+      firmware_path: ${{ steps.parse.outputs.firmware_path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Parse build arguments and DSP paths
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const core = require('@actions/core');
+
+            // Parse build arguments
+            echo "Loading config for ${{ inputs.DEVICE_TYPE }}"
+            const buildArgs = fs.readFileSync('./CI/config/${{ inputs.DEVICE_TYPE }}/build_options.txt', 'utf-8').trim().split('\n').join(' ');
+            core.setOutput('build_args', buildArgs);
+
+            // Parse DSP paths
+            const lines = fs.readFileSync('./CI/config/${{ inputs.DEVICE_TYPE }}/build_paths.txt', 'utf-8').trim().split('\n');
+            const outputs = {};
+            for (const line of lines) {
+              const [key, value] = line.split('=');
+              if (key && value) {
+                const outputKey = key.trim().toLowerCase();
+                outputs[outputKey] = value.trim();
+                core.setOutput(outputKey, value.trim());
+              }
+            }

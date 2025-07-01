@@ -1,5 +1,5 @@
 
-name: sm8250 Build Boot Image with FastRPC Modules
+name: Build Boot Image with FastRPC Modules
 
 on:
   push:
@@ -10,6 +10,11 @@ on:
     branches:
       - 'main'
       - 'development'
+  workflow_call:
+    inputs:
+      DEVICE_TYPE:
+        required: true
+        type: string
 
 jobs:
   build:
@@ -19,6 +24,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+
+    - name:  Build Boot Image with FastRPC Modules for ${{ inputs.DEVICE_TYPE }}
+      run: |
+        echo "Build Boot Image with FastRPC Modules for ${{ inputs.DEVICE_TYPE }}"
 
     - name: 1. Install yq and Python tools (without sudo)
       run: |
@@ -46,13 +55,15 @@ jobs:
         libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev \
         util-linux initramfs-tools
 
-    - name: 4. Read paths from config.yaml
+    - name: 4. Use DSP paths if available
       id: config
       run: |
-        echo "adsp=$(yq '.paths.adsp' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
-        echo "cdsp=$(yq '.paths.cdsp' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
-        echo "firmware=$(yq '.paths.firmware' CI/config/sm8250/config.yml)" >> $GITHUB_OUTPUT
-        
+        [[ -n "${{ needs.loading.outputs.adsp_path }}" ]] && echo "adsp=${{ needs.loading.outputs.adsp_path }}" >> $GITHUB_OUTPUT
+        [[ -n "${{ needs.loading.outputs.cdsp_path }}" ]] && echo "cdsp=${{ needs.loading.outputs.cdsp_path }}" >> $GITHUB_OUTPUT
+        [[ -n "${{ needs.loading.outputs.gdsp_path }}" ]] && echo "GDSP=${{ needs.loading.outputs.gdsp_path }}" >> $GITHUB_OUTPUT
+        [[ -n "${{ needs.loading.outputs.pdsp_path }}" ]] && echo "PDSP=${{ needs.loading.outputs.pdsp_path }}" >> $GITHUB_OUTPUT
+        [[ -n "${{ needs.loading.outputs.firmware_path }}" ]] && echo "firmware=${{ needs.loading.outputs.firmware_path }}" >> $GITHUB_OUTPUT
+
     - name: 5. Download Linaro tools and untar
       run: |
         wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
@@ -102,7 +113,7 @@ jobs:
         # Create directories
         mkdir -p firmware_dir/usr/lib/dsp/adsp
         mkdir -p firmware_dir/usr/lib/dsp/cdsp
-        mkdir -p firmware_dir/lib/firmware/qcom/sm8250
+        mkdir -p firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}
         mkdir -p fastrpc_dir/usr/lib
         mkdir -p fastrpc_dir/usr/bin
 
@@ -111,7 +122,7 @@ jobs:
         for dir in \
           firmware_dir/usr/lib/dsp/adsp \
           firmware_dir/usr/lib/dsp/cdsp \
-          firmware_dir/lib/firmware/qcom/sm8250 \
+          firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }} \
           fastrpc_dir/usr/lib \
           fastrpc_dir/usr/bin
         do
@@ -173,8 +184,8 @@ jobs:
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
-        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sm8250/
-        mv firmware_dir/lib/firmware/qcom/sm8250/Thundercomm/RB5/* firmware_dir/lib/firmware/qcom/sm8250/
+        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/
+        mv firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/Thundercomm/RB5/* firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/
 
     - name: 12. list and create a zip file of dsp-firware
       run: |
@@ -184,52 +195,13 @@ jobs:
         find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
         cd ..
 
-    # Step 13: Download Linux kernel artifacts
-    - name: 13. Download Linux kernel artifact
-      run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-        gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./artifacts
-
-    - name: Extract  Linux kernel archive
-      run: |
-        mkdir -p linux-kernel-artifacts
-        cd linux-kernel-artifacts
-        gzip -dc ../artifacts/linux-kernel-artifacts.cpio.gz | cpio -idmv
-
-
-    # Step 13.1: Validate kernel and dtb paths
-    - name: 13.1. Validate artifact download
-      run: |
-        if [ -f ./linux-kernel-artifacts/arch/arm64/boot/Image ]; then
-          echo "✅ Artifact downloaded successfully and Image file exists."
-        else
-          echo "❌ Artifact download failed or expected file not found."
-          exit 1
-        fi
-
-    - name: 13.2. Download and create fastrpc included ramdisk file
-      run: |
-        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-           -L -o ramdisk-qcom-armv8a.cpio.gz \
-           https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
-
-        cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
-        cd linux-kernel-artifacts/tar-install 
-        find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
-        cd ../..
-
-    - name: 14. Create boot image using mkbootimg
-      run: |
-        python3 mkbootimg/mkbootimg.py  \
-          --header_version 2 \
-          --kernel linux-kernel-artifacts/arch/arm64/boot/Image \
-          --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
-          --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
-          --ramdisk ramdisk.gz \
-          --output sm8250_boot.img
-
-    - name: 15. Upload Compiled Image
+    - name: 13. Upload Compiled fastrpc binaries
+      id: upload_boot_img
       uses: actions/upload-artifact@v4
       with:
-        name: sm8250_boot.img
-        path: sm8250_boot.img
+        name: fastrpc-artifacts
+        path: |
+          ${{ github.workspace }}/dsp-firmware.cpio.gz
+          ${{ github.workspace }}/fastrpc.cpio.gz
+        retention-days: 1
+

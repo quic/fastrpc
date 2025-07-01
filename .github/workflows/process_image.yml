@@ -1,0 +1,87 @@
+name: _process_image
+description: Process Image for build url
+
+on:
+  workflow_call:
+    inputs:
+      DEVICE_TYPE:
+        required: true
+        type: string
+
+jobs:
+  process_image:
+    runs-on: ubuntu-22.04
+    container:
+      image: lineageos4microg/docker-lineage-cicd:latest
+
+    steps:
+      - name: 1. Install yq and Python tools (without sudo)
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
+          chmod +x yq
+          mv yq /usr/local/bin/yq || mv yq ./yq  # fallback if /usr/local/bin is not writable
+          apt-get update && apt-get install -y python3 python3-pip
+          python3 --version
+          pip3 --version
+
+      - name: 2. Install mkbootimg from AOSP (manual setup)
+        run: |
+          apt-get update && apt-get install -y python3-pip git
+          pip install intelhex
+          git clone https://android.googlesource.com/platform/system/tools/mkbootimg
+          export PYTHONPATH=$PWD/mkbootimg:$PYTHONPATH
+          cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
+          chmod +x /usr/local/bin/mkbootimg || chmod +x ./mkbootimg
+
+      - name: 3. Install build dependencies (without sudo)
+        run: |
+          apt-get update && apt-get install -y gh           build-essential gcc g++ make autoconf automake libtool           libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev           util-linux initramfs-tools
+
+      - name: 4. Download build artifacts
+        id: download_build_artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fastrpc-artifacts
+          path: ${{ github.workspace }}
+
+      - name: 5. Download Linux kernel artifact
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./artifacts
+
+      - name: 6. Extract Linux kernel archive
+        run: |
+          mkdir -p linux-kernel-artifacts
+          cd linux-kernel-artifacts
+          gzip -dc ../artifacts/linux-kernel-artifacts.cpio.gz | cpio -idmv
+
+      - name: 7. Validate artifact download
+        run: |
+          if [ -f ./linux-kernel-artifacts/arch/arm64/boot/Image ]; then
+            echo "✅ Artifact downloaded successfully and Image file exists."
+          else
+            echo "❌ Artifact download failed or expected file not found."
+            exit 1
+          fi
+
+      - name: 8. Download and create fastrpc included ramdisk file
+        run: |
+          curl -L -o ramdisk-qcom-armv8a.cpio.gz  https://github.com/quic-mtharu/qemu-ramdisk-artifacts/raw/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+
+          cat ramdisk-qcom-armv8a.cpio.gz fastrpc-artifacts/dsp-firmware.cpio.gz fastrpc-artifacts/fastrpc.cpio.gz > ramdisk.gz
+          
+          cd linux-kernel-artifacts/tar-install 
+          find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+          cd ../..
+
+      - name: 9. Create boot image using mkbootimg
+        run: |
+          python3 mkbootimg/mkbootimg.py            --header_version 2           --kernel linux-kernel-artifacts/arch/arm64/boot/Image           --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/${{ inputs.DEVICE_TYPE }}-mtp.dtb           --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0"           --ramdisk ramdisk.gz           --output ${{ inputs.DEVICE_TYPE }}_boot.img
+
+      - name: 10. Upload Compiled Image
+        id: upload_compiled_image
+        uses: ./.github/actions/aws-s3-exchanger
+        with:
+          s3_bucket: qli-prd-fastrpc-artifacts
+          local_file: ${{ github.workspace }}/${{ inputs.DEVICE_TYPE }}_boot.img
+          mode: upload

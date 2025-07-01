@@ -1,0 +1,95 @@
+name: _test
+description: Trigger LAVA tests on the build
+
+on:
+  workflow_call:
+    inputs:
+      DEVICE_TYPE:
+        required: true
+        type: string
+
+jobs:
+  submit_lava:
+    runs-on:
+      group: GHA-Audioreach-SelfHosted-RG
+      labels: [ self-hosted, self-hosted, audior-prd-u2204-x64-large-od-ephem ]
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: Audioreach/meta-ar
+
+      - name: Download presigned URL
+        id: download_url
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.DEVICE_TYPE }}_boot.img
+          path: ${{ github.workspace }}
+
+      - name: Get build URL
+        id: get_build_url
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const filePath = `${{ github.workspace }}/presigned_url.txt`
+            const url = fs.readFileSync(filePath, 'utf8').toString().trim()
+            console.log(url)
+            core.setOutput('build_url', url)
+          
+      - name: Print trigger
+        run: |
+          echo "Triggered by ${{ github.event_name }}"
+          echo "Build URL: --->"
+          echo "${{ steps.get_build_url.outputs.build_url }}"
+
+      - name: "List jobs"
+        id: listjobs
+        run: |
+          target_file="ci/lava/qcs6490-rb3gen2-core-kit/boot.yaml"
+          if [ ! -f "$target_file" ]; then
+            echo "Target file $target_file does not exist."
+            echo "target_file=" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          TARGET=${target_file}
+          FIND_PATH="${TARGET#*/}"
+          DEVICE_TYPE_PATH="${FIND_PATH%/*}"
+          DEVICE_TYPE="${DEVICE_TYPE_PATH#*/}"
+          BUILD_FILE_NAME="core-image-base-qcs6490-rb3gen2-core-kit.rootfs.qcomflash.tar.gz"
+          BUILD_DOWNLOAD_URL="${{ steps.get_build_url.outputs.build_url }}"
+          sed -i "s|{{DEVICE_TYPE}}|${DEVICE_TYPE}|g" "${target_file}"
+          sed -i "s|{{GITHUB_SHA}}|${GITHUB_SHA}|g" "${target_file}"
+          ESCAPED_URL=$(printf '%s\n' "$BUILD_DOWNLOAD_URL" | sed 's/[&/?=]/\\&/g')
+          sed -i "s|{{BUILD_DOWNLOAD_URL}}|${ESCAPED_URL}|g" "${target_file}"
+          sed -i "s|{{BUILD_FILE_NAME}}|${BUILD_FILE_NAME}|g" "${target_file}"
+          sed -i "s|{{GITHUB_RUN_ID}}|${GITHUB_RUN_ID}|g" "${target_file}"
+          cat "${target_file}"
+          echo "target=${target_file}" >> "$GITHUB_OUTPUT"
+
+      - name: Test with LAVA
+        if: ${{ inputs.DEVICE_TYPE != '' }}
+        id: submit_job
+        timeout-minutes: 20
+        uses: foundriesio/lava-action@v6
+        with:
+          lava_token: ${{ secrets.LAVATOKEN }}
+          lava_url: 'lava.infra.foundries.io'
+          job_definition: ${{ inputs.DEVICE_TYPE }}
+          wait_for_job: true
+          fail_action_on_failure: false
+          save_result_as_artifact: true
+          save_job_details: true
+
+      - name: Update Summary
+        if: success() || failure()
+        run: |
+          if [ "${{ steps.submit_job.outcome }}" == "success" ]; then
+            echo "## Test Job Summary" >> $GITHUB_STEP_SUMMARY
+            echo ":heavy_check_mark: Test job completed successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Test Job Summary" >> $GITHUB_STEP_SUMMARY
+            echo ":x: Test job failed." >> $GITHUB_STEP_SUMMARY
+          fi

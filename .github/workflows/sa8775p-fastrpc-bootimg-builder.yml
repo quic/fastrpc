@@ -131,32 +131,80 @@ jobs:
             fi
           done
 
-      # Step 10: Download hexagon-dsp-binaries and copy .so files
-      - name: 10. Download hexagon-dsp-binaries
+      - name: 9.1 Copy fastrpc binary and fastrpc test binary
+        run: |
+          # Copy fastrpc binary
+          cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libadsprpc.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsprpc.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsp_default_listener.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsprpc.so fastrpc_dir/usr/lib/
+
+          cp -rf src/.libs/libadsp_default_listener.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libadsprpc.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsprpc.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsprpc.so.1 fastrpc_dir/usr/lib/
+          
+          cp -rf src/.libs/libadsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libadsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+          
+          cp -rf src/adsprpcd fastrpc_dir/usr/bin/
+          cp -rf src/cdsprpcd fastrpc_dir/usr/bin/
+          cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
+
+          # Copy fastrpc test binary
+          cp -rf test/fastrpc_test fastrpc_dir/usr/bin
+          cp -rf test/linux/* fastrpc_dir/usr/bin
+          cp -rf test/v75/* fastrpc_dir/usr/bin
+
+          echo "Listing contents of ./fastrpc_dir"
+          find ./fastrpc_dir
+          cd fastrpc_dir 
+          find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
+          cd ..
+
+      # Step 10: Download hexagon-dsp-binaries and copy files
+      - name: 10. Download hexagon-dsp-binaries and copy files
         run: |
           git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
-          cp ${{ steps.config.outputs.adsp }}/*.so firmware_dir/usr/lib/dsp/adsp
-          cp ${{ steps.config.outputs.cdsp }}/*.so firmware_dir/usr/lib/dsp/cdsp
-          cp ${{ steps.config.outputs.cdsp1 }}/*.so firmware_dir/usr/lib/dsp/cdsp1
-          cp ${{ steps.config.outputs.gdsp0 }}/*.so firmware_dir/usr/lib/dsp/gdsp0
-          cp ${{ steps.config.outputs.gdsp1 }}/*.so firmware_dir/usr/lib/dsp/gdsp1
+          cp ${{ steps.config.outputs.adsp }}/* firmware_dir/usr/lib/dsp/adsp
+          cp ${{ steps.config.outputs.cdsp }}/* firmware_dir/usr/lib/dsp/cdsp
+          cp ${{ steps.config.outputs.cdsp1 }}/* firmware_dir/usr/lib/dsp/cdsp1
+          cp ${{ steps.config.outputs.gdsp0 }}/* firmware_dir/usr/lib/dsp/gdsp0
+          cp ${{ steps.config.outputs.gdsp1 }}/* firmware_dir/usr/lib/dsp/gdsp1
 
-      # Step 11: Download and copy Linux firmware
-      - name: 11. Download dsp-linux-firmware
+      # Step 11: Download and copy Linux firmware and copy files
+      - name: 11. Download dsp-linux-firmware and copy files
         run: |
           git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
           cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sa8775p/
 
-      # Step 12: Download ramdisk image
-      - name: 12. Download ramdisk
+      - name: 12. list and create a zip file of dsp-firware
         run: |
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -L -o ramdisk-qcom-armv8a.cpio.gz  https://github.com/quic-mtharu/qemu-ramdisk-artifacts/raw/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+          echo "Listing contents of ./firmware_dir"
+          find ./firmware_dir
+          cd firmware_dir
+          find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
+          cd ..        
 
       # Step 13: Download Linux kernel artifacts
-      - name: Download artifact using gh CLI
+      - name: 13. Download artifact using gh CLI
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./linux-kernel-artifacts
+
+      - name: Extract  Linux kernel archive
+        run: |
+          mkdir -p linux-kernel-artifacts
+          cd linux-kernel-artifacts
+          gzip -dc ../artifacts/linux-kernel-artifacts.cpio.gz | cpio -idmv
 
       # Step 13.1: Validate kernel and dtb paths
       - name: Validate artifact download
@@ -169,16 +217,16 @@ jobs:
           fi
 
       # Step 14: Create ramdisk file including fastrpc binaries
-      - name: 14. Create ramdisk file including fastrpc binaries
+      - name: 14. Download and create fastrpc included ramdisk file
         run: |
-          cp -rf src/.libs/*.so* fastrpc_dir/usr/lib/
-          cp -rf src/*rpcd fastrpc_dir/usr/bin/
-          cp -rf test/fastrpc_test test/linux/* test/v75/* fastrpc_dir/usr/bin/
-          cd firmware_dir && find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz && cd ..
-          cd fastrpc_dir && find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz && cd ..
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -L -o ramdisk-qcom-armv8a.cpio.gz \
+            https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+
           cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
           cd linux-kernel-artifacts/tar-install
           find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+          cd ../..
 
       # Step 15: Create boot image using mkbootimg
       - name: 15. Create boot image using mkbootimg
