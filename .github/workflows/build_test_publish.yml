@@ -10,6 +10,14 @@ on:
       - 'development'
     paths-ignore:
       - '.github/**'
+  push:
+    branches:
+    - 'main'
+    - 'development'
+  pull_request:
+    branches:
+    - 'main'
+    - 'development'
 
 jobs:
   set_targets:
