@@ -7,7 +7,7 @@ actions:
       boot:
         headers:
           Authentication: Q_GITHUB_TOKEN
-        url: "{{BUILD_DOWNLOAD_URL}}/sa8775p_boot.img"
+        url: "{{BUILD_DOWNLOAD_URL}}/{{BUILD_FILE_NAME}}"
     postprocess:
       docker:
         image: ghcr.io/foundriesio/lava-lmp-sign:main
@@ -18,7 +18,7 @@ actions:
     to: fastboot
     images:
       boot:
-        url: downloads://sa8775p_boot.img
+        url: downloads://{{BUILD_FILE_NAME}}
 
 - command:
     name: pre_power_command

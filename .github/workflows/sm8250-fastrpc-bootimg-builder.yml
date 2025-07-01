@@ -6,6 +6,7 @@ on:
     branches:
       - 'main'
       - 'development'
+
   pull_request:
     branches:
       - 'main'
@@ -166,14 +167,14 @@ jobs:
       run: |
         git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
         ls -la hexagon-dsp-binaries
-        cp ${{ steps.config.outputs.adsp }}/* firmware_dir/usr/lib/dsp/adsp
-        cp ${{ steps.config.outputs.cdsp }}/* firmware_dir/usr/lib/dsp/cdsp
+        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00082-SM8250-1/* firmware_dir/usr/lib/dsp/adsp
+        cp hexagon-dsp-binaries/sm8250/Thundercomm/RB5/CDSP.HT.2.3.c1-00076-SM8250-1/* firmware_dir/usr/lib/dsp/cdsp
 
     - name: 11. Download dsp-linux-firmware
       run: |
         git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
         ls -la linux-firmware
-        cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sm8250/
+        cp -rf linux-firmware/qcom/sm8250/* firmware_dir/lib/firmware/qcom/sm8250/
         mv firmware_dir/lib/firmware/qcom/sm8250/Thundercomm/RB5/* firmware_dir/lib/firmware/qcom/sm8250/
 
     - name: 12. list and create a zip file of dsp-firware
@@ -183,29 +184,14 @@ jobs:
         cd firmware_dir
         find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
         cd ..
-
-    # Step 13: Download Linux kernel artifacts
-    - name: 13. Download Linux kernel artifact
+    - name: 13. sync and Build Linux Kernel
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-        gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./artifacts
-
-    - name: Extract  Linux kernel archive
-      run: |
-        mkdir -p linux-kernel-artifacts
-        cd linux-kernel-artifacts
-        gzip -dc ../artifacts/linux-kernel-artifacts.cpio.gz | cpio -idmv
-
-
-    # Step 13.1: Validate kernel and dtb paths
-    - name: 13.1. Validate artifact download
-      run: |
-        if [ -f ./linux-kernel-artifacts/arch/arm64/boot/Image ]; then
-          echo "✅ Artifact downloaded successfully and Image file exists."
-        else
-          echo "❌ Artifact download failed or expected file not found."
-          exit 1
-        fi
+        git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
+        cd linux
+        umask 0022
+        make LLVM=1 ARCH=arm64 defconfig
+        make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+        cd ..
 
     - name: 13.2. Download and create fastrpc included ramdisk file
       run: |
@@ -214,7 +200,7 @@ jobs:
            https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
 
         cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
-        cd linux-kernel-artifacts/tar-install 
+        cd linux/tar-install 
         find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
         cd ../..
 
@@ -222,8 +208,8 @@ jobs:
       run: |
         python3 mkbootimg/mkbootimg.py  \
           --header_version 2 \
-          --kernel linux-kernel-artifacts/arch/arm64/boot/Image \
-          --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
+          --kernel linux/arch/arm64/boot/Image \
+          --dtb linux/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
           --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
           --ramdisk ramdisk.gz \
           --output sm8250_boot.img
@@ -233,3 +219,9 @@ jobs:
       with:
         name: sm8250_boot.img
         path: sm8250_boot.img
+
+    - name: Trigger LAVA Test
+      uses: quic/fastrpc/.github/workflows/test.yml@main
+      with:
+        DEVICE_NAME: sm8250
+
