@@ -417,7 +417,7 @@ static void *file_watcher_thread(void *arg) {
       // User has not set the env variable. Get default search paths.
       if (ret != 0)
         memmove(data_paths, DSP_SEARCH_PATH, strlen(DSP_SEARCH_PATH));
-      VERIFY_WPRINTF("%s: Couldn't find file %s, errno (%s) at %s\n", __func__,
+      FARF(RUNTIME_RPC_HIGH, "%s: Couldn't find file %s, errno (%s) at %s\n", __func__,
                      log_config_watcher[dom].fileToWatch, strerror(errno),
                      data_paths);
     } else {
@@ -437,7 +437,7 @@ static void *file_watcher_thread(void *arg) {
                      log_config_watcher[dom].fileToWatch, errno);
       break;
     } else if (pfd[1].revents & POLLIN) { // Check for exit
-      VERIFY_WPRINTF("Warning: %s received exit for domain %d, file %s\n",
+      FARF(RUNTIME_RPC_HIGH, "Warning: %s received exit for domain %d, file %s\n",
                      __func__, dom, log_config_watcher[dom].fileToWatch);
       break;
     } else {

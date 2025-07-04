@@ -837,12 +837,12 @@ static void print_open_handles(int domain) {
 	struct handle_info *hi = NULL;
 	QNode *pn = NULL;
 
-	FARF(ALWAYS, "List of open handles on domain %d:\n", domain);
+	FARF(RUNTIME_RPC_HIGH, "List of open handles on domain %d:\n", domain);
 	pthread_mutex_lock(&hlist[domain].mut);
 	QLIST_FOR_ALL(&hlist[domain].ql, pn) {
 		hi = STD_RECOVER_REC(struct handle_info, qn, pn);
 		if (hi->name)
-			FARF(ALWAYS, "%s, handle 0x%"PRIx64"",
+			FARF(RUNTIME_RPC_HIGH, "%s, handle 0x%"PRIx64"",
 				hi->name, hi->remote);
 	}
 	pthread_mutex_unlock(&hlist[domain].mut);
@@ -876,7 +876,7 @@ static char* get_lib_name(const char *uri) {
 		}
 	}
 bail:
-	FARF(ERROR, "Warning 0x%x: %s failed for uri %s",
+	FARF(RUNTIME_RPC_ERROR, "Warning 0x%x: %s failed for uri %s",
 		nErr, __func__, uri);
   return NULL;
 }
@@ -1886,7 +1886,7 @@ bail:
            nErr, __func__, h, domain, dlerrstr, strerror(errno));
     }
   } else {
-    FARF(ALWAYS, "%s: closed module with handle 0x%x (skel unload time %" PRIu64 " us)",
+    FARF(RUNTIME_RPC_HIGH, "%s: closed module with handle 0x%x (skel unload time %" PRIu64 " us)",
          __func__, h, t_close);
   }
   if (dlerrstr) {
@@ -2856,7 +2856,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
         VERIFY(AEE_SUCCESS == (nErr = fastrpc_notif_register(ii, notif)));
       }
     }
-    FARF(ALWAYS, "%s Register PD status notification request for domain %d\n",
+    FARF(RUNTIME_RPC_HIGH, "%s Register PD status notification request for domain %d\n",
          __func__, domain);
     break;
   }
@@ -3174,7 +3174,7 @@ static void domain_deinit(int domain) {
     return;
   }
   olddev = hlist[domain].dev;
-  FARF(ALWAYS, "%s for domain %d: dev %d", __func__, domain, olddev);
+  FARF(RUNTIME_RPC_HIGH, "%s for domain %d: dev %d", __func__, domain, olddev);
   if (olddev != -1) {
 
     FASTRPC_ATRACE_BEGIN_L("%s called for handle 0x%x, domain %d, dev %d",
@@ -3223,8 +3223,9 @@ static void domain_deinit(int domain) {
     memset(hlist[domain].dsppdname, 0, MAX_DSPPD_NAMELEN);
     memset(hlist[domain].sessionname, 0, MAX_DSPPD_NAMELEN);
     PROFILE_ALWAYS(&t_kill, close_device_node(domain, olddev););
-    FARF(ALWAYS, "%s: closed device %d on domain %d (kill time %" PRIu64 " us)",
+    FARF(RUNTIME_RPC_HIGH, "%s: closed device %d on domain %d (kill time %" PRIu64 " us)",
          __func__, olddev, domain, t_kill);
+    FARF(ALWAYS, "%s done for domain %d.", __func__, domain);
     FASTRPC_ATRACE_END();
   }
   hlist[domain].proc_sharedbuf_cur_addr = NULL;
@@ -3368,7 +3369,7 @@ static int close_device_node(int domain_id, int dev) {
   } else {
 #endif
     nErr = close(dev);
-    FARF(ALWAYS, "%s: closed dev %d on domain %d", __func__, dev, domain_id);
+    FARF(RUNTIME_RPC_HIGH, "%s: closed dev %d on domain %d", __func__, dev, domain_id);
 #ifndef NO_HAL
   }
 #endif
@@ -3513,7 +3514,7 @@ static int open_shell(int domain_id, apps_std_FILE *fh, int unsigned_shell) {
     }
   }
   if (!nErr)
-    FARF(ALWAYS, "Successfully opened %s, domain %d", absName, domain);
+    FARF(RUNTIME_RPC_HIGH, "Successfully opened %s, domain %d", absName, domain);
 bail:
   if (domain_str) {
     free(domain_str);
@@ -3573,7 +3574,7 @@ static int fastrpc_enable_kernel_optimizations(int domain) {
   }
 bail:
   if (nErr) {
-    FARF(ERROR, "Error 0x%x: %s failed for domain %d (%s)\n", nErr, __func__,
+    FARF(RUNTIME_RPC_ERROR, "Error 0x%x: %s failed for domain %d (%s)\n", nErr, __func__,
          domain, strerror(errno));
   }
   /*
@@ -3622,7 +3623,7 @@ void print_process_attrs(int domain) {
   if (fastrpc_config_is_logpacket_enabled())
     logpkt = true;
   FARF(ALWAYS,
-       "Created user PD on domain %d, dbg_trace 0x%x, enabled attr=> RPC "
+       "Info: Created user PD on domain %d, dbg_trace 0x%x, enabled attr=> RPC "
        "timeout:%d, Dbg Mode:%s, CRC:%s, Unsigned:%s, Signed:%s, Adapt QOS:%s, "
        "PD dump: (Config:%s, Dbg:%s), Perf: (Kernel:%s, DSP:%s), Iregion:%s, "
        "QTF:%s, UAF:%s userPD initmem len:0x%x, Log pkt: %s",
@@ -3870,7 +3871,7 @@ bail:
 __attribute__((destructor)) static void close_dev(void) {
   int i;
 
-  FARF(ALWAYS, "%s: unloading library %s", __func__,
+  FARF(RUNTIME_RPC_HIGH, "%s: unloading library %s", __func__,
        fastrpc_library[DEFAULT_DOMAIN_ID]);
   FOR_EACH_EFFECTIVE_DOMAIN_ID(i) {
     domain_deinit(i);
@@ -4357,7 +4358,7 @@ static void multidsplib_env_init(void) {
     }
   }
   check_multilib_util();
-  FARF(ALWAYS, "%s: %s loaded", __func__, fastrpc_library[DEFAULT_DOMAIN_ID]);
+  FARF(RUNTIME_RPC_HIGH, "%s: %s loaded", __func__, fastrpc_library[DEFAULT_DOMAIN_ID]);
 }
 
 PL_DEFINE(rpcmem, rpcmem_init_me, rpcmem_deinit_me);
