@@ -303,7 +303,7 @@ bail:
   RPC_FREEIF(inBufs);
   if (nErr != AEE_SUCCESS) {
     if(!is_process_exiting(domain)) {
-      FARF(ERROR,
+      FARF(RUNTIME_RPC_ERROR,
           "Error 0x%x: %s response with result 0x%x for ctx 0x%x, handle 0x%x, "
           "sc 0x%x failed : listener thread exited (errno %s)",
           nErr, __func__, result, ctx, handle, sc, strerror(errno));
@@ -321,6 +321,7 @@ bail:
         "Error 0x%x : Writing to listener event_fd %d failed (errno %s)", nErr,
         me->eventfd, strerror(errno));
   }
+  FARF(ALWAYS, "%s thread exiting\n", __func__);
   dlerror();
 }
 
