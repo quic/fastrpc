@@ -56,16 +56,6 @@ jobs:
           adsp_path: ${{ steps.load_config.outputs.adsp_path }}
           cdsp_path: ${{ steps.load_config.outputs.cdsp_path }}
           firmware_path: ${{ steps.load_config.outputs.firmware_path }}
-
-      - name: Process Image
-        id: process_image
-        uses: ./.github/workflows/process_image/
-        with:
-          DEVICE_TYPE: ${{ matrix.target }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
 
-      - name: Trigger LAVA Test
-        id: trigger_lava
-        uses: ./.github/workflows/test.yml
-        with:
-          DEVICE_TYPE: ${{ matrix.target }}

@@ -15,6 +15,10 @@ inputs:
   firmware_path:
     description: Firmware path
     required: true
+  github_token:
+    required: true
+    description: 'GitHub token passed from workflow'
+
 
 runs:
   using: "composite"
@@ -207,12 +211,41 @@ runs:
       find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
       cd ..
 
-  - name: Upload Compiled fastrpc binaries
+  - name: 13. sync and Build Linux Kernel
+    shell: bash
+    run: |
+      git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
+      cd linux
+      umask 0022
+      make LLVM=1 ARCH=arm64 defconfig
+      make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+      cd ..
+
+  - name: 13.2. Download and create fastrpc included ramdisk file
+    shell: bash
+    run: |
+      curl -H "Authorization: token ${{ inputs.github_token }}" \
+          -L -o ramdisk-qcom-armv8a.cpio.gz \
+          https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+
+      cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
+      cd linux/tar-install 
+      find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+      cd ../..
+
+  - name: 14. Create boot image using mkbootimg
+    shell: bash
+    run: |
+      python3 mkbootimg/mkbootimg.py  \
+        --header_version 2 \
+        --kernel linux/arch/arm64/boot/Image \
+        --dtb linux/arch/arm64/boot/dts/qcom/sm8250-mtp.dtb \
+        --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
+        --ramdisk ramdisk.gz \
+        --output sm8250_boot.img
+
+  - name: 15. Upload Compiled Image
     uses: actions/upload-artifact@v4
     with:
-      name: fastrpc-artifacts
-      path: |
-        ${{ github.workspace }}/dsp-firmware.cpio.gz
-        ${{ github.workspace }}/fastrpc.cpio.gz
-      retention-days: 1
-      overwrite: true
+      name: sm8250_boot.img
+      path: sm8250_boot.img

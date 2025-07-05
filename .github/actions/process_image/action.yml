@@ -84,3 +84,20 @@ runs:
         s3_bucket: qli-prd-fastrpc-artifacts
         local_file: ${{ github.workspace }}/${{ inputs.DEVICE_TYPE }}_boot.img
         mode: upload
+
+    - name: Upload Compiled fastrpc binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: fastrpc-artifacts
+        path: |
+          ${{ github.workspace }}/dsp-firmware.cpio.gz
+          ${{ github.workspace }}/fastrpc.cpio.gz
+        retention-days: 1
+        overwrite: true
+
+      - name: Process Image
+        id: process_image
+        uses: ./.github/workflows/process_image/
+        with:
+          DEVICE_TYPE: ${{ matrix.target }}
+
