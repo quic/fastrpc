@@ -1,0 +1,4 @@
+paths:
+  adsp: hexagon-dsp-binaries/x1e80100/Qualcomm/SA8775P-RIDE/adsp-DSP.AT.1.0.1-00079.2-LEMANS-1
+  cdsp: hexagon-dsp-binaries/x1e80100/Qualcomm/SA8775P-RIDE/cdsp-DSP.AT.1.0.1-00079.2-LEMANS-1
+  firmware: linux-firmware/qcom/x1e80100

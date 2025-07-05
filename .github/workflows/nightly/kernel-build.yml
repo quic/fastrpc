@@ -1,0 +1,38 @@
+name: Nightly Kernel Build
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Runs every day at 2 AM UTC
+  workflow_dispatch:
+  
+jobs:
+  build-kernel:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 1. Checkout Linux Kernel Source
+        run: |
+          git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
+
+      - name: 2. Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tar xz-utils llvm clang lld llvm-dev
+          sudo apt-get install -y build-essential gcc g++ make libelf-dev flex bison util-linux
+          sudo apt-get install -y autoconf automake libtool automake 
+
+      - name: 3. Build Linux Kernel
+        run: |
+          cd linux
+          umask 0022
+          make LLVM=1 ARCH=arm64 defconfig
+          make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+          cd ..
+
+          find ./linux -print0 | cpio --null -ov --format=newc | gzip -9 > linux-kernel-artifacts.cpio.gz
+
+ 
+      - name: Upload Kernel Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: linux-kernel-artifacts.cpio.gz

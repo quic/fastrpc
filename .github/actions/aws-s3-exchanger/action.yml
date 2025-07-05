@@ -1,0 +1,73 @@
+---
+name: AWS S3 Exchanger
+description: Upload and download files from AWS S3
+
+inputs:
+  s3_bucket:
+    description: S3 Bucket Name
+    required: true
+  local_file:
+    description: Local file paths
+    required: false
+    default: ''
+  download_filename:
+    description: The name of the SDK
+    required: true
+    default: ''
+  location:
+    description: The location of the SDK
+    required: true
+    default: ''
+  mode:
+    description: Mode of operation (upload/download)
+    required: true
+    default: upload
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Sync Data
+      id: sync_data
+      shell: bash
+      env:
+        UPLOAD_LOCATION: ${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ github.workflow }}/
+      run: |
+        case "${{ inputs.mode }}" in
+          upload)
+            echo "::group::$(printf '__________ %-100s' 'Process' | tr ' ' _)"
+            echo "Uploading file to S3 bucket..."
+            aws s3 cp "${{ inputs.local_file }}" s3://${{ inputs.s3_bucket }}/${{ inputs.location }}${{ env.UPLOAD_LOCATION }}
+            echo "Uploaded ${{ inputs.local_file }} to s3://${{ inputs.s3_bucket }}/${{ inputs.location }}${{ env.UPLOAD_LOCATION }}"
+            echo "::endgroup::"
+            echo "Creating Pre-signed URL for ${{ inputs.local_file }}..."
+            filename="$(basename "${{ inputs.local_file }}")"
+            echo "Filename: $filename"
+            presigned_url="$(aws s3 presign s3://${{ inputs.s3_bucket }}/${{ inputs.location }}${{ env.UPLOAD_LOCATION }}$filename --expires-in 3600)"
+            echo "Pre-signed URL: $presigned_url"
+            # write the url in a text file
+            echo "${presigned_url}" > ${{ github.workspace }}/presigned_url.txt
+            ;;
+          download)
+            #Download The required file from s3
+            echo "::group::$(printf '__________ %-100s' 'Process' | tr ' ' _)"
+            echo "Downloading files from S3 bucket..."
+            aws s3 cp s3://${{ inputs.s3_bucket }}/${{ inputs.location }}/${{ inputs.download_filename }} .
+            echo "::endgroup::"
+            chmod 777 ${{ inputs.download_filename }}
+            echo "Downloaded ${{ inputs.download_filename }} from s3://${{ inputs.s3_bucket }}/${{ inputs.location }}"
+            ;;
+          *)
+            echo "Invalid mode. Use 'upload' or 'download'."
+            exit 1
+            ;;
+        esac
+
+    - name: Upload Pre-signed URL
+      id: upload_presigned_url
+      if: ${{ inputs.mode == 'upload' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: presigned_url.txt
+        path: ${{ github.workspace }}/presigned_url.txt
+        retention-days: 1
