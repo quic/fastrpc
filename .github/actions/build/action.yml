@@ -15,6 +15,10 @@ inputs:
   firmware_path:
     description: Firmware path
     required: true
+  github_token:
+    required: true
+    description: 'GitHub token passed from workflow'
+
 
 runs:
   using: "composite"
@@ -112,7 +116,7 @@ runs:
       # Create directories
       mkdir -p firmware_dir/usr/lib/dsp/adsp
       mkdir -p firmware_dir/usr/lib/dsp/cdsp
-      mkdir -p firmware_dir/lib/firmware/qcom/$CLEAN_DEVICE_TYPE
+      mkdir -p firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}
       mkdir -p fastrpc_dir/usr/lib
       mkdir -p fastrpc_dir/usr/bin
 
@@ -121,7 +125,7 @@ runs:
       for dir in \
         firmware_dir/usr/lib/dsp/adsp \
         firmware_dir/usr/lib/dsp/cdsp \
-        firmware_dir/lib/firmware/qcom/$CLEAN_DEVICE_TYPE \
+        firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }} \
         fastrpc_dir/usr/lib \
         fastrpc_dir/usr/bin
       do
@@ -183,12 +187,12 @@ runs:
       ls -la linux-firmware
       CLEAN_FIRMWARE_PATH=$(echo "${{ inputs.firmware_path }}" | tr -d '\r')
 
-      cp -rf ${{ inputs.firmware_path }}/* firmware_dir/lib/firmware/qcom/$CLEAN_DEVICE_TYPE/
-      ls -la firmware_dir/lib/firmware/qcom/$CLEAN_DEVICE_TYPE/
+      cp -rf ${{ inputs.firmware_path }}/* firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/
+      ls -la firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/
 
       # Move Thundercomm RB5 firmware files if available
-      SOURCE_DIR="firmware_dir/lib/firmware/qcom/$CLEAN_DEVICE_TYPE/Thundercomm/RB5"
-      TARGET_DIR="firmware_dir/lib/firmware/qcom/$CLEAN_DEVICE_TYPE"
+      SOURCE_DIR="firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/Thundercomm/RB5"
+      TARGET_DIR="firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}"
 
       if [ -d "$SOURCE_DIR" ] && [ "$(ls -A $SOURCE_DIR)" ]; then
         echo "Moving files from $SOURCE_DIR to $TARGET_DIR"
@@ -207,12 +211,42 @@ runs:
       find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
       cd ..
 
-  - name: Upload Compiled fastrpc binaries
+  - name: 13. sync and Build Linux Kernel
+    shell: bash
+    run: |
+      git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
+      cd linux
+      umask 0022
+      make LLVM=1 ARCH=arm64 defconfig
+      make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+      cd ..
+
+  - name: 13.2. Download and create fastrpc included ramdisk file
+    shell: bash
+    run: |
+      curl -H "Authorization: token ${{ inputs.github_token }}" \
+          -L -o ramdisk-qcom-armv8a.cpio.gz \
+          https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+
+      cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
+      cd linux/tar-install 
+      find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+      cd ../..
+
+  - name: 14. Create boot image using mkbootimg
+    shell: bash
+    run: |
+      python3 mkbootimg/mkbootimg.py  \
+        --header_version 2 \
+        --kernel linux/arch/arm64/boot/Image \
+        --dtb linux/arch/arm64/boot/dts/qcom/${{ inputs.DEVICE_TYPE }}-mtp.dtb \
+        --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
+        --ramdisk ramdisk.gz \
+        --output ${{ inputs.DEVICE_TYPE }}_boot.img
+
+  - name: 15. Upload Compiled Image
     uses: actions/upload-artifact@v4
     with:
-      name: fastrpc-artifacts
-      path: |
-        ${{ github.workspace }}/dsp-firmware.cpio.gz
-        ${{ github.workspace }}/fastrpc.cpio.gz
-      retention-days: 1
+      name: ${{ inputs.DEVICE_TYPE }}_boot.img
+      path: ${{ inputs.DEVICE_TYPE }}_boot.img
       overwrite: true
