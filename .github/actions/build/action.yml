@@ -6,6 +6,9 @@ inputs:
   DEVICE_TYPE:
     description: Target device type
     required: true
+  device_dtb:
+    description: Target device type
+    required: true
   adsp_path:
     description: ADSP path
     required: true
@@ -30,10 +33,11 @@ runs:
     shell: bash
     run: |
       CLEAN_DEVICE_TYPE=$(echo "${{ inputs.DEVICE_TYPE }}" | tr -d '\r')
+      CLEAN_DEVICE_DTB=$(echo "${{ inputs.device_dtb }}" | tr -d '\r')
       CLEAN_ADSP_PATH=$(echo "${{ inputs.adsp_path }}" | tr -d '\r')
       CLEAN_CDSP_PATH=$(echo "${{ inputs.cdsp_path }}" | tr -d '\r')
       CLEAN_FIRMWARE_PATH=$(echo "${{ inputs.firmware_path }}" | tr -d '\r')
-      echo "Build Boot Image with FastRPC Modules for $CLEAN_DEVICE_TYPE $CLEAN_ADSP_PATH $CLEAN_CDSP_PATH $CLEAN_FIRMWARE_PATH ${{ inputs.adsp_path }}"
+      echo "Build Boot Image with FastRPC Modules for $CLEAN_DEVICE_TYPE $CLEAN_ADSP_PATH $CLEAN_CDSP_PATH $CLEAN_FIRMWARE_PATH $CLEAN_DEVICE_DTB ${{ inputs.adsp_path }}"
 
   - name: 1. Install yq and Python tools (without sudo)
     shell: bash
@@ -239,7 +243,7 @@ runs:
       python3 mkbootimg/mkbootimg.py  \
         --header_version 2 \
         --kernel linux/arch/arm64/boot/Image \
-        --dtb linux/arch/arm64/boot/dts/qcom/${{ inputs.DEVICE_TYPE }}-mtp.dtb \
+        --dtb linux/arch/arm64/boot/dts/qcom/${{ inputs.device_dtb }} \
         --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
         --ramdisk ramdisk.gz \
         --output ${{ inputs.DEVICE_TYPE }}_boot.img

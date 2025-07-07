@@ -16,7 +16,9 @@ outputs:
   cdsp_path:
     description: CDSP path
     value: ${{ steps.parse.outputs.cdsp }}
-
+  device_dtb:
+    description: Target device dtb
+    value: ${{ steps.parse.outputs.device_dtb }}
 
 runs:
   using: "composite"
