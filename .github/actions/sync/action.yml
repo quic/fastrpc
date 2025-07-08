@@ -1,0 +1,92 @@
+name: Sync workspace
+
+inputs:
+  base_branch:
+    description: Base branch
+    required: true
+    default: qcom-next-staging
+  pr_number:
+    description: PR number
+    required: false
+
+outputs:
+  workspace_path:
+    description: Sync workspace path
+    value: ${{ steps.set-workspace.outputs.workspace }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clean workspace
+      shell: bash
+      run: |
+        echo "Cleaning up workspace..."
+        rm -rf ${{ github.workspace }}/*
+        echo "Workspace cleaned successfully!"
+
+    - name: Checkout PR branch
+      if: inputs.base_branch == 'qcom-next-staging'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+    - name: Sync with latest changes
+      if: inputs.base_branch == 'qcom-next-staging'
+      shell: bash
+      run: |
+        set -e
+        echo "Syncing with latest changes..."
+        git fetch origin ${{ inputs.base_branch }}
+        git merge --no-ff origin/${{ inputs.base_branch }}
+
+    - name: Clone repositories
+      if: inputs.base_branch != 'qcom-next-staging'
+      shell: bash
+      run: |
+        git clone https://github.com/qualcomm-linux/kernel.git
+        git clone https://github.com/qualcomm-linux/automerge.git
+
+    - name: Create merge configuration
+      if: inputs.base_branch != 'qcom-next-staging'
+      shell: bash
+      run: |
+        TOPIC_BRANCH=${{ inputs.base_branch }}
+        cat <<EOF > merge.conf
+        baseline https://github.com/qualcomm-linux/kernel.git qcom-next
+        topic https://github.com/qualcomm-linux/kernel-topics.git $TOPIC_BRANCH
+        EOF
+        echo "File 'merge.conf' created successfully."
+
+    - name: Run auto merge
+      id: automerge
+      if: inputs.base_branch != 'qcom-next-staging'
+      shell: bash
+      run: |
+        cd kernel
+        ../automerge/ci-merge -f ../merge.conf -t head -n
+
+    - name: Fetch PR
+      if: inputs.base_branch != 'qcom-next-staging'
+      shell: bash
+      run: |
+        cd kernel
+        git fetch https://github.com/qualcomm-linux/kernel-topics.git pull/${{inputs.pr_number}}/head:pr-${{inputs.pr_number}}
+        git merge pr-${{inputs.pr_number}} --no-commit
+        git commit -m "Merged PR ${{inputs.pr_number}}"
+
+    - name: Set workspace path
+      id: set-workspace
+      shell: bash
+      run: |
+        if [[ "${{ inputs.base_branch }}" == "qcom-next-staging" ]]; then
+          echo "workspace=${{ github.workspace }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "workspace=${{ github.workspace }}/kernel" >> "$GITHUB_OUTPUT"
+        fi
+

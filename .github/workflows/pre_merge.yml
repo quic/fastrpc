@@ -1,0 +1,33 @@
+name: pre_merge
+on:
+  push:
+    branches:
+    - 'main'
+    - 'development'
+  pull_request:
+    branches:
+    - 'main'
+    - 'development'
+  workflow_dispatch:
+
+jobs:
+  loading:
+    uses: ./.github/workflows/loading.yml
+    secrets: inherit
+
+  build:
+    needs: loading
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      docker_image: kmake-image:ver.1.0
+      build_matrix: ${{ needs.loading.outputs.build_matrix }}
+
+  test:
+    needs: [loading, build]
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+    with:
+      docker_image: kmake-image:ver.1.0
+      build_matrix: ${{ needs.loading.outputs.build_matrix }}
+      full_matrix: ${{ needs.loading.outputs.full_matrix }}
