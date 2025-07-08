@@ -25,4 +25,4 @@ jobs:
 
       - name: Load Parameters
         id: loading
-        uses: ./.github/actions/loading@main
+        uses: ./.github/actions/loading

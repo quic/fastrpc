@@ -23,21 +23,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Sync codebase
-        id: sync
-        uses: ./.github/actions/sync@main
-        with:
-          base_branch: ${{ github.base_ref }}
-          pr_number: ${{ github.event.pull_request.number }}
-
       - name: Pull docker image
-        uses: ./.github/actions/pull_docker_image@main
+        uses: ./.github/actions/pull_docker_image
         with:
           image: ${{ inputs.docker_image }}
 
       - name: Build workspace
         id: build_workspace
-        uses: ./.github/actions/build@main
+        uses: ./.github/actions/build
         with:
           docker_image: ${{ inputs.docker_image }}
           workspace_path: ${{ steps.sync.outputs.workspace_path }}
@@ -60,7 +53,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: ./.github/actions/aws_s3_helper@main
+        uses: ./.github/actions/aws_s3_helper
         with:
           s3_bucket: qli-prd-kernel-gh-artifacts
           local_file: ${{ steps.sync.outputs.workspace_path }}/../artifacts/file_list.txt
