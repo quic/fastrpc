@@ -1,13 +1,15 @@
 name: pre_merge
+
 on:
   push:
     branches:
-    - 'main'
-    - 'development'
+      - main
+      - development
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
-    - 'main'
-    - 'development'
+      - main
+      - development
   workflow_dispatch:
 
 jobs:

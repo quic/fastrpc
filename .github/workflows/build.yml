@@ -15,8 +15,8 @@ on:
 jobs:
   build:
     runs-on:
-      group: GHA-Kernel-SelfHosted-RG
-      labels: [ self-hosted, kernel-prd-u2404-x64-large-od-ephem ]
+      group: GHA-FastRPC-Stg-SelfHosted-RG
+      labels: [ self-hosted, fastrpc-stg-u2204-x64-large-od-ephem ] 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,7 +55,7 @@ jobs:
       - name: Upload artifacts
         uses: ./.github/actions/aws_s3_helper
         with:
-          s3_bucket: qli-prd-kernel-gh-artifacts
+          s3_bucket: qli-stg-fastrpc-gh-artifacts
           local_file: ${{ steps.sync.outputs.workspace_path }}/../artifacts/file_list.txt
           mode: multi-upload
 
