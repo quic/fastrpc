@@ -1,0 +1,84 @@
+name: _build
+on:
+  workflow_call:
+    inputs:
+      docker_image:
+        description: Docker image
+        type: string
+        required: true
+
+      build_matrix:
+        description: Build matrix for multi target builds
+        type: string
+        required: true
+
+jobs:
+  build:
+    runs-on:
+      group: GHA-FastRPC-Stg-SelfHosted-RG
+      labels: [ self-hosted, fastrpc-stg-u2404-x64-large-od-ephem ] 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull docker image
+        uses: ./.github/actions/pull_docker_image
+        with:
+          image: ${{ inputs.docker_image }}
+
+      - name: Build workspace
+        id: build_workspace
+        uses: ./.github/actions/build
+        with:
+          docker_image: ${{ inputs.docker_image }}
+          workspace_path: ${{ steps.sync.outputs.workspace_path }}
+
+      - name: Create file list for artifacts upload
+        run: |
+          workspace=${{ steps.sync.outputs.workspace_path }}
+          touch $workspace/../artifacts/file_list.txt
+          cd $workspace/../kobj/tar-install
+          tar -cJf ${{ github.workspace }}/modules.tar.xz lib/modules/
+          
+          echo "${{ github.workspace }}/modules.tar.xz" >> $workspace/../artifacts/file_list.txt
+          echo "$workspace/../kobj/arch/arm64/boot/Image" >> $workspace/../artifacts/file_list.txt
+          echo "$workspace/../kobj/vmlinux" >> $workspace/../artifacts/file_list.txt
+
+          # Loop through all machines from the build_matrix input
+          machines='${{ inputs.build_matrix }}'
+          for machine in $(echo "$machines" | jq -r '.[].machine'); do
+            echo "$workspace/../kobj/arch/arm64/boot/dts/qcom/${machine}.dtb" >> $workspace/../artifacts/file_list.txt
+          done
+
+      - name: Upload artifacts
+        uses: ./.github/actions/aws_s3_helper
+        with:
+          s3_bucket: qli-stg-fastrpc-gh-artifacts
+          local_file: ${{ steps.sync.outputs.workspace_path }}/../artifacts/file_list.txt
+          mode: multi-upload
+
+      - name: Clean up
+        run: |
+          rm -rf artifacts
+          rm -rf kobj
+          rm -rf modules.tar.xz
+
+      - name: Update summary
+        if: success() || failure()
+        shell: bash
+        run: |
+          if [ ${{ steps.build_workspace.outcome }} == 'success' ]; then
+            echo "Build was successful"
+            summary=":heavy_check_mark: Build Success"
+          else
+            echo "Build failed"
+            summary=":x: Build Failed"
+          fi
+          SUMMARY='
+          <details><summary><i>Build Summary</i></summary>
+          '${summary}'
+          </details>
+          '
+          echo -e "$SUMMARY" >> $GITHUB_STEP_SUMMARY
