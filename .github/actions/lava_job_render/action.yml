@@ -69,7 +69,7 @@ runs:
       uses: qualcomm-linux/kernel-config/.github/actions/aws_s3_helper@main
       with:
         local_file: ../job_render/data/metadata.json
-        s3_bucket: qli-prd-kernel-gh-artifacts
+        s3_bucket: qli-stg-fastrpc-gh-artifacts
         mode: single-upload
 
     - name: Create template json
@@ -119,8 +119,8 @@ runs:
       shell: bash
       run: |
         cd ../job_render
-        ramdisk_url="$(aws s3 presign s3://qli-prd-kernel-gh-artifacts/meta-qcom/initramfs-kerneltest-full-image-qcom-armv8a.cpio.gz --expires 7600)"
-        firmware_url="$(aws s3 presign s3://qli-prd-kernel-gh-artifacts/meta-qcom/initramfs-firmware-${{ env.FIRMWARE }}-image-qcom-armv8a.cpio.gz --expires 7600)"
+        ramdisk_url="$(aws s3 presign s3://qli-stg-fastrpc-gh-artifacts/meta-qcom/initramfs-kerneltest-full-image-qcom-armv8a.cpio.gz --expires 7600)"
+        firmware_url="$(aws s3 presign s3://qli-stg-fastrpc-gh-artifacts/meta-qcom/initramfs-firmware-${{ env.FIRMWARE }}-image-qcom-armv8a.cpio.gz --expires 7600)"
         # using ramdisk_url
         docker run -i --rm \
           --user "$(id -u):$(id -g)" \
