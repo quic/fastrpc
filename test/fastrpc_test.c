@@ -39,7 +39,6 @@ int main(int argc, char *argv[]) {
     bool is_unsignedpd_enabled = true;  // Default to unsigned PD
     const char *target = "linux";  // Default target platform
     const char *arch_version = "v68";  // Default architecture version
-    char abs_lib_path[PATH_MAX];
     char ld_lib_path[PATH_MAX];
     char dsp_lib_path[PATH_MAX];
     DIR *dir;
@@ -60,6 +59,11 @@ int main(int argc, char *argv[]) {
                 break;
             case 't':
                 target = optarg;
+                if (strcmp(target, "linux") != 0 && strcmp(target, "android") != 0) {
+                    printf("\nERROR: Invalid target platform (-t). Must be linux or android.\n");
+                    print_usage();
+                    return -1;
+                }
                 break;
             case 'a':
                 arch_version = optarg;
@@ -75,24 +79,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Construct the absolute library path
-    snprintf(abs_lib_path, sizeof(abs_lib_path), "%s", target);
-
-    if (realpath(abs_lib_path, abs_lib_path) == NULL) {
-        fprintf(stderr, "Error resolving path %s: %s\n", abs_lib_path, strerror(errno));
-        return -1;
-    }
-
-    // Construct the absolute DSP library path
-    snprintf(dsp_lib_path, sizeof(dsp_lib_path), "%s", arch_version);
-
-    if (realpath(dsp_lib_path, dsp_lib_path) == NULL) {
-        fprintf(stderr, "Error resolving path %s: %s\n", dsp_lib_path, strerror(errno));
-        return -1;
-    }
-
-    // Construct LD_LIBRARY_PATH and DSP_LIBRARY_PATH
-    snprintf(ld_lib_path, sizeof(ld_lib_path), "%s", abs_lib_path);
+    snprintf(ld_lib_path, sizeof(ld_lib_path), "%s", testlibdir);
+    snprintf(dsp_lib_path, sizeof(dsp_lib_path), "%s/%s", testdspdir, arch_version);
 
     if (setenv("LD_LIBRARY_PATH", ld_lib_path, 1) != 0) {
         fprintf(stderr, "Error setting LD_LIBRARY_PATH: %s\n", strerror(errno));
@@ -104,15 +92,15 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    dir = opendir(abs_lib_path);
+    dir = opendir(ld_lib_path);
     if (!dir) {
-        fprintf(stderr, "Error opening directory %s: %s\n", abs_lib_path, strerror(errno));
+        fprintf(stderr, "Error opening directory %s: %s\n", ld_lib_path, strerror(errno));
         return -1;
     }
 
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_REG && strstr(entry->d_name, ".so")) {
-            snprintf(full_lib_path, sizeof(full_lib_path), "%s/%s", abs_lib_path, entry->d_name);
+            snprintf(full_lib_path, sizeof(full_lib_path), "%s/%s", ld_lib_path, entry->d_name);
 
             lib_handle = dlopen(full_lib_path, RTLD_LAZY);
             if (!lib_handle) {
