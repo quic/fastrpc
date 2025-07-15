@@ -1,0 +1,19 @@
+name: Pull docker image
+description: Pull docker image
+
+inputs:
+  image:
+    description: The docker image to pull
+    required: true
+    default: kmake-image:ver.1.0
+
+runs:
+  using: "composite"
+  steps:
+    - name: Pull Docker image
+      shell: bash
+      run: |
+        echo "Pulling Docker image: ${{ inputs.image }}"
+        docker pull artifacts.codelinaro.org/clo-420-qli-registry/${{ inputs.image }}
+        echo "Docker image pulled successfully:"
+        docker tag artifacts.codelinaro.org/clo-420-qli-registry/${{ inputs.image }} kmake-image:ver.1.0
