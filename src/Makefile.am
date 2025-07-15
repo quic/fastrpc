@@ -123,7 +123,7 @@ cdsprpcd_LDADD =  -ldl $(USE_LOG)
 
 
 sdsprpcddir = $(libdir)
-sdsprpcd_SOURCES = cdsprpcd.c
+sdsprpcd_SOURCES = sdsprpcd.c
 sdsprpcd_DEPENDENCIES = libsdsp_default_listener.la
 sdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=2 -DUSE_SYSLOG -DNO_HAL
 sdsprpcd_LDADD =  -ldl $(USE_LOG)
