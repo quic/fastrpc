@@ -44,7 +44,7 @@
 #define CONFIG_LOGPACKET "logPackets"
 #define CONFIG_LEAK_DETECT "leak_detect"
 #define CONFIG_CALL_STACK_NUM "num_call_stack"
-#define CONFIG_SETDMABUFNAME   "setdmabufname"
+#define CONFIG_SETDMABUFNAME "setdmabufname"
 
 struct fastrpc_config_param {
   boolean pddump;
@@ -263,11 +263,11 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
         FARF(ALWAYS, "fastrpc config setting call stack num with %d\n",
              frpc_config.num_call_stack);
       }
- 		} else if (std_strncmp(param, CONFIG_SETDMABUFNAME,
-					std_strlen(CONFIG_SETDMABUFNAME)) == 0) {
-			param = strtok_r (NULL, delim, &saveptr);
-			if (param != NULL && atoi(param))
-				frpc_config.setdmabufname = TRUE;
+    } else if (std_strncmp(param, CONFIG_SETDMABUFNAME,
+                           std_strlen(CONFIG_SETDMABUFNAME)) == 0) {
+      param = strtok_r(NULL, delim, &saveptr);
+      if (param != NULL && atoi(param))
+        frpc_config.setdmabufname = TRUE;
     }
     param = NULL;
   } while (!eof);
@@ -356,7 +356,7 @@ int fastrpc_config_get_caller_stack_num(void) {
 }
 
 boolean fastrpc_config_is_setdmabufname_enabled(void) {
-	return frpc_config.setdmabufname;
+  return frpc_config.setdmabufname;
 }
 
 // Fastrpc config init function

@@ -12,244 +12,235 @@ DESCRIPTION:  Standard library; general-purpose utility functions.
 #include "AEEStdDef.h"
 #include "string.h"
 
-#define STD_CONSTRAIN( val, min, max ) (((val) < (min)) ? (min) : ((val) > (max)) ? (max) : (val))
-#define STD_BETWEEN( val, minGE, maxLT ) \
-                   ( ((unsigned long)(minGE) <= (unsigned long)(val)) && \
-                   ( (unsigned long)((unsigned long)(val) - (unsigned long)(minGE)) < \
-                   (unsigned long)((unsigned long)(maxLT) - (unsigned long)(minGE))) )
-#define STD_ARRAY_SIZE(a)             ((int)((sizeof((a))/sizeof((a)[0]))))
-#define STD_ARRAY_MEMBER(p,a) (((p) >= (a)) && ((p) < ((a) + STD_ARRAY_SIZE(a))))
+#define STD_CONSTRAIN(val, min, max)                                           \
+  (((val) < (min)) ? (min) : ((val) > (max)) ? (max) : (val))
+#define STD_BETWEEN(val, minGE, maxLT)                                         \
+  (((unsigned long)(minGE) <= (unsigned long)(val)) &&                         \
+   ((unsigned long)((unsigned long)(val) - (unsigned long)(minGE)) <           \
+    (unsigned long)((unsigned long)(maxLT) - (unsigned long)(minGE))))
+#define STD_ARRAY_SIZE(a) ((int)((sizeof((a)) / sizeof((a)[0]))))
+#define STD_ARRAY_MEMBER(p, a)                                                 \
+  (((p) >= (a)) && ((p) < ((a) + STD_ARRAY_SIZE(a))))
 
-#define STD_SIZEOF(x)                 ((int)sizeof(x))
-#define STD_OFFSETOF(type,member)     (((char*)(&((type*)1)->member))-((char*)1))
+#define STD_SIZEOF(x) ((int)sizeof(x))
+#define STD_OFFSETOF(type, member)                                             \
+  (((char *)(&((type *)1)->member)) - ((char *)1))
 
-#define STD_RECOVER_REC(type,member,p) ((void)((p)-&(((type*)1)->member)),\
-                                        (type*)(void*)(((char*)(void*)(p))-STD_OFFSETOF(type,member)))
-#define STD_MIN(a,b)   ((a)<(b)?(a):(b))
-#define STD_MAX(a,b)   ((a)>(b)?(a):(b))
-//lint -emacro(545,STD_ZEROAT)
-#define STD_ZEROAT(p)  std_memset((p), 0, sizeof(*p))
+#define STD_RECOVER_REC(type, member, p)                                       \
+  ((void)((p) - &(((type *)1)->member)),                                       \
+   (type *)(void *)(((char *)(void *)(p)) - STD_OFFSETOF(type, member)))
+#define STD_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define STD_MAX(a, b) ((a) > (b) ? (a) : (b))
+// lint -emacro(545,STD_ZEROAT)
+#define STD_ZEROAT(p) std_memset((p), 0, sizeof(*p))
 
-#define _STD_BITS_PER(bits)     (8*sizeof((bits)[0]))
+#define _STD_BITS_PER(bits) (8 * sizeof((bits)[0]))
 
-#define STD_BIT_SET(bits, ix)     ((bits)[(ix)/_STD_BITS_PER((bits))] |= 0x1<<((ix) & (_STD_BITS_PER((bits))-1)))
-#define STD_BIT_CLEAR(bits, ix)   ((bits)[(ix)/_STD_BITS_PER((bits))] &= ~(0x1<<((ix) & (_STD_BITS_PER((bits))-1))))
-#define STD_BIT_TEST(bits, ix)    ((bits)[(ix)/_STD_BITS_PER((bits))] & (0x1<<((ix) & (_STD_BITS_PER((bits))-1))))
+#define STD_BIT_SET(bits, ix)                                                  \
+  ((bits)[(ix) / _STD_BITS_PER((bits))] |=                                     \
+   0x1 << ((ix) & (_STD_BITS_PER((bits)) - 1)))
+#define STD_BIT_CLEAR(bits, ix)                                                \
+  ((bits)[(ix) / _STD_BITS_PER((bits))] &=                                     \
+   ~(0x1 << ((ix) & (_STD_BITS_PER((bits)) - 1))))
+#define STD_BIT_TEST(bits, ix)                                                 \
+  ((bits)[(ix) / _STD_BITS_PER((bits))] &                                      \
+   (0x1 << ((ix) & (_STD_BITS_PER((bits)) - 1))))
 
 //
 // Error codes
 //
-#define STD_NODIGITS   1
-#define STD_NEGATIVE   2
-#define STD_OVERFLOW   3
-#define STD_BADPARAM   4
-#define STD_UNDERFLOW  5
+#define STD_NODIGITS 1
+#define STD_NEGATIVE 2
+#define STD_OVERFLOW 3
+#define STD_BADPARAM 4
+#define STD_UNDERFLOW 5
 
-//Compute string length using strlen
+// Compute string length using strlen
 #define std_strlen strlen
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* #ifdef __cplusplus */
 
-//Version function
-extern int           std_getversion(char *pcDst, int nDestSize);
+// Version function
+extern int std_getversion(char *pcDst, int nDestSize);
 
-//String functions
-extern int           std_strcmp(const char *s1, const char *s2);
-extern int           std_strncmp(const char *s1, const char *s2, int n);
-extern int           std_stricmp(const char *s1, const char *s2);
-extern int           std_strnicmp(const char *s1, const char *s2, int n);
-extern int           std_strlcpy(char *pcDst, const char *pszSrc, int nDestSize);
-extern int           std_strlcat(char *pcDst, const char *pszSrc, int nDestSize);
-extern char *        std_strstr(const char *pszString, const char *pszSearch);
+// String functions
+extern int std_strcmp(const char *s1, const char *s2);
+extern int std_strncmp(const char *s1, const char *s2, int n);
+extern int std_stricmp(const char *s1, const char *s2);
+extern int std_strnicmp(const char *s1, const char *s2, int n);
+extern int std_strlcpy(char *pcDst, const char *pszSrc, int nDestSize);
+extern int std_strlcat(char *pcDst, const char *pszSrc, int nDestSize);
+extern char *std_strstr(const char *pszString, const char *pszSearch);
 
-//Character functions
-extern char          std_tolower(char c);
-extern char          std_toupper(char c);
+// Character functions
+extern char std_tolower(char c);
+extern char std_toupper(char c);
 
 // Mem functions
-extern void *        std_memset(void *p, int c, int nLen);
-extern void *        std_memmove(void *pTo, const void *cpFrom, int nLen);
-extern int           std_memscpy(void *dst, int dst_size, const void *src, int src_size);
-extern int           std_memsmove(void *dst, int dst_size, const void *src, int src_size);
-extern int           std_memcmp(const void *a, const void *b, int length);
-extern void *        std_memchr(const void* s, int c, int n);
-extern void *        std_memstr(const char* cpHaystack, const char* cpszNeedle, int nHaystackLen);
-extern void *        std_memrchr(const void* s, int c, int n);
-extern void *        std_memrchrbegin(const void* p, int c, int nLen);
-extern void *        std_memchrend(const void* cpcSrch, int c, int nLen);
-extern void *        std_memchrsend(const void *cpSrch, const char* cpszChars, int nLen);
+extern void *std_memset(void *p, int c, int nLen);
+extern void *std_memmove(void *pTo, const void *cpFrom, int nLen);
+extern int std_memscpy(void *dst, int dst_size, const void *src, int src_size);
+extern int std_memsmove(void *dst, int dst_size, const void *src, int src_size);
+extern int std_memcmp(const void *a, const void *b, int length);
+extern void *std_memchr(const void *s, int c, int n);
+extern void *std_memstr(const char *cpHaystack, const char *cpszNeedle,
+                        int nHaystackLen);
+extern void *std_memrchr(const void *s, int c, int n);
+extern void *std_memrchrbegin(const void *p, int c, int nLen);
+extern void *std_memchrend(const void *cpcSrch, int c, int nLen);
+extern void *std_memchrsend(const void *cpSrch, const char *cpszChars,
+                            int nLen);
 
-//Other String functions
-extern char *        std_strchr(const char* s, int c);
-extern char *        std_strchrs(const char* sSrch, const char *sChars);
-extern char *        std_strrchr(const char* s, int c);
-extern char *        std_strchrend(const char *cpszSrch, char c);
-extern char *        std_strchrsend(const char* s, const char* cpszSrch);
-extern char *        std_strends(const char* cpsz, const char* cpszSuffix);
-extern char *        std_striends(const char* cpsz, const char* cpszSuffix);
-extern char *        std_strbegins(const char* cpsz, const char* cpszPrefix);
-extern char *        std_stribegins(const char* cpsz, const char* cpszPrefix);
-extern int           std_strcspn(const char* s, const char* cpszSrch);
-extern int           std_strspn(const char* s, const char* cpszSrch);
+// Other String functions
+extern char *std_strchr(const char *s, int c);
+extern char *std_strchrs(const char *sSrch, const char *sChars);
+extern char *std_strrchr(const char *s, int c);
+extern char *std_strchrend(const char *cpszSrch, char c);
+extern char *std_strchrsend(const char *s, const char *cpszSrch);
+extern char *std_strends(const char *cpsz, const char *cpszSuffix);
+extern char *std_striends(const char *cpsz, const char *cpszSuffix);
+extern char *std_strbegins(const char *cpsz, const char *cpszPrefix);
+extern char *std_stribegins(const char *cpsz, const char *cpszPrefix);
+extern int std_strcspn(const char *s, const char *cpszSrch);
+extern int std_strspn(const char *s, const char *cpszSrch);
 
-//Wide char string functions
-extern int           std_wstrlen(const AECHAR *s);
-extern int           std_wstrlcpy(AECHAR *pcDst, const AECHAR *pszSrc, int nDestSize);
-extern int           std_wstrlcat(AECHAR *pcDst, const AECHAR *pszSrc, int nDestSize);
-extern int           std_wstrncmp(const AECHAR* s1, const AECHAR* s2, int nLen);
-extern int           std_wstrcmp(const AECHAR* s1, const AECHAR* s2);
-extern AECHAR*       std_wstrchr(const AECHAR* cpwszText, AECHAR ch);
-extern AECHAR*       std_wstrrchr(const AECHAR* cpwszText, AECHAR ch);
+// Wide char string functions
+extern int std_wstrlen(const AECHAR *s);
+extern int std_wstrlcpy(AECHAR *pcDst, const AECHAR *pszSrc, int nDestSize);
+extern int std_wstrlcat(AECHAR *pcDst, const AECHAR *pszSrc, int nDestSize);
+extern int std_wstrncmp(const AECHAR *s1, const AECHAR *s2, int nLen);
+extern int std_wstrcmp(const AECHAR *s1, const AECHAR *s2);
+extern AECHAR *std_wstrchr(const AECHAR *cpwszText, AECHAR ch);
+extern AECHAR *std_wstrrchr(const AECHAR *cpwszText, AECHAR ch);
 
-//Path functions
-extern int           std_makepath(const char *cpszDir,
-                                  const char *cpszFile,
-                                  char *pszDest, int nDestSize);
-extern char *        std_splitpath(const char *cpszPath, const char *cpszDir);
-extern char *        std_cleanpath(char *pszPath);
-extern char *        std_basename(const char *pszPath);
+// Path functions
+extern int std_makepath(const char *cpszDir, const char *cpszFile,
+                        char *pszDest, int nDestSize);
+extern char *std_splitpath(const char *cpszPath, const char *cpszDir);
+extern char *std_cleanpath(char *pszPath);
+extern char *std_basename(const char *pszPath);
 
-//Inet functions, number functions
-extern unsigned int        std_scanul(const char *pchBuf, int nRadix,
-                                const char **ppchEnd, int *pnError);
-extern uint64        std_scanull(const char *pchBuf, int nRadix,
-                                 const char **ppchEnd, int *pnError);
-extern double        std_scand(const char *pchBuf, const char **ppchEnd);
+// Inet functions, number functions
+extern unsigned int std_scanul(const char *pchBuf, int nRadix,
+                               const char **ppchEnd, int *pnError);
+extern uint64 std_scanull(const char *pchBuf, int nRadix, const char **ppchEnd,
+                          int *pnError);
+extern double std_scand(const char *pchBuf, const char **ppchEnd);
 
 // Rand functions
-extern unsigned      std_rand_next(unsigned uRand);
-extern uint32        std_rand(uint32 uSeed, byte* pDest, int nSize);
-
+extern unsigned std_rand_next(unsigned uRand);
+extern uint32 std_rand(uint32 uSeed, byte *pDest, int nSize);
 
 // printf functions
-extern int           std_vstrlprintf(char *pszDest, int nDestSize,
-                                     const char *pszFmt, AEEVaList args);
+extern int std_vstrlprintf(char *pszDest, int nDestSize, const char *pszFmt,
+                           AEEVaList args);
 
-extern int           std_strlprintf(char *pszDest, int nDestSize,
-                                    const char *pszFmt, ...);
+extern int std_strlprintf(char *pszDest, int nDestSize, const char *pszFmt,
+                          ...);
 
-extern int           std_vsnprintf(char *pszDest, int nDestSize,
-                                   const char *cpszFmt, AEEVaList args);
+extern int std_vsnprintf(char *pszDest, int nDestSize, const char *cpszFmt,
+                         AEEVaList args);
 
-extern int           std_snprintf(char *pszDest, int nDestSize,
-                                  const char *pszFmt, ...);
+extern int std_snprintf(char *pszDest, int nDestSize, const char *pszFmt, ...);
 
 // endian swapping functions
-extern int           std_CopyLE(void *pvDest,       int nDestSize,
-                                const void *pvSrc,  int nSrcSize,
-                                const char *pszFields);
+extern int std_CopyLE(void *pvDest, int nDestSize, const void *pvSrc,
+                      int nSrcSize, const char *pszFields);
 
-extern int           std_CopyBE(void *pvDest,      int nDestSize,
-                                const void *pvSrc, int nSrcSize,
-                                const char *pszFields);
+extern int std_CopyBE(void *pvDest, int nDestSize, const void *pvSrc,
+                      int nSrcSize, const char *pszFields);
 
 // sorting utilities
-extern void  std_qsort(void* pElems, int nNumElems, int nElemWidth,
-                       int (*pfnCompare)(void*, const void*, const void*),
-                       void* pCompareCx);
+extern void std_qsort(void *pElems, int nNumElems, int nElemWidth,
+                      int (*pfnCompare)(void *, const void *, const void *),
+                      void *pCompareCx);
 
-extern int   std_bisect(const void* pElems, int nNumElems, int nElemWidth,
-                        const void* pElem,
-                        int (*pfnCompare)(void*, const void*, const void*),
-                        void* pCompareCx);
+extern int std_bisect(const void *pElems, int nNumElems, int nElemWidth,
+                      const void *pElem,
+                      int (*pfnCompare)(void *, const void *, const void *),
+                      void *pCompareCx);
 
-extern void  std_merge(void* vpDst, int nDst,
-                       const void* vpA, int nA,
-                       const void* vpB, int nB,
-                       int nElemWidth,
-                       int (*pfnCompare)(void*, const void*, const void*),
-                       void* pCompareCx);
+extern void std_merge(void *vpDst, int nDst, const void *vpA, int nA,
+                      const void *vpB, int nB, int nElemWidth,
+                      int (*pfnCompare)(void *, const void *, const void *),
+                      void *pCompareCx);
 
-extern int   std_uniq(void* vpElems, int nNumElems, int nElemWidth,
-                      int (*pfnCompare)(void*, const void*, const void*),
-                      void* pCompareCx);
+extern int std_uniq(void *vpElems, int nNumElems, int nElemWidth,
+                    int (*pfnCompare)(void *, const void *, const void *),
+                    void *pCompareCx);
 
 #ifdef __cplusplus
 }
 #endif /* #ifdef __cplusplus */
 
+#define STD_SWAPS(us) ((((us)&0xff) << 8) + (((us)&0xff00) >> 8))
 
-#define STD_SWAPS(us) \
-   ((((us) & 0xff) << 8) + (((us) & 0xff00) >> 8))
-
-
-static __inline unsigned short std_swaps(unsigned short us)
-{
-   return STD_SWAPS(us);
+static __inline unsigned short std_swaps(unsigned short us) {
+  return STD_SWAPS(us);
 }
 
 /* note, STD_SWAPL() requires that ul be an l-value, and destroyable.
    this macro is not intended for use outside AEEstd.h */
-#define STD_SWAPL(ul) \
-    (((ul) = (((ul) & 0x00ff00ff) << 8) | (((ul)>>8) & 0x00ff00ff)),(((ul) >> 16) | ((ul) << 16)))
+#define STD_SWAPL(ul)                                                          \
+  (((ul) = (((ul)&0x00ff00ff) << 8) | (((ul) >> 8) & 0x00ff00ff)),             \
+   (((ul) >> 16) | ((ul) << 16)))
 
-static __inline unsigned long std_swapl(unsigned long ul)
-{
-   return STD_SWAPL(ul);
+static __inline unsigned long std_swapl(unsigned long ul) {
+  return STD_SWAPL(ul);
 }
 
 #ifdef AEE_BIGENDIAN
-#  define STD_HTONL(u)     (u)
-#  define STD_HTONS(u)     (u)
-#  define STD_HTOLEL(u)    (STD_SWAPL(u))
-#  define STD_HTOLES(u)    (STD_SWAPS(u))
+#define STD_HTONL(u) (u)
+#define STD_HTONS(u) (u)
+#define STD_HTOLEL(u) (STD_SWAPL(u))
+#define STD_HTOLES(u) (STD_SWAPS(u))
 #else
-#  define STD_HTONL(u)     (STD_SWAPL(u))
-#  define STD_HTONS(u)     (STD_SWAPS(u))
-#  define STD_HTOLEL(u)    (u)
-#  define STD_HTOLES(u)    (u)
+#define STD_HTONL(u) (STD_SWAPL(u))
+#define STD_HTONS(u) (STD_SWAPS(u))
+#define STD_HTOLEL(u) (u)
+#define STD_HTOLES(u) (u)
 #endif
 
-static __inline unsigned short std_letohs(unsigned short us)
-{
-   return STD_HTOLES(us);
+static __inline unsigned short std_letohs(unsigned short us) {
+  return STD_HTOLES(us);
 }
 
-static __inline unsigned short std_htoles(unsigned short us)
-{
-   return STD_HTOLES(us);
+static __inline unsigned short std_htoles(unsigned short us) {
+  return STD_HTOLES(us);
 }
 
-static __inline unsigned long std_letohl(unsigned long ul)
-{
-   return STD_HTOLEL(ul);
+static __inline unsigned long std_letohl(unsigned long ul) {
+  return STD_HTOLEL(ul);
 }
 
-static __inline unsigned long std_htolel(unsigned long ul)
-{
-   return STD_HTOLEL(ul);
+static __inline unsigned long std_htolel(unsigned long ul) {
+  return STD_HTOLEL(ul);
 }
 
-static __inline unsigned short std_ntohs(unsigned short us)
-{
-   return STD_HTONS(us);
+static __inline unsigned short std_ntohs(unsigned short us) {
+  return STD_HTONS(us);
 }
 
-static __inline unsigned short std_htons(unsigned short us)
-{
-   return STD_HTONS(us);
+static __inline unsigned short std_htons(unsigned short us) {
+  return STD_HTONS(us);
 }
 
-static __inline unsigned long std_ntohl(unsigned long ul)
-{
-   return STD_HTONL(ul);
+static __inline unsigned long std_ntohl(unsigned long ul) {
+  return STD_HTONL(ul);
 }
 
-static __inline unsigned long std_htonl(unsigned long ul)
-{
-   return STD_HTONL(ul);
+static __inline unsigned long std_htonl(unsigned long ul) {
+  return STD_HTONL(ul);
 }
 
-
-#undef STD_HTONL   // private macro; not exported as a supported API
-#undef STD_HTONS   // private macro; not exported as a supported API
-#undef STD_HTOLEL  // private macro; not exported as a supported API
-#undef STD_HTOLES  // private macro; not exported as a supported API
-#undef STD_SWAPS   // private macro; not exported as a supported API
-#undef STD_SWAPL   // private macro; not exported as a supported API
-
+#undef STD_HTONL  // private macro; not exported as a supported API
+#undef STD_HTONS  // private macro; not exported as a supported API
+#undef STD_HTOLEL // private macro; not exported as a supported API
+#undef STD_HTOLES // private macro; not exported as a supported API
+#undef STD_SWAPS  // private macro; not exported as a supported API
+#undef STD_SWAPL  // private macro; not exported as a supported API
 
 /*
 =======================================================================
@@ -298,7 +289,8 @@ Evaluation Value:
 STD_ARRAY_SIZE()
 
 Description:
-   STD_ARRAY_SIZE() gives the number of elements in a statically allocated array.
+   STD_ARRAY_SIZE() gives the number of elements in a statically allocated
+array.
 
 Definition:
     STD_ARRAY_SIZE(a) (sizeof((a))/sizeof((a)[0]))
@@ -314,7 +306,8 @@ Evaluation Value:
 STD_ARRAY_MEMBER()
 
 Description:
-   STD_ARRAY_MEMBER() tests whether an item is a member of a statically allocated array.
+   STD_ARRAY_MEMBER() tests whether an item is a member of a statically
+allocated array.
 
 Definition:
    STD_ARRAY_MEMBER(p,a) (((p) >= (a)) && ((p) < ((a) + STD_ARRAY_SIZE(a))))
@@ -352,7 +345,8 @@ Description:
     of a struct to a pointer to the containing struct
 
 Definition:
-  STD_RECOVER_REC(type,member,p) ((type*)(((char*)(p))-STD_OFFSETOF(type,member)))
+  STD_RECOVER_REC(type,member,p)
+((type*)(((char*)(p))-STD_OFFSETOF(type,member)))
 
 Parameters:
     type: structured type
@@ -509,7 +503,8 @@ Parameters:
    cpszStr : String whose length will be computed
 
 Return Value:
-   Length of the string in characters that precede the terminating NULL character.
+   Length of the string in characters that precede the terminating NULL
+character.
 
 =======================================================================
 
@@ -540,7 +535,8 @@ See Also:
 std_strncmp()
 
 Description:
-   The std_strncmp() compares at most n bytes of two NUL-terminated character strings.
+   The std_strncmp() compares at most n bytes of two NUL-terminated character
+strings.
 
 Prototype:
 
@@ -564,8 +560,8 @@ See Also:
 std_stricmp()
 
 Description:
-   The std_stricmp() compares two NUL-terminated character strings, case-folding any
-   ASCII characters.
+   The std_stricmp() compares two NUL-terminated character strings, case-folding
+any ASCII characters.
 
 Prototype:
 
@@ -584,8 +580,8 @@ Return Value:
 std_strnicmp()
 
 Description:
-   The std_strnicmp() compares at most n bytes of 2 NUL-terminated character strings,
-   case-folding any ASCII characters.
+   The std_strnicmp() compares at most n bytes of 2 NUL-terminated character
+strings, case-folding any ASCII characters.
 
 Prototype:
 
@@ -713,7 +709,8 @@ Parameters:
    pszSearch: sub string to search for
 
 Return Value:
-   A pointer to the first character in the first occurrence of the substring if found, NULL otherwise
+   A pointer to the first character in the first occurrence of the substring if
+found, NULL otherwise
 
 =======================================================================
 
@@ -2344,8 +2341,8 @@ Return Value:
 
 Comments:
 
-   The std_scanul() is similar to ANSI C's strtoul() but differs in the following
-   respects:
+   The std_scanul() is similar to ANSI C's strtoul() but differs in the
+following respects:
 
      1. It returns an error/success code.  strtoul() results are ambiguous
         unless the caller sets errno to zero before calling it.
@@ -2429,8 +2426,8 @@ Return Value:
 
 Comments:
 
-   The std_scanull() is similar to ANSI C's strtoull() but differs in the following
-   respects:
+   The std_scanull() is similar to ANSI C's strtoull() but differs in the
+following respects:
 
      1. It returns an error/success code.  strtoull() results are ambiguous
         unless the caller sets errno to zero before calling it.
@@ -2439,8 +2436,8 @@ Comments:
         strtoull() implementations use locale; some don't.
 
      3. It provides more complete reporting of range underflow.  strtoul()
-        does not distinguish between "-1" and "0xFFFFFFFFFFFFFFFF", and underflow
-        is poorly defined.
+        does not distinguish between "-1" and "0xFFFFFFFFFFFFFFFF", and
+underflow is poorly defined.
 
      4. std_scanull() reports a "no digits" error code to distinguish "0" from
         whitespace, "+", etc..
@@ -2652,4 +2649,3 @@ Return Value:
 =======================================================================*/
 
 #endif // AEESTD_H
-

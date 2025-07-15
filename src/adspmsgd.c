@@ -18,11 +18,9 @@
 #include "rpcmem.h"
 #include "verify.h"
 
-
 #define BUFFER_SIZE 256
 #define DEFAULT_MEMORY_SIZE 256 * 1024
 #include "fastrpc_common.h"
-
 
 extern char *fastrpc_config_get_runtime_farf_file(void);
 

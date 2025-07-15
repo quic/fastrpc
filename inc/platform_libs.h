@@ -57,7 +57,7 @@ libraryB does not need to appear in the platform library list.
 #include <stdint.h>
 
 struct platform_lib {
-  const char* name;
+  const char *name;
   uint32_t uRefs;
   int nErr;
   int (*init)(void);
@@ -68,13 +68,12 @@ struct platform_lib {
  * use this macro to pull in external dependencies
  */
 #ifdef __cplusplus
-#define PL_DEP(name)\
-   extern "C" {\
-     extern struct platform_lib*  _pl_##name(void); \
-   }
+#define PL_DEP(name)                                                           \
+  extern "C" {                                                                 \
+  extern struct platform_lib *_pl_##name(void);                                \
+  }
 #else
-#define PL_DEP(name)\
-   extern struct platform_lib*  _pl_##name(void);
+#define PL_DEP(name) extern struct platform_lib *_pl_##name(void);
 #endif /* __cplusplus */
 
 /**
@@ -82,19 +81,19 @@ struct platform_lib {
  * if constructor fails, destructor is not called
  */
 #ifdef __cplusplus
-#define PL_DEFINE(name, init, deinit) \
-   extern "C" {\
-      struct platform_lib* _pl_##name(void) {\
-         static struct platform_lib  _gpl_##name = { #name, 0, -1, init, deinit };\
-         return &_gpl_##name;\
-      }\
-   }
+#define PL_DEFINE(name, init, deinit)                                          \
+  extern "C" {                                                                 \
+  struct platform_lib *_pl_##name(void) {                                      \
+    static struct platform_lib _gpl_##name = {#name, 0, -1, init, deinit};     \
+    return &_gpl_##name;                                                       \
+  }                                                                            \
+  }
 #else
-#define PL_DEFINE(name, init, deinit) \
-   struct platform_lib* _pl_##name(void) {\
-      static struct platform_lib  _gpl_##name = { #name, 0, -1, init, deinit };\
-      return &_gpl_##name;\
-   }
+#define PL_DEFINE(name, init, deinit)                                          \
+  struct platform_lib *_pl_##name(void) {                                      \
+    static struct platform_lib _gpl_##name = {#name, 0, -1, init, deinit};     \
+    return &_gpl_##name;                                                       \
+  }
 #endif /* __cplusplus */
 
 /**
@@ -141,15 +140,15 @@ void pl_deinit(void);
 /**
  * initialize a single library.  called via PL_INIT
  */
-int pl_lib_init(struct platform_lib* (*pl)(void));
+int pl_lib_init(struct platform_lib *(*pl)(void));
 
 /**
  * deinitialize a single library called via PL_DEINIT
  */
-void pl_lib_deinit(struct platform_lib* (*pl)(void));
+void pl_lib_deinit(struct platform_lib *(*pl)(void));
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //PLATFORM_LIBS
+#endif // PLATFORM_LIBS

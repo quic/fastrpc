@@ -32,10 +32,10 @@
   0x10000 /* Flag to allocate HLOS FD to be shared with DSP */
 
 typedef struct {
-	QList mem_list;
-	pthread_mutex_t mem_mut;
-	int init;
-	ADD_DOMAIN_HASH();
+  QList mem_list;
+  pthread_mutex_t mem_mut;
+  int init;
+  ADD_DOMAIN_HASH();
 } apps_mem_info;
 
 DECLARE_HASH_TABLE(apps_mem, apps_mem_info);
@@ -50,14 +50,12 @@ struct mem_info {
 };
 
 /* Delete and free all nodes in hash-table */
-void apps_mem_table_deinit(void) {
-	HASH_TABLE_CLEANUP(apps_mem_info);
-}
+void apps_mem_table_deinit(void) { HASH_TABLE_CLEANUP(apps_mem_info); }
 
 /* Initialize hash-table */
 int apps_mem_table_init(void) {
-	HASH_TABLE_INIT(apps_mem_info);
-	return 0;
+  HASH_TABLE_INIT(apps_mem_info);
+  return 0;
 }
 
 /*
@@ -80,7 +78,7 @@ int apps_mem_init(int domain) {
   pthread_mutex_init(&me->mem_mut, 0);
   me->init = 1;
 bail:
-	return nErr;
+  return nErr;
 }
 
 void apps_mem_deinit(int domain) {
@@ -90,7 +88,7 @@ void apps_mem_deinit(int domain) {
   GET_HASH_NODE(apps_mem_info, domain, me);
   if (!me) {
     FARF(ALWAYS, "Warning: %s: unable to find hash-node for domain %d",
-          __func__, domain);
+         __func__, domain);
     return;
   }
 
@@ -254,19 +252,19 @@ __QAIC_IMPL(apps_mem_request_unmap64)(uint64 vadsp,
   /* If apps_mem_request_map64 was called with flag FASTRPC_ALLOC_HLOS_FD,
    * use fastrpc_munmap else use remote_munmap64 to unmap.
    */
-   if(mfree && mfree->rflags == FASTRPC_ALLOC_HLOS_FD) {
-      fd = (int)vadsp;
-      VERIFY(AEE_SUCCESS == (nErr = fastrpc_munmap(domain, fd, 0, len)));
-   } else if (mfree || fastrpc_get_pd_type(domain) == AUDIO_STATICPD){
-      /*
-       * Map info not available for Audio static PD after daemon reconnect,
-       * So continue to unmap to avoid driver global maps leak.
-       */
-      VERIFY(AEE_SUCCESS == (nErr = remote_munmap64((uint64_t)vadsp, len)));
-      if (!mfree)
-         goto bail;
-   }
-   VERIFYC(mfree, AEE_ENOSUCHMAP);
+  if (mfree && mfree->rflags == FASTRPC_ALLOC_HLOS_FD) {
+    fd = (int)vadsp;
+    VERIFY(AEE_SUCCESS == (nErr = fastrpc_munmap(domain, fd, 0, len)));
+  } else if (mfree || fastrpc_get_pd_type(domain) == AUDIO_STATICPD) {
+    /*
+     * Map info not available for Audio static PD after daemon reconnect,
+     * So continue to unmap to avoid driver global maps leak.
+     */
+    VERIFY(AEE_SUCCESS == (nErr = remote_munmap64((uint64_t)vadsp, len)));
+    if (!mfree)
+      goto bail;
+  }
+  VERIFYC(mfree, AEE_ENOSUCHMAP);
 
   /* Dequeue done after unmap to prevent leaks in case unmap fails */
   pthread_mutex_lock(&me->mem_mut);
