@@ -1,0 +1,252 @@
+name: sa8775p Build Boot Image with FastRPC Modules
+
+# Trigger the workflow on push or pull request to main or development branches
+on:
+  push:
+    branches:
+      - 'main'
+
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    # Use a container image for the build environment
+    container:
+      image: lineageos4microg/docker-lineage-cicd:latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: 1. Checkout repository
+        uses: actions/checkout@v2
+
+      # Step 2: Install yq and Python tools
+      - name: 2. Install yq and Python tools
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
+          chmod +x yq
+          mv yq /usr/local/bin/yq || mv yq ./yq
+          apt-get update && apt-get install -y python3 python3-pip
+          python3 --version
+          pip3 --version
+
+      # Step 3: Install mkbootimg from AOSP
+      - name: 3. Install mkbootimg from AOSP
+        run: |
+          apt-get update && apt-get install -y python3-pip git
+          pip install intelhex
+          git clone https://android.googlesource.com/platform/system/tools/mkbootimg
+          export PYTHONPATH=$PWD/mkbootimg:$PYTHONPATH
+          cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
+          chmod +x /usr/local/bin/mkbootimg || chmod +x ./mkbootimg
+
+      # Step 4: Install build dependencies
+      - name: 4. Install build dependencies
+        run: |
+          apt-get update && apt-get install -y gh build-essential gcc g++ make autoconf automake libtool libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev util-linux initramfs-tools
+
+      # Step 5: Read paths from config.yaml using yq
+      - name: 5. Read paths from config.yaml
+        id: config
+        run: |
+          echo "adsp=$(yq '.paths.adsp' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
+          echo "cdsp=$(yq '.paths.cdsp' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
+          echo "cdsp1=$(yq '.paths.cdsp1' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
+          echo "gdsp0=$(yq '.paths.gdsp0' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
+          echo "gdsp1=$(yq '.paths.gdsp1' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
+          echo "firmware=$(yq '.paths.firmware' CI/config/sa8775p/config.yml)" >> $GITHUB_OUTPUT
+
+      # Step 6: Download and extract Linaro toolchain
+      - name: 6. Download Linaro tools and untar
+        run: |
+          wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+          tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+
+      # Step 7: Set up build environment and compile code
+      - name: 7. Set Up Build Environment and compile code for LE platform
+        run: |
+          export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
+          export CC=aarch64-linux-gnu-gcc
+          export CXX=aarch64-linux-gnu-g++
+          export AS=aarch64-linux-gnu-as
+          export LD=aarch64-linux-gnu-ld
+          export RANLIB=aarch64-linux-gnu-ranlib
+          export STRIP=aarch64-linux-gnu-strip
+          chmod 777 gitcompile
+          ./gitcompile --host=aarch64-linux-gnu
+
+      # Step 8: Verify compiled binaries exist
+      - name: 8. Verify fastrpc compiled binaries
+        shell: sh
+        run: |
+          echo "Verify the compiled binaries"
+          Files="src/.libs/libadsp_default_listener.so
+          src/.libs/libadsprpc.so
+          src/.libs/libcdsp_default_listener.so
+          src/.libs/libcdsprpc.so
+          src/.libs/libsdsp_default_listener.so
+          src/.libs/libsdsprpc.so
+          src/adsprpcd
+          src/cdsprpcd
+          src/sdsprpcd"
+          for File in $Files; do
+            if [ -f "$File" ]; then
+              echo "$File - Exists"
+            else
+              echo "$File - Not Exists"
+              exit 1
+            fi
+          done
+
+      # Step 9: Create required directories
+      - name: 9. Create directories and verify required directories
+        shell: bash
+        run: |
+          # Create directories
+          mkdir -p firmware_dir/usr/lib/dsp/{adsp,cdsp,cdsp1,gdsp0,gdsp1}
+          mkdir -p firmware_dir/lib/firmware/qcom/sa8775p
+          mkdir -p fastrpc_dir/usr/{lib,bin}
+
+          # Verify directory structure
+          echo "Verifying created directories:"
+          for dir in \
+            firmware_dir/usr/lib/dsp/adsp \
+            firmware_dir/usr/lib/dsp/cdsp \
+            firmware_dir/usr/lib/dsp/cdsp1 \
+            firmware_dir/usr/lib/dsp/gdsp0 \
+            firmware_dir/usr/lib/dsp/gdsp1 \
+            firmware_dir/lib/firmware/qcom/sa8775p \
+            fastrpc_dir/usr/lib \
+            fastrpc_dir/usr/bin
+          do
+            if [ -d "$dir" ]; then
+              echo "[OK] $dir exists"
+            else
+              echo "[ERROR] $dir is missing"
+              exit 1
+            fi
+          done
+
+      - name: 9.1 Copy fastrpc binary and fastrpc test binary
+        run: |
+          # Copy fastrpc binary
+          cp -rf src/.libs/libadsp_default_listener.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libadsprpc.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsp_default_listener.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsprpc.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsp_default_listener.so fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsprpc.so fastrpc_dir/usr/lib/
+
+          cp -rf src/.libs/libadsp_default_listener.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libadsprpc.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsprpc.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsp_default_listener.so.1 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsprpc.so.1 fastrpc_dir/usr/lib/
+          
+          cp -rf src/.libs/libadsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libadsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libcdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsp_default_listener.so.1.0.0 fastrpc_dir/usr/lib/
+          cp -rf src/.libs/libsdsprpc.so.1.0.0 fastrpc_dir/usr/lib/
+          
+          cp -rf src/adsprpcd fastrpc_dir/usr/bin/
+          cp -rf src/cdsprpcd fastrpc_dir/usr/bin/
+          cp -rf src/sdsprpcd fastrpc_dir/usr/bin/
+
+          # Copy fastrpc test binary
+          cp -rf test/fastrpc_test fastrpc_dir/usr/bin
+          cp -rf test/linux/* fastrpc_dir/usr/bin
+          cp -rf test/v75/* fastrpc_dir/usr/bin
+
+          echo "Listing contents of ./fastrpc_dir"
+          find ./fastrpc_dir
+          cd fastrpc_dir 
+          find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
+          cd ..
+
+      # Step 10: Download hexagon-dsp-binaries and copy files
+      - name: 10. Download hexagon-dsp-binaries and copy files
+        run: |
+          git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
+          cp ${{ steps.config.outputs.adsp }}/* firmware_dir/usr/lib/dsp/adsp
+          cp ${{ steps.config.outputs.cdsp }}/* firmware_dir/usr/lib/dsp/cdsp
+          cp ${{ steps.config.outputs.cdsp1 }}/* firmware_dir/usr/lib/dsp/cdsp1
+          cp ${{ steps.config.outputs.gdsp0 }}/* firmware_dir/usr/lib/dsp/gdsp0
+          cp ${{ steps.config.outputs.gdsp1 }}/* firmware_dir/usr/lib/dsp/gdsp1
+
+      # Step 11: Download and copy Linux firmware and copy files
+      - name: 11. Download dsp-linux-firmware and copy files
+        run: |
+          git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+          cp -rf ${{ steps.config.outputs.firmware }}/* firmware_dir/lib/firmware/qcom/sa8775p/
+
+      - name: 12. list and create a zip file of dsp-firware
+        run: |
+          echo "Listing contents of ./firmware_dir"
+          find ./firmware_dir
+          cd firmware_dir
+          find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
+          cd ..        
+
+      # Step 13: Download Linux kernel artifacts
+      - name: 13. Download artifact using gh CLI
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh run download 15867457800 --repo quic/fastrpc --name linux-kernel-artifacts --dir ./linux-kernel-artifacts
+
+      - name: Extract  Linux kernel archive
+        run: |
+          mkdir -p linux-kernel-artifacts
+          cd linux-kernel-artifacts
+          gzip -dc ../artifacts/linux-kernel-artifacts.cpio.gz | cpio -idmv
+
+      # Step 13.1: Validate kernel and dtb paths
+      - name: Validate artifact download
+        run: |
+          if [ -f ./linux-kernel-artifacts/arch/arm64/boot/Image ]; then
+            echo "✅ Artifact downloaded successfully and Image file exists."
+          else
+            echo "❌ Artifact download failed or expected file not found."
+            exit 1
+          fi
+
+      # Step 14: Create ramdisk file including fastrpc binaries
+      - name: 14. Download and create fastrpc included ramdisk file
+        run: |
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -L -o ramdisk-qcom-armv8a.cpio.gz \
+            https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+
+          cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
+          cd linux-kernel-artifacts/tar-install
+          find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+          cd ../..
+
+      # Step 15: Create boot image using mkbootimg
+      - name: 15. Create boot image using mkbootimg
+        run: |
+          python3 mkbootimg/mkbootimg.py \
+            --header_version 2 \
+            --kernel linux-kernel-artifacts/arch/arm64/boot/Image \
+            --dtb linux-kernel-artifacts/arch/arm64/boot/dts/qcom/sa8775p-ride.dtb \
+            --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
+            --ramdisk ramdisk.gz \
+            --output sa8775p_boot.img
+
+      # Step 16: Upload the compiled boot image as an artifact
+      - name: 16. Upload Compiled Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: sa8775p_boot.img
+          path: sa8775p_boot.img
+
+      - name: Trigger LAVA Test
+        id: trigger_lava
+        uses: ./.github/workflows/test.yml
+        with:
+          DEVICE_NAME: sa8775p

@@ -1,0 +1,256 @@
+
+name: build
+description: Build Boot Image with FastRPC Modules
+
+inputs:
+  DEVICE_TYPE:
+    description: Target device type
+    required: true
+  device_dtb:
+    description: Target device type
+    required: true
+  adsp_path:
+    description: ADSP path
+    required: true
+  cdsp_path:
+    description: CDSP path
+    required: true
+  firmware_path:
+    description: Firmware path
+    required: true
+  github_token:
+    required: true
+    description: 'GitHub token passed from workflow'
+
+
+runs:
+  using: "composite"
+  steps:
+  - name: Checkout repository
+    uses: actions/checkout@v2
+
+  - name:  Build Boot Image with FastRPC Modules 
+    shell: bash
+    run: |
+      CLEAN_DEVICE_TYPE=$(echo "${{ inputs.DEVICE_TYPE }}" | tr -d '\r')
+      CLEAN_DEVICE_DTB=$(echo "${{ inputs.device_dtb }}" | tr -d '\r')
+      CLEAN_ADSP_PATH=$(echo "${{ inputs.adsp_path }}" | tr -d '\r')
+      CLEAN_CDSP_PATH=$(echo "${{ inputs.cdsp_path }}" | tr -d '\r')
+      CLEAN_FIRMWARE_PATH=$(echo "${{ inputs.firmware_path }}" | tr -d '\r')
+      echo "Build Boot Image with FastRPC Modules for $CLEAN_DEVICE_TYPE $CLEAN_ADSP_PATH $CLEAN_CDSP_PATH $CLEAN_FIRMWARE_PATH $CLEAN_DEVICE_DTB ${{ inputs.adsp_path }}"
+
+  - name: 1. Install yq and Python tools (without sudo)
+    shell: bash
+    run: |
+      wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
+      chmod +x yq
+      mv yq /usr/local/bin/yq || mv yq ./yq  # fallback if /usr/local/bin is not writable
+      apt-get update && apt-get install -y python3 python3-pip
+      python3 --version
+      pip3 --version
+      # pip3 install intelhex gki
+
+  - name: 2. Install mkbootimg from AOSP (manual setup)
+    shell: bash
+    run: |
+      apt-get update && apt-get install -y python3-pip git
+      pip install intelhex
+      git clone https://android.googlesource.com/platform/system/tools/mkbootimg
+      export PYTHONPATH=$PWD/mkbootimg:$PYTHONPATH
+      cp mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg || cp mkbootimg/mkbootimg.py ./mkbootimg
+      chmod +x /usr/local/bin/mkbootimg || chmod +x ./mkbootimg
+
+  - name: 3. Install build dependencies (without sudo)
+    shell: bash
+    run: |
+      apt-get update && apt-get install -y gh \
+      build-essential gcc g++ make autoconf automake libtool \
+      libelf-dev flex bison tar xz-utils llvm clang lld llvm-dev \
+      util-linux initramfs-tools
+
+  - name: 5. Download Linaro tools and untar
+    shell: bash
+    run: |
+      wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+      tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+
+  - name: 6. Set Up Build Environment and compile code for LE platform
+    shell: bash
+    run: |
+      # Set Up Build Environment
+      export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
+      export CC=aarch64-linux-gnu-gcc
+      export CXX=aarch64-linux-gnu-g++
+      export AS=aarch64-linux-gnu-as
+      export LD=aarch64-linux-gnu-ld
+      export RANLIB=aarch64-linux-gnu-ranlib
+      export STRIP=aarch64-linux-gnu-strip
+      
+      # Compile the source code
+      chmod 777 gitcompile
+      ./gitcompile --host=aarch64-linux-gnu
+
+  - name: 7. Verify fastrpc compiled binaries
+    shell: sh
+    run: |
+      echo "Verify the compiled binaries"
+      Files="src/.libs/libadsp_default_listener.so
+      src/.libs/libadsprpc.so
+      src/.libs/libcdsp_default_listener.so
+      src/.libs/libcdsprpc.so
+      src/.libs/libsdsp_default_listener.so
+      src/.libs/libsdsprpc.so
+      src/adsprpcd
+      src/cdsprpcd
+      src/sdsprpcd"
+  
+      for File in $Files
+      do 
+        if [ -f "$File" ]; then
+          echo "$File - Exists"
+        else
+          echo "$File - Not Exists"
+          exit 1
+        fi
+      done
+
+  - name: 8. Create directories and verify required directories
+    shell: bash
+    run: |
+      # Create directories
+      mkdir -p firmware_dir/usr/lib/dsp/adsp
+      mkdir -p firmware_dir/usr/lib/dsp/cdsp
+      mkdir -p firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}
+      mkdir -p fastrpc_dir/usr/lib
+      mkdir -p fastrpc_dir/usr/bin
+
+      # Verify directory structure
+      echo "Verifying created directories:"
+      for dir in \
+        firmware_dir/usr/lib/dsp/adsp \
+        firmware_dir/usr/lib/dsp/cdsp \
+        firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }} \
+        fastrpc_dir/usr/lib \
+        fastrpc_dir/usr/bin
+      do
+        if [ -d "$dir" ]; then
+          echo "[OK] $dir exists"
+        else
+          echo "[ERROR] $dir is missing"
+          exit 1
+        fi
+      done
+
+  - name: 9. Copy fastrpc binary and fastrpc test binary
+    shell: bash
+    run: |
+      # Copy fastrpc binary
+      cp -rf src/.libs/libadsp_default_listener.so* fastrpc_dir/usr/lib/
+      cp -rf src/.libs/libadsprpc.so* fastrpc_dir/usr/lib/
+      cp -rf src/.libs/libcdsp_default_listener.so* fastrpc_dir/usr/lib/
+      cp -rf src/.libs/libcdsprpc.so* fastrpc_dir/usr/lib/
+      cp -rf src/.libs/libsdsp_default_listener.so* fastrpc_dir/usr/lib/
+      cp -rf src/.libs/libsdsprpc.so* fastrpc_dir/usr/lib/
+    
+      cp -rf src/adsprpcd src/cdsprpcd src/sdsprpcd fastrpc_dir/usr/bin/
+
+      # Copy fastrpc test binary
+      cp -rf test/fastrpc_test fastrpc_dir/usr/bin
+      cp -rf test/linux/* fastrpc_dir/usr/bin
+      cp -rf test/v75/* fastrpc_dir/usr/bin
+
+      echo "Listing contents of ./fastrpc_dir"
+      find ./fastrpc_dir
+      cd fastrpc_dir 
+      find . | cpio -o -H newc | gzip -9 > ../fastrpc.cpio.gz
+      cd ..
+
+  - name: 10. Download hexagon-dsp-binaries
+    shell: bash
+    run: |
+      git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
+      ls -la hexagon-dsp-binaries
+
+      CLEAN_DEVICE_TYPE=$(echo "${{ inputs.DEVICE_TYPE }}" | tr -d '\r')
+      CLEAN_ADSP_PATH=$(echo "${{ inputs.adsp_path }}" | tr -d '\r\n')
+      CLEAN_CDSP_PATH=$(echo "${{ inputs.cdsp_path }}" | tr -d '\r')
+      CLEAN_FIRMWARE_PATH=$(echo "${{ inputs.firmware_path }}" | tr -d '\r')
+      echo "Build Boot Image with FastRPC Modules for $CLEAN_DEVICE_TYPE $CLEAN_ADSP_PATH $CLEAN_CDSP_PATH $CLEAN_FIRMWARE_PATH ${{ inputs.adsp_path }}"
+
+      cp -rf ${{ inputs.adsp_path }}/* firmware_dir/usr/lib/dsp/adsp
+      ls -la firmware_dir/usr/lib/dsp/adsp
+
+      cp -rf ${{ inputs.cdsp_path }}/* firmware_dir/usr/lib/dsp/cdsp
+      ls -la firmware_dir/usr/lib/dsp/cdsp
+
+
+  - name: 11. Download dsp-linux-firmware
+    shell: bash
+    run: |
+      git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+      ls -la linux-firmware
+      CLEAN_FIRMWARE_PATH=$(echo "${{ inputs.firmware_path }}" | tr -d '\r')
+
+      cp -rf ${{ inputs.firmware_path }}/* firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/
+      ls -la firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/
+
+      # Move Thundercomm RB5 firmware files if available
+      SOURCE_DIR="firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}/Thundercomm/RB5"
+      TARGET_DIR="firmware_dir/lib/firmware/qcom/${{ inputs.DEVICE_TYPE }}"
+
+      if [ -d "$SOURCE_DIR" ] && [ "$(ls -A $SOURCE_DIR)" ]; then
+        echo "Moving files from $SOURCE_DIR to $TARGET_DIR"
+        mv "$SOURCE_DIR"/* "$TARGET_DIR"/
+      else
+        echo "No files to move from $SOURCE_DIR"
+      fi
+
+
+  - name: 12. list and create a zip file of dsp-firmware
+    shell: bash
+    run: |
+      echo "Listing contents of ./firmware_dir"
+      find ./firmware_dir
+      cd firmware_dir
+      find . | cpio -o -H newc | gzip -9 > ../dsp-firmware.cpio.gz
+      cd ..
+
+  - name: 13. sync and Build Linux Kernel
+    shell: bash
+    run: |
+      git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
+      cd linux
+      umask 0022
+      make LLVM=1 ARCH=arm64 defconfig
+      make LLVM=1 ARCH=arm64 -j$(nproc) dir-pkg INSTALL_MOD_STRIP=1
+      cd ..
+
+  - name: 13.2. Download and create fastrpc included ramdisk file
+    shell: bash
+    run: |
+      curl -H "Authorization: token ${{ inputs.github_token }}" \
+          -L -o ramdisk-qcom-armv8a.cpio.gz \
+          https://github.com/quic-mtharu/qemu-ramdisk-artifacts/tree/main/qemu-ramdisk-artifacts/ramdisk-qcom-armv8a.cpio.gz
+
+      cat ramdisk-qcom-armv8a.cpio.gz dsp-firmware.cpio.gz fastrpc.cpio.gz > ramdisk.gz
+      cd linux/tar-install 
+      find lib/modules | cpio -o -H newc -R +0:+0 | gzip >> ../../ramdisk.gz
+      cd ../..
+
+  - name: 14. Create boot image using mkbootimg
+    shell: bash
+    run: |
+      python3 mkbootimg/mkbootimg.py  \
+        --header_version 2 \
+        --kernel linux/arch/arm64/boot/Image \
+        --dtb linux/arch/arm64/boot/dts/qcom/${{ inputs.device_dtb }} \
+        --cmdline "earlycon clk_ignore_unused pd_ignore_unused audit=0" \
+        --ramdisk ramdisk.gz \
+        --output ${{ inputs.DEVICE_TYPE }}_boot.img
+
+  - name: 15. Upload Compiled Image
+    uses: actions/upload-artifact@v4
+    with:
+      name: ${{ inputs.DEVICE_TYPE }}_boot.img
+      path: ${{ inputs.DEVICE_TYPE }}_boot.img
+      overwrite: true

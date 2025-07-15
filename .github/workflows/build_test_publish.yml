@@ -1,0 +1,61 @@
+name: build_test_publish
+run-name: Pre Merge Build ${{ github.event.pull_request.number }}
+
+on:
+  workflow_dispatch:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches:
+      - 'main'
+      - 'development'
+    paths-ignore:
+      - '.github/**'
+  push:
+    branches:
+    - 'main'
+    - 'development'
+  pull_request:
+    branches:
+    - 'main'
+    - 'development'
+
+jobs:
+  set_targets:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          echo "matrix={\"target\": [\"sm8250\", \"sa8775p\"]}" >> $GITHUB_OUTPUT
+
+  per_target:
+    needs: set_targets
+    strategy:
+      matrix: ${{ fromJson(needs.set_targets.outputs.matrix) }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    container:
+      image: lineageos4microg/docker-lineage-cicd:latest
+    name: Build and Test for ${{ matrix.target }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load Config
+        id: load_config
+        uses: ./.github/actions/load_config/
+        with:
+          DEVICE_TYPE: ${{ matrix.target }}
+
+      - name: Build FastRPC Modules
+        id: build
+        uses: ./.github/actions/build/
+        with:
+          DEVICE_TYPE: ${{ matrix.target }}
+          adsp_path: ${{ steps.load_config.outputs.adsp_path }}
+          cdsp_path: ${{ steps.load_config.outputs.cdsp_path }}
+          firmware_path: ${{ steps.load_config.outputs.firmware_path }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+
