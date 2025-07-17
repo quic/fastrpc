@@ -27,7 +27,7 @@ TESTLIST = \
 DSPS = v68 v75
 
 testlibdir = $(libdir)/fastrpc_test
-testlib_DATA = $(foreach test,$(TESTLIST),linux/lib$(test).so)
+dist_testlib_DATA = $(foreach test,$(TESTLIST),linux/lib$(test).so)
 
 testdspdir = $(datadir)/fastrpc_test
-nobase_testdsp_DATA = $(foreach test,$(TESTLIST),$(foreach dsp,$(DSPS),$(dsp)/lib$(test)_skel.so))
+nobase_dist_testdsp_DATA = $(foreach test,$(TESTLIST),$(foreach dsp,$(DSPS),$(dsp)/lib$(test)_skel.so))
