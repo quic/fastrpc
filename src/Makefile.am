@@ -127,10 +127,3 @@ sdsprpcd_SOURCES = sdsprpcd.c
 sdsprpcd_DEPENDENCIES = libsdsp_default_listener.la
 sdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=2 -DUSE_SYSLOG -DNO_HAL
 sdsprpcd_LDADD =  -ldl $(USE_LOG)
-
-
-# Export fastrpc headers
-fastrpc_includedir       = $(includedir)/fastrpc
-fastrpc_include_HEADERS  = $(top_srcdir)/inc/AEEStdErr.h
-fastrpc_include_HEADERS += $(top_srcdir)/inc/remote.h
-fastrpc_include_HEADERS += $(top_srcdir)/inc/rpcmem.h
