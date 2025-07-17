@@ -42,7 +42,6 @@ jobs:
         export STRIP=llvm-strip
 
         echo "Compile the source code"
-        chmod 777 gitcompile
         make -v
         ./gitcompile --host=aarch64-linux-android
 

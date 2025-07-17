@@ -42,7 +42,6 @@ jobs:
         export STRIP=aarch64-linux-gnu-strip
         
         # Compile the source code
-        chmod 777 gitcompile
         ./gitcompile --host=aarch64-linux-gnu
 
     - name: Verify the compiled binaries
