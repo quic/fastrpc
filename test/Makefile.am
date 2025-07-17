@@ -19,7 +19,7 @@ if ANDROID_CC
 fastrpc_test_CFLAGS += -DANDROID
 endif
 
-TESTS = \
+TESTLIST = \
 	calculator \
 	hap_example \
 	multithreading
@@ -27,7 +27,7 @@ TESTS = \
 DSPS = v68 v75
 
 testlibdir = $(libdir)/fastrpc_test
-testlib_DATA = $(foreach test,$(TESTS),linux/lib$(test).so)
+testlib_DATA = $(foreach test,$(TESTLIST),linux/lib$(test).so)
 
 testdspdir = $(datadir)/fastrpc_test
-nobase_testdsp_DATA = $(foreach test,$(TESTS),$(foreach dsp,$(DSPS),$(dsp)/lib$(test)_skel.so))
+nobase_testdsp_DATA = $(foreach test,$(TESTLIST),$(foreach dsp,$(DSPS),$(dsp)/lib$(test)_skel.so))
