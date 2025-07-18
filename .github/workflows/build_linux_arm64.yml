@@ -1,4 +1,4 @@
-name: CI - Linux GNU Compilation
+name: CI - Linux GNU Compilation / ARM64
 
 on:
   push:
