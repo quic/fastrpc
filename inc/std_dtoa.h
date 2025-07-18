@@ -66,9 +66,6 @@
 #define FP_MANTISSA(u)           ( FP_EXPONENT_BIASED(u) ? FP_MANTISSA_NORM(u) : \
                                     FP_MANTISSA_DENORM(u) )
 #define FP_SIGN(u)               ( (u) >> STD_DTOA_DP_SIGN_SHIFT_COUNT )
-#define DOUBLE_TO_UINT64(d)      ( *( (uint64*) &(d) ) )
-#define DOUBLE_TO_INT64(d)       ( *( (int64*) &(d) ) )
-#define UINT64_TO_DOUBLE(u)      ( *( (double*) &(u) ) )
 
 //
 // Type Definitions

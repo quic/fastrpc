@@ -95,8 +95,12 @@ double fp_pow_10( int nPow )
    if( nPow )
    {
       // Overflow. Trying to compute a large power value.
-      uint64 ulInf = STD_DTOA_FP_POSITIVE_INF;
-      dRet = bNegative ? 0 : UINT64_TO_DOUBLE( ulInf );
+      union {
+        uint64 ul;
+        double d;
+      } val;
+      val.ul = STD_DTOA_FP_POSITIVE_INF;
+      dRet = bNegative ? 0 : val.d;
    }
 
    return dRet;
@@ -154,7 +158,13 @@ int fp_check_special_cases( double dNumber, FloatingPointType* pNumberType )
    int64 n64Exponent = 0;
    uint64 ullMantissa = 0;
 
-   ullValue = DOUBLE_TO_UINT64( dNumber );
+   union {
+     uint64 ul;
+     double d;
+   } val;
+
+   val.d = dNumber;
+   ullValue = val.ul;
 
    // Extract the sign, exponent and mantissa
    ullSign = FP_SIGN( ullValue );
@@ -359,7 +369,14 @@ int std_dtoa_hex( double dNumber, int nPrecision, char cFormat,
    boolean bFirstDigit = TRUE;
    int nI = 0;
    int nF = 0;
-   uint64 ullValue = DOUBLE_TO_UINT64( dNumber );
+   union {
+     uint64 ul;
+     double d;
+   } val;
+
+   val.d = dNumber;
+   uint64 ullValue = val.ul;
+
    int nManShift = 0;
    const char *pcDigitArray = ( cFormat == 'A' ) ? HexDigitsU : HexDigitsL;
    boolean bPrecisionSpecified = TRUE;
