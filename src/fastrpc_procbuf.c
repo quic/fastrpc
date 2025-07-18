@@ -68,7 +68,7 @@ bail:
 
 static int get_non_preload_lib_names (char** lib_names, size_t* buffer_size, int domain)
 {
-	int nErr = AEE_SUCCESS, env_list_len = 0,  concat_len = 0, new_len = 0;
+	int nErr = AEE_SUCCESS, env_list_len = 0,  concat_len = 0;
 	char* data_paths = NULL;
 	char *saveptr       = NULL;
 	size_t dsp_search_path_len = std_strlen(DSP_LIBRARY_PATH) + 1;
