@@ -1,0 +1,41 @@
+# Build system artifacts
+autom4te.cache/
+m4/
+Makefile.in
+aclocal.m4
+compile
+config.guess
+config.h.in
+config.sub
+configure
+configure~
+depcomp
+install-sh
+ltmain.sh
+missing
+test-driver
+
+# build time artifacts
+Makefile
+config.h
+config.log
+config.status
+libtool
+stamp-h1
+
+.deps/
+.libs/
+
+# Compiled objects
+*.o
+*.lo
+*.la
+
+# Compiled programs
+src/adsprpcd
+src/cdsprpcd
+src/sdsprpcd
+test/fastrpc_test
+
+# make dist tarballs
+fastrpc-*.tar.gz
