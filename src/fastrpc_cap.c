@@ -45,7 +45,6 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 	const char *search_string = NULL;
 	uint32_t domain_supported = 0;
 	int dir_index = 0, nErr = AEE_SUCCESS;
-	struct stat dir_stat;
 	char *buffer = NULL;
 
 	if (domain < ADSP_DOMAIN_ID || domain > CDSP1_DOMAIN_ID) {

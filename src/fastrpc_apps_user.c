@@ -3350,9 +3350,10 @@ int open_device_node(int domain_id) {
 }
 
 static int close_device_node(int domain_id, int dev) {
-  int nErr = 0, domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
+  int nErr = 0;
 
 #ifndef NO_HAL
+  int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
   int sess_id = GET_SESSION_ID_FROM_DOMAIN_ID(domain_id);
   if ((domain == CDSP_DOMAIN_ID) ||
    (domain == CDSP1_DOMAIN_ID)) &&
@@ -3637,7 +3638,7 @@ static int remote_init(int domain) {
   apps_std_FILE fh = -1;
   int pd_type = 0, errno_save = 0;
   uint32_t info = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain);
-  int one_mb = 1024 * 1024, shared_buf_support = 0;
+  int shared_buf_support = 0;
   char *file = NULL;
   int flags = 0, filelen = 0, memlen = 0, filefd = -1;
 
