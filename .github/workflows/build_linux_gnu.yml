@@ -1,0 +1,30 @@
+name: CI - Linux GNU Compilation
+
+on:
+  push:
+    branches:
+    - 'main'
+    - 'development'
+  pull_request:
+    branches:
+    - 'main'
+    - 'development'
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Git checkout
+      uses: actions/checkout@v4
+
+    - name: Install auto tools
+      run: |
+        sudo apt-get install automake
+
+    - name: Compile code for LE platform
+      run: |
+        GITCOMPILE_NO_MAKE=true ./gitcompile
+        make distcheck
