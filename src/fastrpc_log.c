@@ -311,7 +311,7 @@ void fastrpc_log_init() {
            fd, DEBUG_BUF_SIZE);
       /* Appending header to persist buffer, to identify the start address
        * through script. */
-      std_strlcpy(persist_buf.buf, DEBUF_BUF_TRACE, DEBUG_BUF_SIZE);
+      strlcpy(persist_buf.buf, DEBUF_BUF_TRACE, DEBUG_BUF_SIZE);
       persist_buf.size = strlen(DEBUF_BUF_TRACE) + 1;
     } else {
       nErr = AEE_ENORPCMEMORY;

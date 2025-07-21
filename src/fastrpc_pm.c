@@ -133,8 +133,8 @@ int fastrpc_wake_lock_init() {
     goto bail;
   }
 
-  std_strlcpy(wakelock.wake_lock_name, prog_name_str, WAKELOCK_NAME_LEN);
-  std_strlcat(wakelock.wake_lock_name, pid_str, WAKELOCK_NAME_LEN);
+  strlcpy(wakelock.wake_lock_name, prog_name_str, WAKELOCK_NAME_LEN);
+  strlcat(wakelock.wake_lock_name, pid_str, WAKELOCK_NAME_LEN);
 
   VERIFYC(0 < (wakelock.lock = open(WAKE_LOCK_FILE, O_RDWR | O_CLOEXEC)),
           AEE_ERPC);

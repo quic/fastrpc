@@ -207,13 +207,13 @@ static AEEResult init_domain_queues_locked(int domain) {
 
   // Open session on the right DSP
   if (dom == CDSP_DOMAIN_ID) {
-    std_strlcpy(dspqueue_skel.domain_name, CDSP_DOMAIN_NAME,
+    strlcpy(dspqueue_skel.domain_name, CDSP_DOMAIN_NAME,
                 dspqueue_skel.domain_name_len);
   } else if (dom == ADSP_DOMAIN_ID) {
-    std_strlcpy(dspqueue_skel.domain_name, ADSP_DOMAIN_NAME,
+    strlcpy(dspqueue_skel.domain_name, ADSP_DOMAIN_NAME,
                 dspqueue_skel.domain_name_len);
   } else if (dom == CDSP1_DOMAIN_ID) {
-    std_strlcpy(dspqueue_skel.domain_name, CDSP1_DOMAIN_NAME,
+    strlcpy(dspqueue_skel.domain_name, CDSP1_DOMAIN_NAME,
                 dspqueue_skel.domain_name_len);
   } else {
     nErr = AEE_EUNSUPPORTED;
@@ -226,7 +226,7 @@ static AEEResult init_domain_queues_locked(int domain) {
   VERIFYC((dspqueue_skel.module_uri = (char *)calloc(
                dspqueue_skel.module_uri_len, sizeof(char))) != NULL,
           AEE_ENOMEMORY);
-  std_strlcpy(dspqueue_skel.module_uri, dspqueue_rpc_URI,
+  strlcpy(dspqueue_skel.module_uri, dspqueue_rpc_URI,
               dspqueue_skel.module_uri_len);
 
   /* One extra character for NULL termination is already part of module_uri_len
@@ -1000,7 +1000,7 @@ static int dspqueue_multidomain_create(dspqueue_create_req *create) {
 
 	create->queue = NULL;
 	size = create->num_ids * sizeof(*(create->ids));
-	std_memset(create->ids, 0, size);
+	memset(create->ids, 0, size);
 	errno = 0;
 
 	VERIFYC(AEE_SUCCESS == (nErr = pthread_once(&queues_once,
@@ -1022,7 +1022,7 @@ static int dspqueue_multidomain_create(dspqueue_create_req *create) {
 	size = num_domain_ids * sizeof(*(mdq->effec_domain_ids));
 	VERIFYC(NULL != (mdq->effec_domain_ids = calloc(1, size)),
 		AEE_ENOMEMORY);
-	std_memscpy(mdq->effec_domain_ids, size, effec_domain_ids, size);
+	memcpy(mdq->effec_domain_ids, effec_domain_ids, size);
 
 	VERIFYC(NULL != (mdq->queues = calloc(num_domain_ids,
 		sizeof(*(mdq->queues)))), AEE_ENOMEMORY);
@@ -1044,7 +1044,7 @@ static int dspqueue_multidomain_create(dspqueue_create_req *create) {
 
 	// Return queue handle and list of queue ids to user
 	create->queue = q;
-	std_memscpy(create->ids, size, mdq->dsp_ids, size);
+	memcpy(create->ids, mdq->dsp_ids, size);
 
 	FARF(ALWAYS, "%s: created queue %p for ctx 0x%"PRIx64", sizes: req %u, rsp %u, num domains %u",
 		__func__, q, create->ctx, create->req_queue_size,

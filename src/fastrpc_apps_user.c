@@ -753,26 +753,26 @@ static int get_domain_from_domain_name(const char *domain_name,
                                        int domain_name_len) {
   int domain = INVALID_DOMAIN_ID;
 
-  if (domain_name_len < std_strlen(SUBSYSTEM_NAME[ADSP_DOMAIN_ID])) {
+  if (domain_name_len < strlen(SUBSYSTEM_NAME[ADSP_DOMAIN_ID])) {
     FARF(ERROR, "ERROR: %s Invalid domain name length: %u\n", __func__,
          domain_name_len);
     goto bail;
   }
   if (domain_name) {
-    if (!std_strncmp(domain_name, SUBSYSTEM_NAME[ADSP_DOMAIN_ID],
-                     std_strlen(SUBSYSTEM_NAME[ADSP_DOMAIN_ID]))) {
+    if (!strncmp(domain_name, SUBSYSTEM_NAME[ADSP_DOMAIN_ID],
+                     strlen(SUBSYSTEM_NAME[ADSP_DOMAIN_ID]))) {
       domain = ADSP_DOMAIN_ID;
-    } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[MDSP_DOMAIN_ID],
-                            std_strlen(SUBSYSTEM_NAME[MDSP_DOMAIN_ID]))) {
+    } else if (!strncmp(domain_name, SUBSYSTEM_NAME[MDSP_DOMAIN_ID],
+                            strlen(SUBSYSTEM_NAME[MDSP_DOMAIN_ID]))) {
       domain = MDSP_DOMAIN_ID;
-    } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[SDSP_DOMAIN_ID],
-                            std_strlen(SUBSYSTEM_NAME[SDSP_DOMAIN_ID]))) {
+    } else if (!strncmp(domain_name, SUBSYSTEM_NAME[SDSP_DOMAIN_ID],
+                            strlen(SUBSYSTEM_NAME[SDSP_DOMAIN_ID]))) {
       domain = SDSP_DOMAIN_ID;
-    } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[CDSP1_DOMAIN_ID],
-                            std_strlen(SUBSYSTEM_NAME[CDSP1_DOMAIN_ID]))) {
+    } else if (!strncmp(domain_name, SUBSYSTEM_NAME[CDSP1_DOMAIN_ID],
+                            strlen(SUBSYSTEM_NAME[CDSP1_DOMAIN_ID]))) {
       domain = CDSP1_DOMAIN_ID;
-    } else if (!std_strncmp(domain_name, SUBSYSTEM_NAME[CDSP_DOMAIN_ID],
-                            std_strlen(SUBSYSTEM_NAME[CDSP_DOMAIN_ID]))) {
+    } else if (!strncmp(domain_name, SUBSYSTEM_NAME[CDSP_DOMAIN_ID],
+                            strlen(SUBSYSTEM_NAME[CDSP_DOMAIN_ID]))) {
       domain = CDSP_DOMAIN_ID;
     } else {
       FARF(ERROR, "ERROR: %s Invalid domain name: %s\n", __func__, domain_name);
@@ -861,16 +861,16 @@ static char* get_lib_name(const char *uri) {
 	int nErr = AEE_SUCCESS;
 
   VERIFY(uri);
-  start = std_strstr(uri, LIB_EXTN);
+  start = strstr(uri, LIB_EXTN);
 	if (start) {
-		end = std_strstr(start, SO_EXTN);
+		end = strstr(start, SO_EXTN);
 		if (end && end > start) {
 			/* add extension size to print .so also */
-			length = (unsigned int)(end - start) + std_strlen(SO_EXTN);
+			length = (unsigned int)(end - start) + strlen(SO_EXTN);
 			/* allocate length + 1 to include \0 */
 			VERIFYC(NULL != (library_name =
 				(char*)calloc(1, length + 1)), AEE_ENOMEMORY);
-			std_strlcpy(library_name, start, length + 1);
+			strlcpy(library_name, start, length + 1);
 			return library_name;
 		}
 	}
@@ -1629,27 +1629,27 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
     deinit_fastrpc_dsp_lib_refcnt();
     exit(EXIT_FAILURE);
   }
-  if (!std_strncmp(name, ITRANSPORT_PREFIX "geteventfd",
-                   std_strlen(ITRANSPORT_PREFIX "geteventfd"))) {
+  if (!strncmp(name, ITRANSPORT_PREFIX "geteventfd",
+                   strlen(ITRANSPORT_PREFIX "geteventfd"))) {
     FARF(RUNTIME_RPC_HIGH, "getting event fd");
     return listener_android_geteventfd(domain, (int *)ph);
   }
-  if (!std_strncmp(name, ITRANSPORT_PREFIX "attachguestos",
-                   std_strlen(ITRANSPORT_PREFIX "attachguestos"))) {
+  if (!strncmp(name, ITRANSPORT_PREFIX "attachguestos",
+                   strlen(ITRANSPORT_PREFIX "attachguestos"))) {
     FARF(RUNTIME_RPC_HIGH, "setting attach mode to guestos : %d", domain);
     *ph = ATTACHGUESTOS_HANDLE;
     hlist[domain].dsppd = ROOT_PD;
     return AEE_SUCCESS;
   }
-  if (!std_strncmp(name, ITRANSPORT_PREFIX "createstaticpd",
-                   std_strlen(ITRANSPORT_PREFIX "createstaticpd"))) {
+  if (!strncmp(name, ITRANSPORT_PREFIX "createstaticpd",
+                   strlen(ITRANSPORT_PREFIX "createstaticpd"))) {
     FARF(RUNTIME_RPC_HIGH, "creating static pd on domain: %d", domain);
     name_len = strlen(name);
     VERIFYC(NULL !=
                 (pdname_uri = (char *)malloc((name_len + 1) * sizeof(char))),
             AEE_ENOMEMORY);
-    std_strlcpy(pdname_uri, name, name_len + 1);
-    char *pdName = pdname_uri + std_strlen(ITRANSPORT_PREFIX "createstaticpd:");
+    strlcpy(pdname_uri, name, name_len + 1);
+    char *pdName = pdname_uri + strlen(ITRANSPORT_PREFIX "createstaticpd:");
 
     /*
      * Support sessions feature for static PDs.
@@ -1658,33 +1658,33 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
      * "createstaticpd:oispd&_dom=adsp&_session=1" to create a session
      * on both static PDs.
      */
-    if (std_strstr(pdName, get_domain_from_id(GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain))) &&
-        std_strstr(pdName, FASTRPC_SESSION_URI)) {
-      std_strlcpy(pdName, pdName,
-                  (std_strlen(pdName) -
-                   std_strlen(get_domain_from_id(GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain))) -
-                   std_strlen(FASTRPC_SESSION1_URI) + 1));
-    } else if (std_strstr(pdName, get_domain_from_id(domain))) {
-      std_strlcpy(
+    if (strstr(pdName, get_domain_from_id(GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain))) &&
+        strstr(pdName, FASTRPC_SESSION_URI)) {
+      strlcpy(pdName, pdName,
+                  (strlen(pdName) -
+                   strlen(get_domain_from_id(GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain))) -
+                   strlen(FASTRPC_SESSION1_URI) + 1));
+    } else if (strstr(pdName, get_domain_from_id(domain))) {
+      strlcpy(
           pdName, pdName,
-          (std_strlen(pdName) - std_strlen(get_domain_from_id(domain)) + 1));
+          (strlen(pdName) - strlen(get_domain_from_id(domain)) + 1));
     }
-    VERIFYC(MAX_DSPPD_NAMELEN > std_strlen(pdName), AEE_EBADPARM);
-    std_strlcpy(hlist[domain].dsppdname, pdName, std_strlen(pdName) + 1);
-    if (!std_strncmp(pdName, "audiopd", std_strlen("audiopd"))) {
+    VERIFYC(MAX_DSPPD_NAMELEN > strlen(pdName), AEE_EBADPARM);
+    strlcpy(hlist[domain].dsppdname, pdName, strlen(pdName) + 1);
+    if (!strncmp(pdName, "audiopd", strlen("audiopd"))) {
       *ph = AUDIOPD_HANDLE;
       hlist[domain].dsppd = AUDIO_STATICPD;
-    } else if (!std_strncmp(pdName, "securepd", std_strlen("securepd"))) {
+    } else if (!strncmp(pdName, "securepd", strlen("securepd"))) {
       FARF(ALWAYS, "%s: attaching to securePD\n", __func__);
       *ph = SECUREPD_HANDLE;
       hlist[domain].dsppd = SECURE_STATICPD;
-    } else if (!std_strncmp(pdName, "sensorspd", std_strlen("sensorspd"))) {
+    } else if (!strncmp(pdName, "sensorspd", strlen("sensorspd"))) {
       *ph = SENSORPD_HANDLE;
       hlist[domain].dsppd = SENSORS_STATICPD;
-    } else if (!std_strncmp(pdName, "rootpd", std_strlen("rootpd"))) {
+    } else if (!strncmp(pdName, "rootpd", strlen("rootpd"))) {
       *ph = ROOTPD_HANDLE;
       hlist[domain].dsppd = GUEST_OS_SHARED;
-    } else if (!std_strncmp(pdName, "oispd", std_strlen("oispd"))) {
+    } else if (!strncmp(pdName, "oispd", strlen("oispd"))) {
       *ph = OISPD_HANDLE;
       hlist[domain].dsppd = OIS_STATICPD;
     }
@@ -1810,8 +1810,8 @@ int remote_handle64_open(const char *name, remote_handle64 *ph) {
   /* Returning local handle to "geteventd" call causes bad fd error when daemon
      polls on it, hence return remote handle (which is the actual fd) for
      "geteventd" call*/
-  if (!std_strncmp(name, ITRANSPORT_PREFIX "geteventfd",
-                   std_strlen(ITRANSPORT_PREFIX "geteventfd")) ||
+  if (!strncmp(name, ITRANSPORT_PREFIX "geteventfd",
+                   strlen(ITRANSPORT_PREFIX "geteventfd")) ||
                    IS_STATICPD_HANDLE(h)) {
     *ph = h;
   } else {
@@ -2921,7 +2921,7 @@ int remote_session_control(uint32_t req, void *data, uint32_t datalen) {
         hlist[ii].is_session_reserved = true;
         sess->effective_domain_id = ii;
         sess->session_id = jj;
-        std_strlcpy(hlist[ii].sessionname, sess->session_name,
+        strlcpy(hlist[ii].sessionname, sess->session_name,
                     STD_MIN(sess->session_name_len, (MAX_DSPPD_NAMELEN - 1)));
         pthread_mutex_unlock(&hlist[ii].init);
         break;
@@ -3032,19 +3032,19 @@ int get_domain_from_name(const char *uri, uint32_t type) {
   int session_id = 0;
 
   if (uri && type == DOMAIN_NAME_STAND_ALONE) {
-    if (!std_strncmp(uri, ADSP_DOMAIN_NAME, std_strlen(ADSP_DOMAIN_NAME))) {
+    if (!strncmp(uri, ADSP_DOMAIN_NAME, strlen(ADSP_DOMAIN_NAME))) {
       domain = ADSP_DOMAIN_ID;
-    } else if (!std_strncmp(uri, MDSP_DOMAIN_NAME,
-                            std_strlen(MDSP_DOMAIN_NAME))) {
+    } else if (!strncmp(uri, MDSP_DOMAIN_NAME,
+                            strlen(MDSP_DOMAIN_NAME))) {
       domain = MDSP_DOMAIN_ID;
-    } else if (!std_strncmp(uri, SDSP_DOMAIN_NAME,
-                            std_strlen(SDSP_DOMAIN_NAME))) {
+    } else if (!strncmp(uri, SDSP_DOMAIN_NAME,
+                            strlen(SDSP_DOMAIN_NAME))) {
       domain = SDSP_DOMAIN_ID;
-    } else if (!std_strncmp(uri, CDSP1_DOMAIN_NAME,
-                            std_strlen(CDSP1_DOMAIN_NAME))) {
+    } else if (!strncmp(uri, CDSP1_DOMAIN_NAME,
+                            strlen(CDSP1_DOMAIN_NAME))) {
       domain = CDSP1_DOMAIN_ID;
-    } else if (!std_strncmp(uri, CDSP_DOMAIN_NAME,
-                            std_strlen(CDSP_DOMAIN_NAME))) {
+    } else if (!strncmp(uri, CDSP_DOMAIN_NAME,
+                            strlen(CDSP_DOMAIN_NAME))) {
       domain = CDSP_DOMAIN_ID;
     } else {
       domain = INVALID_DOMAIN_ID;
@@ -3053,23 +3053,23 @@ int get_domain_from_name(const char *uri, uint32_t type) {
     }
   }
   if (uri && type == DOMAIN_NAME_IN_URI) {
-    if (std_strstr(uri, ADSP_DOMAIN)) {
+    if (strstr(uri, ADSP_DOMAIN)) {
       domain = ADSP_DOMAIN_ID;
-    } else if (std_strstr(uri, MDSP_DOMAIN)) {
+    } else if (strstr(uri, MDSP_DOMAIN)) {
       domain = MDSP_DOMAIN_ID;
-    } else if (std_strstr(uri, SDSP_DOMAIN)) {
+    } else if (strstr(uri, SDSP_DOMAIN)) {
       domain = SDSP_DOMAIN_ID;
-    } else if (std_strstr(uri, CDSP1_DOMAIN)) {
+    } else if (strstr(uri, CDSP1_DOMAIN)) {
       domain = CDSP1_DOMAIN_ID;
-    } else if (std_strstr(uri, CDSP_DOMAIN)) {
+    } else if (strstr(uri, CDSP_DOMAIN)) {
       domain = CDSP_DOMAIN_ID;
     } else {
       domain = INVALID_DOMAIN_ID;
       FARF(ERROR, "Invalid domain name: %s\n", uri);
       goto bail;
     }
-    if (NULL != (session_uri = std_strstr(uri, FASTRPC_SESSION_URI))) {
-      session_uri = session_uri + std_strlen(FASTRPC_SESSION_URI);
+    if (NULL != (session_uri = strstr(uri, FASTRPC_SESSION_URI))) {
+      session_uri = session_uri + strlen(FASTRPC_SESSION_URI);
       // Get Session ID from URI
       session_id = strtol(session_uri, NULL, 10);
       if (session_id < NUM_SESSIONS) {
@@ -3459,51 +3459,51 @@ static int open_shell(int domain_id, apps_std_FILE *fh, int unsigned_shell) {
   VERIFYC(NULL != (domain_str = (char *)malloc(sizeof(domain))), AEE_ENOMEMORY);
   snprintf(domain_str, sizeof(domain), "%d", domain);
 
-  shell_absNameLen = std_strlen(shell_name) + std_strlen(domain_str) + 1;
+  shell_absNameLen = strlen(shell_name) + strlen(domain_str) + 1;
 
   VERIFYC(NULL !=
               (shell_absName = (char *)malloc(sizeof(char) * shell_absNameLen)),
           AEE_ENOMEMORY);
-  std_strlcpy(shell_absName, shell_name, shell_absNameLen);
+  strlcpy(shell_absName, shell_name, shell_absNameLen);
 
-  std_strlcat(shell_absName, domain_str, shell_absNameLen);
+  strlcat(shell_absName, domain_str, shell_absNameLen);
 
-  absNameLen = std_strlen(DSP_MOUNT_LOCATION) + shell_absNameLen + 1;
+  absNameLen = strlen(DSP_MOUNT_LOCATION) + shell_absNameLen + 1;
   VERIFYC(NULL != (absName = (char *)malloc(sizeof(char) * absNameLen)),
           AEE_ENOMEMORY);
-  std_strlcpy(absName, DSP_MOUNT_LOCATION, absNameLen);
-  std_strlcat(absName, shell_absName, absNameLen);
+  strlcpy(absName, DSP_MOUNT_LOCATION, absNameLen);
+  strlcat(absName, shell_absName, absNameLen);
 
   nErr = apps_std_fopen(absName, "r", fh);
   if (nErr) {
-    absNameLen = std_strlen(DSP_DOM_LOCATION) + shell_absNameLen + 1;
+    absNameLen = strlen(DSP_DOM_LOCATION) + shell_absNameLen + 1;
     VERIFYC(NULL !=
                 (absName = (char *)realloc(absName, sizeof(char) * absNameLen)),
             AEE_ENOMEMORY);
-    std_strlcpy(absName, DSP_MOUNT_LOCATION, absNameLen);
-    std_strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
-    std_strlcat(absName, "/", absNameLen);
-    std_strlcat(absName, shell_absName, absNameLen);
+    strlcpy(absName, DSP_MOUNT_LOCATION, absNameLen);
+    strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
+    strlcat(absName, "/", absNameLen);
+    strlcat(absName, shell_absName, absNameLen);
     nErr = apps_std_fopen(absName, "r", fh);
   }
   if (nErr) {
-    absNameLen = std_strlen(VENDOR_DSP_LOCATION) + shell_absNameLen + 1;
+    absNameLen = strlen(VENDOR_DSP_LOCATION) + shell_absNameLen + 1;
     VERIFYC(NULL !=
                 (absName = (char *)realloc(absName, sizeof(char) * absNameLen)),
             AEE_ENOMEMORY);
-    std_strlcpy(absName, VENDOR_DSP_LOCATION, absNameLen);
-    std_strlcat(absName, shell_absName, absNameLen);
+    strlcpy(absName, VENDOR_DSP_LOCATION, absNameLen);
+    strlcat(absName, shell_absName, absNameLen);
 
     nErr = apps_std_fopen(absName, "r", fh);
     if (nErr) {
-      absNameLen = std_strlen(VENDOR_DOM_LOCATION) + shell_absNameLen + 1;
+      absNameLen = strlen(VENDOR_DOM_LOCATION) + shell_absNameLen + 1;
       VERIFYC(NULL != (absName =
                            (char *)realloc(absName, sizeof(char) * absNameLen)),
               AEE_ENOMEMORY);
-      std_strlcpy(absName, VENDOR_DSP_LOCATION, absNameLen);
-      std_strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
-      std_strlcat(absName, "/", absNameLen);
-      std_strlcat(absName, shell_absName, absNameLen);
+      strlcpy(absName, VENDOR_DSP_LOCATION, absNameLen);
+      strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
+      strlcat(absName, "/", absNameLen);
+      strlcat(absName, shell_absName, absNameLen);
 
       nErr = apps_std_fopen(absName, "r", fh);
     }
@@ -3717,11 +3717,11 @@ static int remote_init(int domain) {
            "%s: attaching to guest OS/Secure PD (attach %d) for domain %d",
            __func__, pd_type, domain);
       if (pd_type == SECURE_STATICPD) {
-        file = calloc(1, (int)(std_strlen(hlist[domain].dsppdname) + 1));
+        file = calloc(1, (int)(strlen(hlist[domain].dsppdname) + 1));
         VERIFYC(file, AEE_ENOMEMORY);
-        std_strlcpy((char *)file, hlist[domain].dsppdname,
-                    std_strlen(hlist[domain].dsppdname) + 1);
-        filelen = std_strlen(hlist[domain].dsppdname) + 1;
+        strlcpy((char *)file, hlist[domain].dsppdname,
+                    strlen(hlist[domain].dsppdname) + 1);
+        filelen = strlen(hlist[domain].dsppdname) + 1;
       }
       flags = FASTRPC_INIT_ATTACH;
       ioErr = ioctl_init(dev, flags, 0, (unsigned char *)file, filelen, -1, 0, 0, 0, 0);
@@ -3736,11 +3736,11 @@ static int remote_init(int domain) {
            __func__, domain);
       file =
           rpcmem_alloc_internal(0, RPCMEM_HEAP_DEFAULT,
-                                (int)(std_strlen(hlist[domain].dsppdname) + 1));
+                                (int)(strlen(hlist[domain].dsppdname) + 1));
       VERIFYC(file, AEE_ENORPCMEMORY);
-      std_strlcpy((char *)file, hlist[domain].dsppdname,
-                  std_strlen(hlist[domain].dsppdname) + 1);
-      filelen = std_strlen(hlist[domain].dsppdname) + 1;
+      strlcpy((char *)file, hlist[domain].dsppdname,
+                  strlen(hlist[domain].dsppdname) + 1);
+      filelen = strlen(hlist[domain].dsppdname) + 1;
       flags = FASTRPC_INIT_CREATE_STATIC;
       // 3MB of remote heap for dynamic loading is available only for Audio PD.
       if (pd_type == AUDIO_STATICPD) {
@@ -4341,7 +4341,7 @@ static void multidsplib_env_init(void) {
     env_name_len = (sizeof(char) * strlen(buf)) + 1;
     env_name = malloc(env_name_len);
     if (env_name) {
-      std_strlcpy(env_name, buf, env_name_len);
+      strlcpy(env_name, buf, env_name_len);
       fastrpc_dsp_lib_refcnt[ii] = env_name;
     } else {
       FARF(ERROR,

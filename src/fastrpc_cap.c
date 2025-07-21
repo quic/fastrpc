@@ -58,7 +58,7 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 	while (1) {
 		memset(buffer, 0, BUF_SIZE);
 		snprintf(buffer, BUF_SIZE, "%s%d", dir_base_path, dir_index);
-		std_strlcat(buffer, "/name", BUF_SIZE);
+		strlcat(buffer, "/name", BUF_SIZE);
 		int fd = open(buffer, O_RDONLY);
 		if (fd == -1) {
 			break;
@@ -68,7 +68,7 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 			memset(buffer, 0, BUF_SIZE);
 			if (fgets(buffer, BUF_SIZE, file) != NULL) {
 				buffer[BUF_SIZE - 1] = '\0';
-				if (std_strstr(buffer, search_string) != NULL) {
+				if (strstr(buffer, search_string) != NULL) {
 					domain_supported = 1;
 					fclose(file);
 					break;
