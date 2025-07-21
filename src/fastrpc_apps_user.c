@@ -539,9 +539,9 @@ int fastrpc_get_property_string(fastrpc_properties UserPropKey, char *value,
   }
   char *env = getenv(ENV_DEBUG_VAR_NAME[UserPropKey]);
   if (env != 0) {
-    len = strlen(env);
-    std_memscpy(value, PROPERTY_VALUE_MAX, env, len + 1);
-    return len;
+    strncpy(value, env, PROPERTY_VALUE_MAX - 1);
+    value[PROPERTY_VALUE_MAX - 1] = '\0';
+    return strlen(env);
   }
 #if !defined(LE_ENABLE) // Android platform
 #if !defined(SYSTEM_RPC_LIBRARY) // vendor library
@@ -565,8 +565,9 @@ int fastrpc_get_property_string(fastrpc_properties UserPropKey, char *value,
 #endif
 #else // non-Android platforms
   if (defValue != NULL) {
-    len = strlen(defValue);
-    std_memscpy(value, PROPERTY_VALUE_MAX, defValue, len + 1);
+    strncpy(value, defValue, PROPERTY_VALUE_MAX - 1);
+    value[PROPERTY_VALUE_MAX - 1] = '\0';
+    return strlen(defValue);
   }
   return len;
 #endif
@@ -1690,7 +1691,8 @@ int remote_handle_open_domain(int domain, const char *name, remote_handle *ph,
     }
     return AEE_SUCCESS;
   }
-  if (std_strbegins(name, ITRANSPORT_PREFIX "attachuserpd")) {
+  if (!strncmp(name, ITRANSPORT_PREFIX "attachuserpd",
+	       strlen(ITRANSPORT_PREFIX "attachuserpd"))) {
     FARF(RUNTIME_RPC_HIGH, "setting attach mode to userpd : %d", domain);
     hlist[domain].dsppd = USERPD;
     return AEE_SUCCESS;

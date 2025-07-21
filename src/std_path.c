@@ -10,6 +10,8 @@ FILE:         std_path.c
 =======================================================================
 */
 
+/* To get memrchr on GNU/Linux */
+#define _GNU_SOURCE
 #include "AEEstd.h"
 #include "AEEBufBound.h"
 #include <string.h>
@@ -93,7 +95,9 @@ char* std_cleanpath(char* pszPath)
          pc += 2;
       } else if ('.' == pc[2] && ('/' == pc[3] || '\0' == pc[3])) {
             /*  delete  "/element/.." */
-         pcDelFrom = std_memrchrbegin(pszStart, '/', pc - pszStart);
+         pcDelFrom = memrchr(pszStart, '/', pc - pszStart);
+         if (!pcDelFrom)
+            pcDelFrom = pszStart;
          pc += 3;
       } else {
          pc += 2;

@@ -26,9 +26,7 @@ LIBDSPRPC_SOURCES = \
 		rpcmem_linux.c \
 		adspmsgd.c \
 		adspmsgd_printf.c \
-		std.c \
 		std_path.c \
-		std_mem.c \
 		std_dtoa.c \
 		BufBound.c \
 		atomic.c \
@@ -55,9 +53,7 @@ LIBDSPRPC_SOURCES = \
 LIBDEFAULT_LISTENER_SOURCES = \
 				adsp_default_listener.c \
 				adsp_default_listener_stub.c \
-				adsp_default_listener1_stub.c \
-				std.c \
-				std_mem.c
+				adsp_default_listener1_stub.c
 
 if ANDROID_CC
 USE_LOG = -llog

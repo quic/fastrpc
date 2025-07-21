@@ -187,7 +187,7 @@ static int pack_proc_shared_buf_params(int domain, uint32_t param_id,
 	*buf_write_addr = (*buf_write_addr) + (PROC_ATTR_BUF_ID_SIZE_MASK & align_param_size);
 	buf_write_addr++;
 
-	std_memscpy(buf_write_addr, (buf_last_addr - buf_write_addr), param_addr, param_size);
+	memcpy(buf_write_addr, param_addr, STD_MIN(buf_last_addr - buf_write_addr, param_size));
 	buf_write_addr = (uint32_t*)((char*)buf_write_addr + align_param_size);
 	hlist[domain].proc_sharedbuf_cur_addr = buf_write_addr;
 
