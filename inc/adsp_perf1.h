@@ -295,7 +295,7 @@ __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf1_open)(const char* uri, remote_
     */
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf1_close)(remote_handle64 h) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf1_enable)(remote_handle64 _h, int ix) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf1_get_usecs)(remote_handle64 _h, int64* dst, int dstLen) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf1_get_usecs)(remote_handle64 _h, int64_t* dst, int dstLen) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf1_get_keys)(remote_handle64 _h, char* keys, int keysLen, int* maxLen, int* numKeys) __QAIC_HEADER_ATTRIBUTE;
 #ifndef adsp_perf1_URI
 #define adsp_perf1_URI "file:///libadsp_perf1_skel.so?adsp_perf1_skel_handle_invoke&_modver=1.0"

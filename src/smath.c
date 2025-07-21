@@ -5,24 +5,24 @@
 #include "AEEsmath.h"
 
 
-static int32 ToInt(int64 a)
+static int32_t ToInt(int64_t a)
 {
-   return (a > MAX_INT32 ? MAX_INT32 :
-           a < MIN_INT32 ? MIN_INT32 :
-           (int32)a);
+   return (a > INT32_MAX ? INT32_MAX :
+           a < INT32_MIN ? INT32_MIN :
+           (int32_t)a);
 }
 
 int smath_Add(int a, int b)
 {
-   return ToInt((int64)a + (int64)b);
+   return ToInt((int64_t)a + (int64_t)b);
 }
 
 int smath_Sub(int a, int b)
 {
-   return ToInt((int64)a - (int64)b);
+   return ToInt((int64_t)a - (int64_t)b);
 }
 
 int smath_Mul(int a, int b)
 {
-   return ToInt((int64)a * (int64)b);
+   return ToInt((int64_t)a * (int64_t)b);
 }

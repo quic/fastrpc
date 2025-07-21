@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 extern struct platform_lib *(*pl_list[])(void);
-static uint32 atomic_IfNotThenAdd(uint32 *volatile puDest, uint32 uCompare,
+static uint32_t atomic_IfNotThenAdd(uint32_t *volatile puDest, uint32_t uCompare,
                                   int nAdd);
 
 int pl_lib_init(struct platform_lib *(*plf)(void)) {
@@ -77,11 +77,11 @@ void pl_deinit(void) {
   return;
 }
 
-static uint32 atomic_IfNotThenAdd(uint32 *volatile puDest, uint32 uCompare,
+static uint32_t atomic_IfNotThenAdd(uint32_t *volatile puDest, uint32_t uCompare,
                                   int nAdd) {
-  uint32 uPrev;
-  uint32 uCurr;
-  uint32 sum;
+  uint32_t uPrev;
+  uint32_t uCurr;
+  uint32_t sum;
   do {
     // check puDest
     uCurr = *puDest;

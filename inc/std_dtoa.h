@@ -29,7 +29,7 @@
 #define STD_DTOA_DP_EXPONENT_SHIFT_COUNT     52
 #define STD_DTOA_DP_EXPONENT_MASK            0x7ff
 #define STD_DTOA_DP_EXPONENT_BIAS            1023
-#define STD_DTOA_DP_MANTISSA_MASK            ( ( (uint64)1 << 52 ) - 1 )
+#define STD_DTOA_DP_MANTISSA_MASK            ( ( (uint64_t)1 << 52 ) - 1 )
 #define STD_DTOA_DP_INFINITY_EXPONENT_ID     0x7FF
 #define STD_DTOA_DP_MAX_EXPONENT             1023
 #define STD_DTOA_DP_MIN_EXPONENT_NORM        -1022
@@ -61,7 +61,7 @@
 #define FP_EXPONENT_BIASED(u)    ( ( (u) >> STD_DTOA_DP_EXPONENT_SHIFT_COUNT ) \
                                     & STD_DTOA_DP_EXPONENT_MASK )
 #define FP_MANTISSA_NORM(u)      ( ( (u) & STD_DTOA_DP_MANTISSA_MASK ) | \
-                                    ( (uint64)1 << STD_DTOA_DP_EXPONENT_SHIFT_COUNT ) )
+                                    ( (uint64_t)1 << STD_DTOA_DP_EXPONENT_SHIFT_COUNT ) )
 #define FP_MANTISSA_DENORM(u)    ( (u) & STD_DTOA_DP_MANTISSA_MASK )
 #define FP_MANTISSA(u)           ( FP_EXPONENT_BIASED(u) ? FP_MANTISSA_NORM(u) : \
                                     FP_MANTISSA_DENORM(u) )

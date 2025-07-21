@@ -105,7 +105,7 @@ struct apps_std_info {
  */
 struct apps_std_dir_info {
   QNode qn;
-  uint64 handle;
+  uint64_t handle;
 };
 
 static QList apps_std_qlst;
@@ -138,13 +138,13 @@ int apps_std_get_dirinfo(const apps_std_DIR *dir,
   int nErr = AEE_SUCCESS;
   QNode *pn = NULL, *pnn = NULL;
   struct apps_std_dir_info *dirinfo = 0;
-  boolean match = FALSE;
+  bool match = false;
 
   pthread_mutex_lock(&apps_std_mt);
   QLIST_NEXTSAFE_FOR_ALL(&apps_std_dirlist, pn, pnn) {
     dirinfo = STD_RECOVER_REC(struct apps_std_dir_info, qn, pn);
     if (dirinfo && dirinfo->handle == dir->handle) {
-      match = TRUE;
+      match = true;
       break;
     }
   }
@@ -315,7 +315,7 @@ __QAIC_IMPL(apps_std_fopen_fd)(const char *name, const char *mode, int *fd,
   struct mem_io_to_fd *tofd = 0;
   int domain = get_current_domain();
   FILE *stream = NULL;
-  boolean fopen_fail = FALSE, mmap_pass = FALSE;
+  bool fopen_fail = false, mmap_pass = false;
   uint64_t fopen_time = 0, read_time = 0, rpc_alloc_time = 0, mmap_time = 0;
 
   FASTRPC_ATRACE_BEGIN_L("%s for %s in %s mode", __func__, name, mode);
@@ -324,7 +324,7 @@ __QAIC_IMPL(apps_std_fopen_fd)(const char *name, const char *mode, int *fd,
   VERIFYC(name != NULL, AEE_EBADPARM);
   PROFILE_ALWAYS(&fopen_time, stream = fopen(name, mode););
   if (!stream) {
-    fopen_fail = TRUE;
+    fopen_fail = true;
     nErr = ERRNO;
     goto bail;
   }
@@ -521,7 +521,7 @@ bail:
   return nErr;
 }
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_std_fread)(apps_std_FILE sin, byte *buf, int bufLen,
+__QAIC_IMPL(apps_std_fread)(apps_std_FILE sin, unsigned char *buf, int bufLen,
                             int *bytesRead, int *bEOF) __QAIC_IMPL_ATTRIBUTE {
   int out = 0, nErr = AEE_SUCCESS;
   struct apps_std_info *sinfo = 0;
@@ -534,7 +534,7 @@ __QAIC_IMPL(apps_std_fread)(apps_std_FILE sin, byte *buf, int bufLen,
   VERIFY(0 == (nErr = apps_std_FILE_get(sin, &sinfo)));
   if (sinfo->type == APPS_STD_STREAM_FILE) {
     PROFILE_ALWAYS(&tdiff, out = fread(buf, 1, bufLen, sinfo->u.stream););
-    *bEOF = FALSE;
+    *bEOF = false;
     if (out <= bufLen) {
       int err;
       if (0 == out && (0 != (err = ferror(sinfo->u.stream)))) {
@@ -553,7 +553,7 @@ __QAIC_IMPL(apps_std_fread)(apps_std_FILE sin, byte *buf, int bufLen,
         std_memscpy(buf, bufLen, sinfo->u.binfo.fbuf + sinfo->u.binfo.pos,
                     sinfo->u.binfo.flen - sinfo->u.binfo.pos);
     sinfo->u.binfo.pos += *bytesRead;
-    *bEOF = sinfo->u.binfo.pos == sinfo->u.binfo.flen ? TRUE : FALSE;
+    *bEOF = sinfo->u.binfo.pos == sinfo->u.binfo.flen ? true : false;
   }
   FARF(RUNTIME_RPC_HIGH, "fread returning %d %d\n", out, bufLen);
 bail:
@@ -566,7 +566,7 @@ bail:
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_std_fwrite)(apps_std_FILE sin, const byte *buf, int bufLen,
+__QAIC_IMPL(apps_std_fwrite)(apps_std_FILE sin, const unsigned char *buf, int bufLen,
                              int *bytesRead, int *bEOF) __QAIC_IMPL_ATTRIBUTE {
   int out = 0, nErr = AEE_SUCCESS;
   struct apps_std_info *sinfo = 0;
@@ -578,7 +578,7 @@ __QAIC_IMPL(apps_std_fwrite)(apps_std_FILE sin, const byte *buf, int bufLen,
   VERIFY(0 == (nErr = apps_std_FILE_get(sin, &sinfo)));
   if (sinfo->type == APPS_STD_STREAM_FILE) {
     out = fwrite(buf, 1, bufLen, sinfo->u.stream);
-    *bEOF = FALSE;
+    *bEOF = false;
     if (out <= bufLen) {
       int err;
       if (0 == out && (0 != (err = ferror(sinfo->u.stream)))) {
@@ -604,7 +604,7 @@ bail:
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_std_fgetpos)(apps_std_FILE sin, byte *pos, int posLen,
+__QAIC_IMPL(apps_std_fgetpos)(apps_std_FILE sin, unsigned char *pos, int posLen,
                               int *posLenReq) __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS;
   fpos_t fpos;
@@ -636,7 +636,7 @@ bail:
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_std_fsetpos)(apps_std_FILE sin, const byte *pos,
+__QAIC_IMPL(apps_std_fsetpos)(apps_std_FILE sin, const unsigned char *pos,
                               int posLen) __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS;
   fpos_t fpos;
@@ -832,7 +832,7 @@ bail:
 
 __QAIC_IMPL_EXPORT int
 __QAIC_IMPL(apps_std_flen)(apps_std_FILE sin,
-                           uint64 *len) __QAIC_IMPL_ATTRIBUTE {
+                           uint64_t *len) __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS;
   struct apps_std_info *sinfo = 0;
 
@@ -1029,7 +1029,7 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env)(
   char *dirList = NULL;
   char *absName = NULL;
   const char *envVar = NULL;
-  uint16 absNameLen = 0;
+  uint16_t absNameLen = 0;
   int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(get_current_domain());
 
   FARF(LOW, "Entering %s", __func__);
@@ -1149,7 +1149,7 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env_fd)(
   char *absName = NULL;
   char *errabsName = NULL;
   const char *envVar = NULL;
-  uint16 absNameLen = 0;
+  uint16_t absNameLen = 0;
   int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(get_current_domain());
 
   FARF(RUNTIME_RPC_LOW, "Entering %s", __func__);
@@ -1291,7 +1291,7 @@ bail:
 
 __QAIC_HEADER_EXPORT int __QAIC_IMPL(apps_std_get_search_paths_with_env)(
     const char *envvarname, const char *delim, _cstring1_t *paths, int pathsLen,
-    uint32 *numPaths, uint16 *maxPathLen) __QAIC_IMPL_ATTRIBUTE {
+    uint32_t *numPaths, uint16_t *maxPathLen) __QAIC_IMPL_ATTRIBUTE {
 
   char *path = NULL;
   char *pathDomain = NULL;
@@ -1369,7 +1369,7 @@ bail:
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_std_fgets)(apps_std_FILE sin, byte *buf, int bufLen,
+__QAIC_IMPL(apps_std_fgets)(apps_std_FILE sin, unsigned char *buf, int bufLen,
                             int *bEOF) __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS;
   struct apps_std_info *sinfo = 0;
@@ -1379,7 +1379,7 @@ __QAIC_IMPL(apps_std_fgets)(apps_std_FILE sin, byte *buf, int bufLen,
   VERIFY(0 == (nErr = apps_std_FILE_get(sin, &sinfo)));
   if (sinfo->type == APPS_STD_STREAM_FILE) {
     char *out = fgets((char *)buf, bufLen, sinfo->u.stream);
-    *bEOF = FALSE;
+    *bEOF = false;
     if (!out) {
       int err = 0;
       if (0 != (err = ferror(sinfo->u.stream))) {
@@ -1400,7 +1400,7 @@ bail:
 
 __QAIC_HEADER_EXPORT int
 __QAIC_HEADER(apps_std_fileExists)(const char *path,
-                                   boolean *exists) __QAIC_HEADER_ATTRIBUTE {
+                                   bool *exists) __QAIC_HEADER_ATTRIBUTE {
   int nErr = AEE_SUCCESS, err = 0;
   struct stat buffer;
 
@@ -1556,7 +1556,7 @@ __QAIC_HEADER(apps_std_opendir)(const char *name,
   errno = 0;
   odir = opendir(name);
   if (odir != NULL) {
-    dir->handle = (uint64)odir;
+    dir->handle = (uint64_t)odir;
     dirinfo =
         (struct apps_std_dir_info *)calloc(1, sizeof(struct apps_std_dir_info));
     VERIFYC(dirinfo != NULL, ENOMEM);
@@ -1712,12 +1712,12 @@ __QAIC_HEADER(apps_std_stat)(const char *name,
   ist->nlink = st.st_nlink;
   ist->rdev = st.st_rdev;
   ist->size = st.st_size;
-  ist->atime = (int64)st.st_atim.tv_sec;
-  ist->atimensec = (int64)st.st_atim.tv_nsec;
-  ist->mtime = (int64)st.st_mtim.tv_sec;
-  ist->mtimensec = (int64)st.st_mtim.tv_nsec;
-  ist->ctime = (int64)st.st_ctim.tv_nsec;
-  ist->ctimensec = (int64)st.st_ctim.tv_nsec;
+  ist->atime = (int64_t)st.st_atim.tv_sec;
+  ist->atimensec = (int64_t)st.st_atim.tv_nsec;
+  ist->mtime = (int64_t)st.st_mtim.tv_sec;
+  ist->mtimensec = (int64_t)st.st_mtim.tv_nsec;
+  ist->ctime = (int64_t)st.st_ctim.tv_nsec;
+  ist->ctimensec = (int64_t)st.st_ctim.tv_nsec;
 bail:
   if (nErr != AEE_SUCCESS) {
     VERIFY_EPRINTF(

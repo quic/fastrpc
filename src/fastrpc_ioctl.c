@@ -47,7 +47,7 @@ const char *get_secure_domain_name(int domain_id) {
   return name;
 }
 
-int ioctl_init(int dev, uint32_t flags, int attr, byte *shell, int shelllen,
+int ioctl_init(int dev, uint32_t flags, int attr, unsigned char *shell, int shelllen,
                int shellfd, char *mem, int memlen, int memfd, int tessiglen) {
   int ioErr = 0;
   struct fastrpc_ioctl_init_create init = {0};

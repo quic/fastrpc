@@ -63,11 +63,11 @@ __QAIC_HEADER_EXPORT int __QAIC_HEADER(dspqueue_rpc_open)(const char* uri, remot
     * @retval, 0 on success, should always succeed
     */
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(dspqueue_rpc_close)(remote_handle64 h) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_init_process_state)(remote_handle64 _h, int32 process_state_fd) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_create_queue)(remote_handle64 _h, uint32 id, int32 queue_fd, uint32 count, uint64* queue_id) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_destroy_queue)(remote_handle64 _h, uint64 queue_id) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_is_imported)(remote_handle64 _h, uint64 queue_id, int32* imported) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_wait_signal)(remote_handle64 _h, int32* signal) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_init_process_state)(remote_handle64 _h, int32_t process_state_fd) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_create_queue)(remote_handle64 _h, uint32_t id, int32_t queue_fd, uint32_t count, uint64_t* queue_id) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_destroy_queue)(remote_handle64 _h, uint64_t queue_id) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_is_imported)(remote_handle64 _h, uint64_t queue_id, int32_t* imported) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_wait_signal)(remote_handle64 _h, int32_t* signal) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_cancel_wait_signal)(remote_handle64 _h) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT AEEResult __QAIC_HEADER(dspqueue_rpc_signal)(remote_handle64 _h) __QAIC_HEADER_ATTRIBUTE;
 #ifndef dspqueue_rpc_URI

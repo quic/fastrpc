@@ -338,7 +338,7 @@ extern int apps_mem_table_init(void);
 extern void apps_mem_table_deinit(void);
 
 static uint32_t crc_table[256];
-uint32 timer_expired = 0;
+uint32_t timer_expired = 0;
 
 void set_thread_context(int domain) {
   if (tlsKey != INVALID_KEY) {
@@ -2506,7 +2506,7 @@ bail:
   return nErr;
 }
 
-int get_unsigned_pd_attribute(uint32 domain, int *unsigned_module) {
+int get_unsigned_pd_attribute(uint32_t domain, int *unsigned_module) {
   int nErr = AEE_SUCCESS;
 
   VERIFYC(hlist, AEE_EBADPARM);
@@ -3419,9 +3419,9 @@ static int get_process_attrs(int domain) {
   return attrs;
 }
 
-static void get_process_testsig(apps_std_FILE *fp, uint64 *ptrlen) {
+static void get_process_testsig(apps_std_FILE *fp, uint64_t *ptrlen) {
   int nErr = 0;
-  uint64 len = 0;
+  uint64_t len = 0;
   char testsig[PROPERTY_VALUE_MAX];
 
   if (fp == NULL || ptrlen == NULL)
@@ -3443,7 +3443,7 @@ static int open_shell(int domain_id, apps_std_FILE *fh, int unsigned_shell) {
   char *absName = NULL;
   char *shell_absName = NULL;
   char *domain_str = NULL;
-  uint16 shell_absNameLen = 0, absNameLen = 0;
+  uint16_t shell_absNameLen = 0, absNameLen = 0;
   ;
   int nErr = AEE_SUCCESS;
   int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
@@ -3724,7 +3724,7 @@ static int remote_init(int domain) {
         filelen = std_strlen(hlist[domain].dsppdname) + 1;
       }
       flags = FASTRPC_INIT_ATTACH;
-      ioErr = ioctl_init(dev, flags, 0, (byte *)file, filelen, -1, 0, 0, 0, 0);
+      ioErr = ioctl_init(dev, flags, 0, (unsigned char *)file, filelen, -1, 0, 0, 0, 0);
       if (file) {
         free(file);
         file = NULL;
@@ -3747,7 +3747,7 @@ static int remote_init(int domain) {
         memlen = 3 * 1024 * 1024;
       }
       ioErr =
-          ioctl_init(dev, flags, 0, (byte *)file, filelen, -1, 0, memlen, 0, 0);
+          ioctl_init(dev, flags, 0, (unsigned char *)file, filelen, -1, 0, memlen, 0, 0);
       if (ioErr) {
         nErr = convert_kernel_to_user_error(ioErr, errno);
         goto bail;
@@ -3756,14 +3756,14 @@ static int remote_init(int domain) {
       FARF(RUNTIME_RPC_HIGH, "%s: attaching to sensors PD for domain %d",
            __func__, domain);
       flags = FASTRPC_INIT_ATTACH_SENSORS;
-      ioErr = ioctl_init(dev, flags, 0, (byte *)0, 0, -1, 0, 0, 0, 0);
+      ioErr = ioctl_init(dev, flags, 0, (unsigned char *)0, 0, -1, 0, 0, 0, 0);
       VERIFYC((!ioErr || errno == ENOTTY || errno == ENXIO || errno == EINVAL),
               AEE_ERPC);
     } else if (pd_type == USERPD) {
-      uint64 len = 0;
+      uint64_t len = 0;
       int readlen = 0, eof;
       apps_std_FILE fsig = -1;
-      uint64 siglen = 0;
+      uint64_t siglen = 0;
 
 #ifndef VIRTUAL_FASTRPC
 #if !defined(SYSTEM_RPC_LIBRARY)
@@ -3783,7 +3783,7 @@ static int remote_init(int domain) {
         file = rpcmem_alloc_internal(0, RPCMEM_HEAP_DEFAULT, (size_t)filelen);
         VERIFYC(file, AEE_ENORPCMEMORY);
         VERIFY(AEE_SUCCESS ==
-               (nErr = apps_std_fread(fh, (byte *)file, len, &readlen, &eof)));
+               (nErr = apps_std_fread(fh, (unsigned char *)file, len, &readlen, &eof)));
         VERIFYC((int)len == readlen, AEE_EFILE);
         filefd = rpcmem_to_fd_internal((void *)file);
         filelen = (int)len;
@@ -3808,13 +3808,13 @@ static int remote_init(int domain) {
       if (hlist[domain].procattrs) {
         if (siglen && fsig != -1) {
           VERIFY(AEE_SUCCESS ==
-                 (nErr = apps_std_fread(fsig, (byte *)(file + len), siglen,
+                 (nErr = apps_std_fread(fsig, (unsigned char *)(file + len), siglen,
                                         &readlen, &eof)));
-          VERIFYC(siglen == (uint64)readlen, AEE_EFILE);
+          VERIFYC(siglen == (uint64_t)readlen, AEE_EFILE);
           filelen = len + siglen;
         }
       }
-      ioErr = ioctl_init(dev, flags, hlist[domain].procattrs, (byte *)file,
+      ioErr = ioctl_init(dev, flags, hlist[domain].procattrs, (unsigned char *)file,
                          filelen, filefd, NULL, memlen, -1, siglen);
       if (ioErr) {
         nErr = ioErr;

@@ -57,14 +57,14 @@
 #define PERF_CAPABILITY_CHECK (1 << 1)
 
 
-extern boolean fastrpc_config_is_perfkernel_enabled(void);
-extern boolean fastrpc_config_is_perfdsp_enabled(void);
+extern bool fastrpc_config_is_perfkernel_enabled(void);
+extern bool fastrpc_config_is_perfdsp_enabled(void);
 
 int perf_v2_kernel = 0;
 int perf_v2_dsp = 0;
 
 struct perf_keys {
-  int64 data[PERF_MAX_NUM_KEYS];
+  int64_t data[PERF_MAX_NUM_KEYS];
   int numKeys;
   int maxLen;
   int enable;

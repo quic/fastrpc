@@ -42,11 +42,11 @@ DECLARE_HASH_TABLE(apps_mem, apps_mem_info);
 
 struct mem_info {
   QNode qn;
-  uint64 vapps;
-  uint64 vadsp;
-  int32 size;
-  int32 mapped;
-  uint32 rflags;
+  uint64_t vapps;
+  uint64_t vadsp;
+  int32_t size;
+  int32_t mapped;
+  uint32_t rflags;
 };
 
 /* Delete and free all nodes in hash-table */
@@ -113,9 +113,9 @@ void apps_mem_deinit(int domain) {
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_mem_request_map64)(int heapid, uint32 lflags, uint32 rflags,
-                                    uint64 vin, int64 len, uint64 *vapps,
-                                    uint64 *vadsp) __QAIC_IMPL_ATTRIBUTE {
+__QAIC_IMPL(apps_mem_request_map64)(int heapid, uint32_t lflags, uint32_t rflags,
+                                    uint64_t vin, int64_t len, uint64_t *vapps,
+                                    uint64_t *vadsp) __QAIC_IMPL_ATTRIBUTE {
   struct mem_info *minfo = 0;
   int nErr = 0, unsigned_module = 0, ualloc_support = 0;
   void *buf = 0;
@@ -162,7 +162,7 @@ __QAIC_IMPL(apps_mem_request_map64)(int heapid, uint32 lflags, uint32 rflags,
      * fd here will act as the unique key between the memory mapped
      * on HLOS and DSP.
      */
-    *vadsp = (uint64)fd;
+    *vadsp = (uint64_t)fd;
   } else {
     /* Memory for unsignedPD's user-heap will be allocated in userspace for
      * security reasons. Memory for signedPD's user-heap will be allocated in
@@ -212,24 +212,24 @@ bail:
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_mem_request_map)(int heapid, uint32 lflags, uint32 rflags,
-                                  uint32 vin, int32 len, uint32 *vapps,
-                                  uint32 *vadsp) __QAIC_IMPL_ATTRIBUTE {
-  uint64 vin1, vapps1, vadsp1;
-  int64 len1;
+__QAIC_IMPL(apps_mem_request_map)(int heapid, uint32_t lflags, uint32_t rflags,
+                                  uint32_t vin, int32_t len, uint32_t *vapps,
+                                  uint32_t *vadsp) __QAIC_IMPL_ATTRIBUTE {
+  uint64_t vin1, vapps1, vadsp1;
+  int64_t len1;
   int nErr = AEE_SUCCESS;
-  vin1 = (uint64)vin;
-  len1 = (int64)len;
+  vin1 = (uint64_t)vin;
+  len1 = (int64_t)len;
   nErr = apps_mem_request_map64(heapid, lflags, rflags, vin1, len1, &vapps1,
                                 &vadsp1);
-  *vapps = (uint32)vapps1;
-  *vadsp = (uint32)vadsp1;
+  *vapps = (uint32_t)vapps1;
+  *vadsp = (uint32_t)vadsp1;
   return nErr;
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_mem_request_unmap64)(uint64 vadsp,
-                                      int64 len) __QAIC_IMPL_ATTRIBUTE {
+__QAIC_IMPL(apps_mem_request_unmap64)(uint64_t vadsp,
+                                      int64_t len) __QAIC_IMPL_ATTRIBUTE {
   int nErr = AEE_SUCCESS, fd = -1;
   struct mem_info *minfo, *mfree = 0;
   QNode *pn, *pnn;
@@ -292,17 +292,17 @@ bail:
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_mem_request_unmap)(uint32 vadsp,
-                                    int32 len) __QAIC_IMPL_ATTRIBUTE {
-  uint64 vadsp1 = (uint64)vadsp;
-  int64 len1 = (int64)len;
+__QAIC_IMPL(apps_mem_request_unmap)(uint32_t vadsp,
+                                    int32_t len) __QAIC_IMPL_ATTRIBUTE {
+  uint64_t vadsp1 = (uint64_t)vadsp;
+  int64_t len1 = (int64_t)len;
   int nErr = apps_mem_request_unmap64(vadsp1, len1);
   return nErr;
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_mem_share_map)(int fd, int size, uint64 *vapps,
-                                uint64 *vadsp) __QAIC_IMPL_ATTRIBUTE {
+__QAIC_IMPL(apps_mem_share_map)(int fd, int size, uint64_t *vapps,
+                                uint64_t *vadsp) __QAIC_IMPL_ATTRIBUTE {
   struct mem_info *minfo = 0;
   int nErr = AEE_SUCCESS;
   void *buf = 0;
@@ -346,9 +346,9 @@ bail:
   return nErr;
 }
 
-__QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_mem_share_unmap)(uint64 vadsp, int size)
+__QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_mem_share_unmap)(uint64_t vadsp, int size)
     __QAIC_IMPL_ATTRIBUTE {
-  int64 len1 = (int64)size;
+  int64_t len1 = (int64_t)size;
   int nErr = AEE_SUCCESS;
   nErr = apps_mem_request_unmap64(vadsp, len1);
   if (nErr != AEE_SUCCESS) {

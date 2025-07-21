@@ -114,13 +114,13 @@ extern char *        std_basename(const char *pszPath);
 //Inet functions, number functions
 extern unsigned int        std_scanul(const char *pchBuf, int nRadix,
                                 const char **ppchEnd, int *pnError);
-extern uint64        std_scanull(const char *pchBuf, int nRadix,
+extern uint64_t        std_scanull(const char *pchBuf, int nRadix,
                                  const char **ppchEnd, int *pnError);
 extern double        std_scand(const char *pchBuf, const char **ppchEnd);
 
 // Rand functions
 extern unsigned      std_rand_next(unsigned uRand);
-extern uint32        std_rand(uint32 uSeed, byte* pDest, int nSize);
+extern uint32_t        std_rand(uint32_t uSeed, unsigned char* pDest, int nSize);
 
 
 // printf functions
@@ -517,7 +517,7 @@ std_strcmp()
 
 Description:
    The std_strcmp() compares two NUL-terminated character strings.
-   Comparison is strictly by byte values with no character set
+   Comparison is strictly by unsigned char values with no character set
    interpretation.
 
 Prototype:
@@ -758,7 +758,7 @@ Return Value:
 std_memset()
 
 Description:
-   The std_memset() sets each byte in a block of memory to a value.
+   The std_memset() sets each unsigned char in a block of memory to a value.
 
 Prototype:
 
@@ -766,7 +766,7 @@ Prototype:
 
 Parameters:
    p: memory block to set
-   c: value to set each byte to
+   c: value to set each unsigned char to
    nLen: size of p in bytes
 
 Return Value:
@@ -832,7 +832,7 @@ Return value:
 std_memcmp()
 
 Description:
-   The std_memcmp() compares two memory buffers, byte-wise.
+   The std_memcmp() compares two memory buffers, unsigned char-wise.
 
 Prototype:
 
@@ -893,7 +893,7 @@ Prototype:
 
 Parameters:
    s: buffer to search
-   c: value of byte to look for
+   c: value of unsigned char to look for
    n: size of s in bytes
 
 Return Value:
@@ -945,7 +945,7 @@ Prototype:
 
 Parameters:
    s: buffer to search
-   c: value of byte to look for
+   c: value of unsigned char to look for
    n: size of s in bytes
 
 Return Value:
@@ -965,7 +965,7 @@ Prototype:
 
 Parameters:
    s: buffer to search
-   c: value of byte to look for
+   c: value of unsigned char to look for
    n: size of s in bytes
 
 Return Value:
@@ -985,7 +985,7 @@ Prototype:
 
 Parameters:
    s: buffer to search
-   c: value of byte to look for
+   c: value of unsigned char to look for
    n: size of s in bytes
 
 Return Value:
@@ -1353,7 +1353,7 @@ std_wstrcmp()
 Description:
    The std_wstrcmp() compares two NUL-terminated strings. It is equivalent
    to std_strncmp() except that it operates on wide (16-bit) character
-   strings. Comparison is strictly by byte values with no character set
+   strings. Comparison is strictly by unsigned char values with no character set
    interpretation.
 
 Prototype:
@@ -1661,7 +1661,7 @@ Description:
 
 Prototype:
 
-   uint32 std_rand(uint32 uSeed, byte* pDest, int nSize);
+   uint32_t std_rand(uint32_t uSeed, unsigned char* pDest, int nSize);
 
 Parameters:
    uSeed: A seed for the pseudo-random generator
@@ -1693,7 +1693,7 @@ std_CopyLE()
 Description:
 
    The std_CopyLE() function copies data while translating numeric values
-   between host byte ordering and "little endian" byte ordering.
+   between host unsigned char ordering and "little endian" unsigned char ordering.
 
    pvDest and pvSrc are NOT required to be 16 or 32-bit word aligned.
 
@@ -1701,7 +1701,7 @@ Description:
    except in the special case where pvDest and pvSrc are equal.  In that case,
    std_CopyLE() modifies the buffer in-place.
 
-   When the target byte ordering (little endian) matches the host byte
+   When the target unsigned char ordering (little endian) matches the host unsigned char
    ordering, in-place translations reduce to a no-op, and copies are
    delegated directly to std_memmove().
 
@@ -1720,13 +1720,13 @@ Parameters:
 
               Each field size is given by a positive decimal integer or one of
               the following characters: "S", "L", "Q", or "*".  The letters
-              denote fields that should be converted to the desired byte
+              denote fields that should be converted to the desired unsigned char
               ordering:
 
 ===pre>
-                S : a 2 byte (16 bit) value.
-                L : a 4 byte (32 bit) value.
-                Q : a 8 byte (64 bit) value.
+                S : a 2 unsigned char (16 bit) value.
+                L : a 4 unsigned char (32 bit) value.
+                Q : a 8 unsigned char (64 bit) value.
 ===/pre>
 
               An integer gives a number of bytes and "*" represents the
@@ -1737,8 +1737,8 @@ Parameters:
               other characters are supplied in pszFields.
 
               For example: "L12S*" would be appropriate to copy a structure
-              containing a uint32 followed by a 12 byte character array,
-              followed by a uint16, followed by an arbitrary amount of
+              containing a uint32_t followed by a 12 unsigned char character array,
+              followed by a uint16_t, followed by an arbitrary amount of
               character data.
 
               If nSrcSize is greater than the structure size (total of all the
@@ -1758,7 +1758,7 @@ std_CopyBE()
 Description:
 
    The std_CopyBE() function has the same semantics as std_CopyLE() except it
-   copies between host byte ordering and big-endian ("network") byte order.
+   copies between host unsigned char ordering and big-endian ("network") unsigned char order.
 
    See std_CopyLE() for more details.
 
@@ -1795,7 +1795,7 @@ Parameters:
    ul: input unsigned long
 
 Return Value:
-   ul, reversed in byte-ordering
+   ul, reversed in unsigned char-ordering
 
 =======================================================================
 
@@ -1812,14 +1812,14 @@ Parameters:
    us: input unsigned short
 
 Return Value:
-   us, reversed in byte-ordering
+   us, reversed in unsigned char-ordering
 
 =======================================================================
 
 std_letohs()
 
 Description:
-   The std_letohs() changes a short from little-endian to host byte order.
+   The std_letohs() changes a short from little-endian to host unsigned char order.
 
 Prototype:
 
@@ -1829,7 +1829,7 @@ Parameters:
    us: short to convert
 
 Return Value:
-   us converted from little-endian to host byte order.  If the
+   us converted from little-endian to host unsigned char order.  If the
      host is little endian, just returns us
 
 =======================================================================
@@ -1837,7 +1837,7 @@ Return Value:
 std_htoles()
 
 Description:
-   The std_htoles() converts a short from host byte-order to little-endian.
+   The std_htoles() converts a short from host unsigned char-order to little-endian.
 
 Prototype:
 
@@ -1847,7 +1847,7 @@ Parameters:
    us: short to convert
 
 Return Value:
-   us converted from host byte order to little-endian.  If the
+   us converted from host unsigned char order to little-endian.  If the
    host is little endian, just returns us
 
 =======================================================================
@@ -1855,7 +1855,7 @@ Return Value:
 std_letohl()
 
 Description:
-   The std_letohl() changes a long from little-endian to host byte order.
+   The std_letohl() changes a long from little-endian to host unsigned char order.
 
 Prototype:
 
@@ -1865,7 +1865,7 @@ Parameters:
    ul: long to convert
 
 Return Value:
-   ul converted from little-endian to host byte order.  If the
+   ul converted from little-endian to host unsigned char order.  If the
    host is little endian, just returns ul
 
 =======================================================================
@@ -1873,7 +1873,7 @@ Return Value:
 std_htolel()
 
 Description:
-   The std_htolel() converts a long from host byte-order to little-endian.
+   The std_htolel() converts a long from host unsigned char-order to little-endian.
 
 Prototype:
 
@@ -1883,7 +1883,7 @@ Parameters:
    ul: long to convert
 
 Return Value:
-   ul converted from host byte order to little-endian.  If the
+   ul converted from host unsigned char order to little-endian.  If the
    host is little endian, just returns ul.
 
 
@@ -1892,7 +1892,7 @@ Return Value:
 std_ntohs()
 
 Description:
-   The std_ntohs() changes a short from big-endian to host byte order.
+   The std_ntohs() changes a short from big-endian to host unsigned char order.
 
 Prototype:
 
@@ -1902,7 +1902,7 @@ Parameters:
    us: short to convert
 
 Return Value:
-   us converted from big-endian to host byte order.  If the
+   us converted from big-endian to host unsigned char order.  If the
    host is big endian, just returns us.
 
 =======================================================================
@@ -1910,7 +1910,7 @@ Return Value:
 std_htons()
 
 Description:
-   The std_htons() converts a short from host byte-order to big-endian.
+   The std_htons() converts a short from host unsigned char-order to big-endian.
 
 Prototype:
 
@@ -1920,7 +1920,7 @@ Parameters:
    us: short to convert
 
 Return Value:
-   us converted from host byte order to big-endian.  If the
+   us converted from host unsigned char order to big-endian.  If the
    host is big endian, just returns us.
 
 =======================================================================
@@ -1928,7 +1928,7 @@ Return Value:
 std_ntohl()
 
 Description:
-   The std_ntohl() changes a long from big-endian to host byte order.
+   The std_ntohl() changes a long from big-endian to host unsigned char order.
 
 Prototype:
 
@@ -1938,7 +1938,7 @@ Parameters:
    ul: long to convert
 
 Return Value:
-   ul converted from big-endian to host byte order.  If the
+   ul converted from big-endian to host unsigned char order.  If the
    host is big endian, just returns ul.
 
 =======================================================================
@@ -1946,7 +1946,7 @@ Return Value:
 std_htonl()
 
 Description:
-   The std_htonl() converts a long from host byte-order to big-endian.
+   The std_htonl() converts a long from host unsigned char-order to big-endian.
 
 Prototype:
 
@@ -1956,7 +1956,7 @@ Parameters:
    ul: long to convert
 
 Return Value:
-   ul converted from host byte order to big-endian.  If the
+   ul converted from host unsigned char order to big-endian.  If the
    host is big endian, just returns ul.
 
 
@@ -1988,7 +1988,7 @@ Description:
    ======|=======================================================
      c   | Output a single character.
          |
-     s   | Output a NUL-terminated single-byte character string.
+     s   | Output a NUL-terminated single-unsigned char character string.
          |
     d, i | Ouptut a signed decimal integer.
          |
@@ -2077,7 +2077,7 @@ Description:
    -------|---------------------
     L, ll | sizeof(long long)
    -------|---------------------
-      j   | sizeof(int64)
+      j   | sizeof(int64_t)
    -------|---------------------
       z   | sizeof(size_t)
    -------|---------------------
@@ -2302,7 +2302,7 @@ Description:
 
 Prototype:
 
-    uint32 std_scanul( const char *pchBuf, int nRadix, const char **ppchEnd,
+    uint32_t std_scanul( const char *pchBuf, int nRadix, const char **ppchEnd,
                        int *pnError)
 
 Parameters:
@@ -2327,7 +2327,7 @@ Parameters:
 
         STD_NEGATIVE : The scanned value was negative and its absolute value was
                        from 1 to MAX_UINT32.  The result is the negated value
-                       (cast to a uint32).
+                       (cast to a uint32_t).
 
         STD_NODIGITS : No digits were found.  The result is zero.
 
@@ -2387,7 +2387,7 @@ Description:
 
 Prototype:
 
-    uint64 std_scanull(const char *pchBuf, int nRadix, const char **ppchEnd,
+    uint64_t std_scanull(const char *pchBuf, int nRadix, const char **ppchEnd,
                        int *pnError)
 
 Parameters:
@@ -2412,7 +2412,7 @@ Parameters:
 
         STD_NEGATIVE : The scanned value was negative and its absolute value was
                        from 1 to MAX_UINT64.  The result is the negated value
-                       (cast to a uint64).
+                       (cast to a uint64_t).
 
         STD_NODIGITS : No digits were found.  The result is zero.
 

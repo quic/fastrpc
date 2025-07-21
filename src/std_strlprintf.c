@@ -14,7 +14,7 @@
 
 #define  ISDIGIT(c)              ( (c) >= '0' && (c) <= '9')
 #define  TOLOWER(c)              ( (c) | 32 )   // works only for letters
-#define  FAILED(b)               ( (b) != AEE_SUCCESS ? TRUE : FALSE )
+#define  FAILED(b)               ( (b) != AEE_SUCCESS ? true : false )
 #define  CLEANUP_ON_ERROR(b,l)   if( FAILED( b ) ) { goto l; }
 #define  ROUND(d, p)             fp_round( d, p )
 #define  FP_POW_10(n)            fp_pow_10(n)
@@ -38,8 +38,8 @@ typedef struct {
 
    int      flags;          // FF_PLUS, FF_MINUS, etc.
    char     cType;          // d, s, c, x, X, etc.
-   int32    nWidth;         // number preceding '.' : controls padding
-   int32    nPrecision;     // number following '.'  (-1 if not given)
+   int32_t    nWidth;         // number preceding '.' : controls padding
+   int32_t    nPrecision;     // number following '.'  (-1 if not given)
 
    // Computed values
 
@@ -80,7 +80,7 @@ static int ScanDecimal(const char **ppsz)
 //  return value: length of string.
 //
 static __inline void
-FormatNumber(FieldFormat *me, char pcBuf[FORMATNUMBER_SIZE], uint64 uNum64)
+FormatNumber(FieldFormat *me, char pcBuf[FORMATNUMBER_SIZE], uint64_t uNum64)
 {
    char cType = me->cType;
    const char *cpszDigits;
@@ -105,9 +105,9 @@ FormatNumber(FieldFormat *me, char pcBuf[FORMATNUMBER_SIZE], uint64 uNum64)
    // Output prefix
 
    if (( 'd' == cType || 'i' == cType)) {
-      if ((int64)uNum64 < 0) {
+      if ((int64_t)uNum64 < 0) {
          *pc++ = '-';
-         uNum64 = (uint64)-(int64)uNum64;
+         uNum64 = (uint64_t)-(int64_t)uNum64;
       } else if (me->flags & FF_PLUS) {
          *pc++ = '+';
       } else if (me->flags & FF_BLANK) {
@@ -169,7 +169,7 @@ static int ConvertFloat(FieldFormat* me, double dNumber, char* pcBuffer,
                         int nBufSize)
 {
    int nError = AEE_SUCCESS;
-   int32 nPrecision = 0;
+   int32_t nPrecision = 0;
    int nIndex = 0;
    BufBound OutBuf;
    char szIntegerPart[STD_DTOA_FORMAT_INTEGER_SIZE] = {0};
@@ -485,7 +485,7 @@ static int std_strlprintf_inner(char *pszDest, int nDestSize,
       char achBuf[FORMATNUMBER_SIZE];
       char achBuf2[STD_DTOA_FORMAT_FLOAT_SIZE];
       char cType;
-      boolean bLong = 0;
+      bool bLong = 0;
 
       pcEsc = std_strchrend(pcIn, '%');
       BufBound_Write(&bb, pcIn, pcEsc-pcIn);
@@ -524,7 +524,7 @@ static int std_strlprintf_inner(char *pszDest, int nDestSize,
 
       // Consume width
       if ('*' == *pcIn) {
-         AEEVA_ARG(args, ff.nWidth, int32);
+         AEEVA_ARG(args, ff.nWidth, int32_t);
          pcIn++;
       } else {
          ff.nWidth = ScanDecimal(&pcIn);
@@ -537,7 +537,7 @@ static int std_strlprintf_inner(char *pszDest, int nDestSize,
       if ('.' == *pcIn) {
          pcIn++;
          if ('*' == *pcIn) { // Can be *... (given in int * param)
-            AEEVA_ARG(args, ff.nPrecision, int32);
+            AEEVA_ARG(args, ff.nPrecision, int32_t);
             pcIn++;
          } else {
             ff.nPrecision = ScanDecimal(&pcIn);
@@ -548,7 +548,7 @@ static int std_strlprintf_inner(char *pszDest, int nDestSize,
       {
          static const struct {
             char    szPre[3];
-            boolean b64;
+            bool b64;
          } a[] = {
             { "l",  0, },
             { "ll", 1, },
@@ -607,16 +607,16 @@ static int std_strlprintf_inner(char *pszDest, int nDestSize,
                  'x' == TOLOWER(cType) ) {
 
          // int
-         uint64 uArg64;
+         uint64_t uArg64;
 
          if (bLong) {
-            AEEVA_ARG(args, uArg64, int64);  // See how much room needed
+            AEEVA_ARG(args, uArg64, int64_t);  // See how much room needed
          } else {
-            uint32 uArg32;
-            AEEVA_ARG(args, uArg32, int32);  // See how much room needed
+            uint32_t uArg32;
+            AEEVA_ARG(args, uArg32, int32_t);  // See how much room needed
             uArg64 = uArg32;
             if ('d' == cType || 'i' == cType) {
-               uArg64 = (uint64)(int64)(int32)uArg32;
+               uArg64 = (uint64_t)(int64_t)(int32_t)uArg32;
             }
          }
 
