@@ -5,9 +5,9 @@
 
 #ifdef _WIN32
 #include "Windows.h"
-uint32 atomic_CompareAndExchange(uint32 * volatile puDest, uint32 uExchange, uint32 uCompare) {
-   C_ASSERT(sizeof(LONG) == sizeof(uint32));
-   return (uint32)InterlockedCompareExchange((LONG*)puDest, (LONG)uExchange, (LONG)uCompare);
+uint32_t atomic_CompareAndExchange(uint32_t * volatile puDest, uint32_t uExchange, uint32_t uCompare) {
+   C_ASSERT(sizeof(LONG) == sizeof(uint32_t));
+   return (uint32_t)InterlockedCompareExchange((LONG*)puDest, (LONG)uExchange, (LONG)uCompare);
 }
 uintptr_t atomic_CompareAndExchangeUP(uintptr_t * volatile puDest, uintptr_t uExchange, uintptr_t uCompare) {
    C_ASSERT(sizeof(uintptr_t) == sizeof(void*));
@@ -43,18 +43,18 @@ qurt_atomic_compare_val_and_set(unsigned int* target,
 
    return current_val;
 }
-uint32 atomic_CompareAndExchange(uint32 * volatile puDest, uint32 uExchange, uint32 uCompare) {
-   return (uint32)qurt_atomic_compare_val_and_set((unsigned int*)puDest, uCompare, uExchange);
+uint32_t atomic_CompareAndExchange(uint32_t * volatile puDest, uint32_t uExchange, uint32_t uCompare) {
+   return (uint32_t)qurt_atomic_compare_val_and_set((unsigned int*)puDest, uCompare, uExchange);
 }
 uintptr_t atomic_CompareAndExchangeUP(uintptr_t * volatile puDest, uintptr_t uExchange, uintptr_t uCompare) {
-   C_ASSERT(sizeof(uintptr_t) == sizeof(uint32));
-   return (uint32)atomic_CompareAndExchange((uint32*)puDest, (uint32)uExchange, (uint32)uCompare);
+   C_ASSERT(sizeof(uintptr_t) == sizeof(uint32_t));
+   return (uint32_t)atomic_CompareAndExchange((uint32_t*)puDest, (uint32_t)uExchange, (uint32_t)uCompare);
 }
 #elif __GNUC__
-uint32 atomic_CompareAndExchange(uint32 * volatile puDest, uint32 uExchange, uint32 uCompare) {
+uint32_t atomic_CompareAndExchange(uint32_t * volatile puDest, uint32_t uExchange, uint32_t uCompare) {
    return __sync_val_compare_and_swap(puDest, uCompare, uExchange);
 }
-uint64 atomic_CompareAndExchange64(uint64 * volatile puDest, uint64 uExchange, uint64 uCompare) {
+uint64_t atomic_CompareAndExchange64(uint64_t * volatile puDest, uint64_t uExchange, uint64_t uCompare) {
    return __sync_val_compare_and_swap(puDest, uCompare, uExchange);
 }
 uintptr_t atomic_CompareAndExchangeUP(uintptr_t * volatile puDest, uintptr_t uExchange, uintptr_t uCompare) {

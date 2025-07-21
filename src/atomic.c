@@ -3,10 +3,10 @@
 
 #include "AEEatomic.h"
 
-uint32 atomic_Add(uint32 * volatile puDest, int nAdd) {
-   uint32 previous;
-   uint32 current;
-   uint32 sum;
+uint32_t atomic_Add(uint32_t * volatile puDest, int nAdd) {
+   uint32_t previous;
+   uint32_t current;
+   uint32_t sum;
    do {
       current = *puDest;
       __builtin_add_overflow(current, nAdd, &sum);
@@ -16,9 +16,9 @@ uint32 atomic_Add(uint32 * volatile puDest, int nAdd) {
    return sum;
 }
 
-uint32 atomic_Exchange(uint32* volatile puDest, uint32 uVal) {
-   uint32 previous;
-   uint32 current;
+uint32_t atomic_Exchange(uint32_t* volatile puDest, uint32_t uVal) {
+   uint32_t previous;
+   uint32_t current;
    do {
       current = *puDest;
       previous = atomic_CompareAndExchange(puDest, uVal, current);
@@ -26,10 +26,10 @@ uint32 atomic_Exchange(uint32* volatile puDest, uint32 uVal) {
    return previous;
 }
 
-uint32 atomic_CompareOrAdd(uint32* volatile puDest, uint32 uCompare, int nAdd) {
-   uint32 previous;
-   uint32 current;
-   uint32 result;
+uint32_t atomic_CompareOrAdd(uint32_t* volatile puDest, uint32_t uCompare, int nAdd) {
+   uint32_t previous;
+   uint32_t current;
+   uint32_t result;
    do {
       current = *puDest;
       previous = current;

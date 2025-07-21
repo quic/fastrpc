@@ -80,9 +80,9 @@ int fastrpc_config_get_rpctimeout(void);
   * debugging issues, by loading them on gdb/lldb.
   *
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_pddump_enabled(void);
+bool fastrpc_config_is_pddump_enabled(void);
 /**
   * fastrpc_config_is_perfkernel_enabled
   *
@@ -90,9 +90,9 @@ boolean fastrpc_config_is_pddump_enabled(void);
   * enabled or not
   *
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_perfkernel_enabled(void);
+bool fastrpc_config_is_perfkernel_enabled(void);
 /**
   * fastrpc_config_is_perfdsp_enabled
   *
@@ -100,9 +100,9 @@ boolean fastrpc_config_is_perfkernel_enabled(void);
   * enabled or not
   *
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_perfdsp_enabled(void);
+bool fastrpc_config_is_perfdsp_enabled(void);
 /**
   * fastrpc_config_get_runtime_farf_file
   *
@@ -131,9 +131,9 @@ char *fastrpc_config_get_userspace_runtime_farf_file(void);
   * (in DSP) should be enabled or not
   *
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_log_iregion_enabled(void);
+bool fastrpc_config_is_log_iregion_enabled(void);
 /**
   * fastrpc_config_is_debug_logging_enabled
   *
@@ -141,27 +141,27 @@ boolean fastrpc_config_is_log_iregion_enabled(void);
   * 
   *
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_debug_logging_enabled(void);
+bool fastrpc_config_is_debug_logging_enabled(void);
 /**
   * fastrpc_config_is_sysmon_reserved_bit_enabled
   *
   * @brief returns whether debug logging for sysmon is enabled or not
   * 
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_sysmon_reserved_bit_enabled(void);
+bool fastrpc_config_is_sysmon_reserved_bit_enabled(void);
 /**
   * fastrpc_config_is_qtf_tracing_enabled
   *
   * @brief returns whether qtf tracing is enabled or not
   * 
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_qtf_tracing_enabled(void);
+bool fastrpc_config_is_qtf_tracing_enabled(void);
 // Function to get heap caller level.
 int fastrpc_config_get_caller_level(void);
 /**
@@ -171,9 +171,9 @@ int fastrpc_config_get_caller_level(void);
   * in user heap (on DSP PD) or not
   * 
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_uaf_enabled(void);
+bool fastrpc_config_is_uaf_enabled(void);
 /**
   * fastrpc_config_is_logpacket_enabled
   *
@@ -183,9 +183,9 @@ boolean fastrpc_config_is_uaf_enabled(void);
   * logs.
   * 
   * @param void
-  * @return boolean - true/false
+  * @return bool - true/false
   **/
-boolean fastrpc_config_is_logpacket_enabled(void);
+bool fastrpc_config_is_logpacket_enabled(void);
 /**
   * fastrpc_config_get_leak_detect
   *
@@ -215,6 +215,6 @@ int fastrpc_config_init();
  * name attribute debug support has been requested.
  * Returns: True or False, status of debug support
  */
-boolean fastrpc_config_is_setdmabufname_enabled(void);
+bool fastrpc_config_is_setdmabufname_enabled(void);
 
 #endif /*__FASTRPC_CONFIG_H__*/

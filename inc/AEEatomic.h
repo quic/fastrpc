@@ -47,12 +47,12 @@ DESCRIPTION:  Fast Atomic ops
 extern "C" {
 #endif /* #ifdef __cplusplus */
 
-uint32 atomic_Add(uint32 * volatile puDest, int nAdd);
-uint32 atomic_Exchange(uint32 * volatile puDest, uint32 uVal);
-uint32 atomic_CompareAndExchange(uint32 * volatile puDest, uint32 uExchange, uint32 uCompare);
-uint32 atomic_CompareOrAdd(uint32 * volatile puDest, uint32 uCompare, int nAdd);
+uint32_t atomic_Add(uint32_t * volatile puDest, int nAdd);
+uint32_t atomic_Exchange(uint32_t * volatile puDest, uint32_t uVal);
+uint32_t atomic_CompareAndExchange(uint32_t * volatile puDest, uint32_t uExchange, uint32_t uCompare);
+uint32_t atomic_CompareOrAdd(uint32_t * volatile puDest, uint32_t uCompare, int nAdd);
 
-uint64 atomic_CompareAndExchange64(uint64 * volatile puDest, uint64 uExchange, uint64 uCompare);
+uint64_t atomic_CompareAndExchange64(uint64_t * volatile puDest, uint64_t uExchange, uint64_t uCompare);
 uintptr_t atomic_CompareAndExchangeUP(uintptr_t * volatile puDest, uintptr_t uExchange, uintptr_t uCompare);
 #ifdef __cplusplus
 }
@@ -78,7 +78,7 @@ Description:
 
 Prototype:
 
-   uint32 atomic_Add(uint32* puDest, int nInc);
+   uint32_t atomic_Add(uint32_t* puDest, int nInc);
 
 Parameters:
    puDest [in|out] : Points to unsigned number to add nInc and save
@@ -108,7 +108,7 @@ Description:
 
 Prototype:
 
-   uint32 atomic_Exchange(uint32* puDest, uint32 uVal);
+   uint32_t atomic_Exchange(uint32_t* puDest, uint32_t uVal);
 
 Parameters:
    puDest [in|out] : Points to unsigned number to be exchanged
@@ -140,8 +140,8 @@ Description:
 
 Prototype:
 
-   uint32 atomic_CompareAndExchange(uint32 *puDest, uint32 uExchange,
-                                    uint32 uCompare);
+   uint32_t atomic_CompareAndExchange(uint32_t *puDest, uint32_t uExchange,
+                                    uint32_t uCompare);
 
 Parameters:
    puDest [in|out] : Points to unsigned number.
@@ -174,7 +174,7 @@ Description:
 
 Prototype:
 
-   uint32 atomic_CompareOrAdd(uint32 *puDest, uint32 uCompare, int nAdd);
+   uint32_t atomic_CompareOrAdd(uint32_t *puDest, uint32_t uCompare, int nAdd);
 
 Parameters:
    puDest [in|out] : Points to unsigned number.

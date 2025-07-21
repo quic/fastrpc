@@ -56,7 +56,7 @@
 #define FASTRPC_MAP_MAX FASTRPC_MAP_FD_NOMAP + 1
 
 #if !(defined __qdsp6__) && !(defined __hexagon__)
-static __inline uint32 Q6_R_cl0_R(uint32 num) {
+static __inline uint32_t Q6_R_cl0_R(uint32_t num) {
    int ii;
    for(ii = 31; ii >= 0; --ii) {
       if(num & (1 << ii)) {
@@ -508,7 +508,7 @@ int fastrpc_update_module_list(uint32_t req, int domain, remote_handle64 handle,
 /**
   * @brief functions to wrap ioctl syscalls for downstream and upstream kernel
   **/
-int ioctl_init(int dev, uint32_t flags, int attr, byte* shell, int shelllen, int shellfd, char* initmem, int initmemlen, int initmemfd, int tessiglen);
+int ioctl_init(int dev, uint32_t flags, int attr, unsigned char* shell, int shelllen, int shellfd, char* initmem, int initmemlen, int initmemfd, int tessiglen);
 int ioctl_invoke(int dev, int req, remote_handle handle, uint32_t sc, void* pra, int* fds, unsigned int* attrs, void *job, unsigned int* crc, uint64_t* perf_kernel, uint64_t* perf_dsp);
 int ioctl_invoke2_response(int dev, fastrpc_async_jobid *jobid, remote_handle *handle, uint32_t *sc, int* result, uint64_t *perf_kernel, uint64_t *perf_dsp);
 int ioctl_invoke2_notif(int dev, int *domain, int *session, int *status);

@@ -70,7 +70,7 @@ int std_strncmp(const char* s1, const char* s2, int n)
 
 int std_strcmp(const char* s1, const char* s2)
 {
-   return std_strncmp(s1, s2, MAX_INT32);
+   return std_strncmp(s1, s2, INT32_MAX);
 }
 
 int std_strnicmp(const char* s1, const char* s2, int n)
@@ -99,7 +99,7 @@ int std_strnicmp(const char* s1, const char* s2, int n)
 
 int std_stricmp(const char* s1, const char* s2)
 {
-   return std_strnicmp(s1, s2, MAX_INT32);
+   return std_strnicmp(s1, s2, INT32_MAX);
 }
 
 int std_strlcpy(char* pcDst, const char* cpszSrc, int nDestSize)
@@ -328,7 +328,7 @@ void* std_memrchrbegin(const void* p, int c, int n)
 //
 //
 static char *x_scanbytes(const char *pcBuf, const char* cpszChars,
-                         int nLen, unsigned char cStop, boolean bTestEqual)
+                         int nLen, unsigned char cStop, bool bTestEqual)
 {
    int n;
    unsigned a[8];
@@ -382,13 +382,13 @@ void* std_memchrsend(const void* pBuf, const char* cpszChars, int nLen)
    }
 
    return x_scanbytes((const char*)pBuf, cpszChars+1, nLen,
-                      (unsigned char)*cpszChars, TRUE);
+                      (unsigned char)*cpszChars, true);
 }
 
 
 char* std_strchrsend(const char* cpszSrch, const char* cpszChars)
 {
-   return x_scanbytes(cpszSrch, cpszChars, MAX_INT32, '\0', TRUE);
+   return x_scanbytes(cpszSrch, cpszChars, INT32_MAX, '\0', true);
 }
 
 
@@ -463,14 +463,14 @@ char* std_stribegins(const char* cpsz, const char* cpszPrefix)
 
 int std_strcspn(const char* cpszSrch, const char* cpszChars)
 {
-   const char *pc = x_scanbytes(cpszSrch, cpszChars, MAX_INT32, '\0', TRUE);
+   const char *pc = x_scanbytes(cpszSrch, cpszChars, INT32_MAX, '\0', true);
 
    return (pc - cpszSrch);
 }
 
 int std_strspn(const char* cpszSrch, const char* cpszChars)
 {
-   const char *pc = x_scanbytes(cpszSrch, cpszChars, MAX_INT32, '\0', FALSE);
+   const char *pc = x_scanbytes(cpszSrch, cpszChars, INT32_MAX, '\0', false);
 
    return (pc - cpszSrch);
 }
@@ -503,7 +503,7 @@ int std_wstrncmp(const AECHAR* s1, const AECHAR* s2, int nLen)
 
 int std_wstrcmp(const AECHAR* s1, const AECHAR* s2)
 {
-   return std_wstrncmp(s1, s2, MAX_INT32);
+   return std_wstrncmp(s1, s2, INT32_MAX);
 }
 
 AECHAR* std_wstrchr(const AECHAR* cpwszText, AECHAR ch)

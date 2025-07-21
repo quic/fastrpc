@@ -77,8 +77,8 @@ Returns
     FALSE if there is no space left in the buffers.
 
 */
-boolean HAP_log_data_packet(unsigned short log_code_type, unsigned int dataLen,
-                    byte* data);
+bool HAP_log_data_packet(unsigned short log_code_type, unsigned int dataLen,
+                    unsigned char* data);
 
 #define HAP_DEBUG_TRACEME 0
 

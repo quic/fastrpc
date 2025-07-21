@@ -41,7 +41,7 @@ struct wake_lock {
 };
 
 static struct wake_lock wakelock;
-static uint32 wakelock_wmut_int = 0;
+static uint32_t wakelock_wmut_int = 0;
 
 int fastrpc_wake_lock() {
   int nErr = AEE_SUCCESS, ret = 0;

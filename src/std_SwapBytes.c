@@ -15,7 +15,7 @@ static int xMinSize(int a, int b)
 }
 
 
-static void xMoveBytes(byte *pbDest, const byte *pbSrc, int cb)
+static void xMoveBytes(unsigned char *pbDest, const unsigned char *pbSrc, int cb)
 {
    if (pbDest != pbSrc) {
       (void) std_memmove(pbDest, pbSrc, cb);
@@ -33,14 +33,14 @@ static void xMoveBytes(byte *pbDest, const byte *pbSrc, int cb)
 
 
 // See std_CopyLE/BE for documentation.  This function implements the case
-// where host ordering != target byte ordering.
+// where host ordering != target unsigned char ordering.
 //
 int STD_COPY_SWAP(void *      pvDest, int nDestSize,
                   const void *pvSrc,  int nSrcSize,
                   const char *pszFields)
 {
-   byte* pbDest = (byte*)pvDest;
-   byte* pbSrc  = (byte*)pvSrc;
+   unsigned char* pbDest = (unsigned char*)pvDest;
+   unsigned char* pbSrc  = (unsigned char*)pvSrc;
    int cbCopied = xMinSize(nDestSize, nSrcSize);
    const char * pszNextField;
    int cb, nSize;
@@ -66,7 +66,7 @@ int STD_COPY_SWAP(void *      pvDest, int nDestSize,
          if (cb < nSize) {
             break;
          } else {
-            byte by   = pbSrc[0];
+            unsigned char by   = pbSrc[0];
             pbDest[0] = pbSrc[1];
             pbDest[1] = by;
          }
@@ -78,7 +78,7 @@ int STD_COPY_SWAP(void *      pvDest, int nDestSize,
          if (cb < nSize) {
             break;
          } else {
-            byte by   = pbSrc[0];
+            unsigned char by   = pbSrc[0];
             pbDest[0] = pbSrc[3];
             pbDest[3] = by;
             by        = pbSrc[1];
@@ -93,7 +93,7 @@ int STD_COPY_SWAP(void *      pvDest, int nDestSize,
          if (cb < nSize) {
             break;
          } else {
-            byte by   = pbSrc[0];
+            unsigned char by   = pbSrc[0];
             pbDest[0] = pbSrc[7];
             pbDest[7] = by;
             by        = pbSrc[1];
@@ -136,10 +136,10 @@ int STD_COPY_SWAP(void *      pvDest, int nDestSize,
 
       // Swap could not be completed:  0 < cb < nSize <= 8
 
-      byte byBuf[8];
+      unsigned char byBuf[8];
 
       // If entire value is available in source, use swapped version
-      if (nSrcSize - (pbSrc - (byte*)pvSrc) >= nSize) {
+      if (nSrcSize - (pbSrc - (unsigned char*)pvSrc) >= nSize) {
          int i;
          for (i=0; i<cb; ++i) {
             byBuf[i] = pbSrc[nSize-1-i];

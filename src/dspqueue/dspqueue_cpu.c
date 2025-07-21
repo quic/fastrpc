@@ -48,7 +48,7 @@ struct dspqueue {
   int user_queue_fd;
   uint32_t user_queue_size;
   remote_handle64 dsp_handle;
-  uint64 dsp_id;
+  uint64_t dsp_id;
   uint16_t seq_no;
   pthread_mutex_t mutex;
   uint32_t read_packet_count;
@@ -608,7 +608,7 @@ AEEResult dspqueue_create(int domain, uint32_t flags, uint32_t req_queue_size,
   // not support wait counts in the header, driver signaling, or any other
   // post-v1 features. Unfortunately the initial DSP codebase ignores the
   // version and flags...
-  q->header->version = MAX_UINT32;
+  q->header->version = UINT32_MAX;
   nErr = dspqueue_rpc_create_queue(dq->dsp_handle, q->id, q->user_queue_fd,
                                    queue_count, &q->dsp_id);
   if ((nErr == AEE_EUNSUPPORTED) ||

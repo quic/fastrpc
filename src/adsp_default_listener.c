@@ -128,11 +128,11 @@ static const char *get_default_device_name(int domain_id) {
  *	True: Device node exists
  *	False: Device node does not exist
  */
-static boolean fastrpc_dev_exists(const char* dev_name)
+static bool fastrpc_dev_exists(const char* dev_name)
 {
 	struct stat buffer;
 	char *path = NULL;
-	uint64 len;
+	uint64_t len;
 
 	len = snprintf(0, 0, "/dev/%s", dev_name) + 1;
 	if(NULL == (path = (char *)malloc(len * sizeof(char))))

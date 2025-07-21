@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,24 +48,24 @@
 #define CONFIG_SETDMABUFNAME   "setdmabufname"
 
 struct fastrpc_config_param {
-  boolean pddump;
+  bool pddump;
   int rpc_timeout;
-  boolean perfkernel;
-  boolean perfdsp;
+  bool perfkernel;
+  bool perfdsp;
   _cstring1_t *paths;
   char *farf_log_filename;
   char *farf_log_filename_userspace;
-  boolean log_iregion;
-  boolean qtf_tracing;
+  bool log_iregion;
+  bool qtf_tracing;
   int caller_level;
-  boolean uaf_enabled;
-  boolean debug_logging;
+  bool uaf_enabled;
+  bool debug_logging;
   struct err_codes err_codes_to_crash;
-  boolean sysmonreservedbit;
-  boolean logPackets;
+  bool sysmonreservedbit;
+  bool logPackets;
   int leak_detect;
   int num_call_stack;
-  boolean setdmabufname;
+  bool setdmabufname;
 };
 
 static struct fastrpc_config_param frpc_config;
@@ -73,20 +74,20 @@ static struct fastrpc_config_param frpc_config;
 int fastrpc_read_config_file_from_path(const char *base, const char *file) {
   int nErr = 0;
   apps_std_FILE fp = -1;
-  uint64 len;
-  byte *buf = NULL;
+  uint64_t len;
+  unsigned char *buf = NULL;
   int eof;
   char *path = NULL, *param = NULL, *saveptr = NULL;
-  boolean fileExists = FALSE;
+  bool fileExists = false;
   char *delim = "=", *delim2 = ",";
-  uint64 logFileNameLen = 0;
+  uint64_t logFileNameLen = 0;
   frpc_config.err_codes_to_crash.num_err_codes = 0;
 
   len = std_snprintf(0, 0, "%s/%s", base, file) + 1;
   VERIFYC(NULL != (path = calloc(1, sizeof(char) * len)), AEE_ENOMEMORY);
   std_snprintf(path, (int)len, "%s/%s", base, file);
   VERIFY(AEE_SUCCESS == (nErr = apps_std_fileExists(path, &fileExists)));
-  if (fileExists == FALSE) {
+  if (fileExists == false) {
     nErr = AEE_ENOSUCHFILE;
     goto bail;
   }
@@ -94,8 +95,8 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
   VERIFY(AEE_SUCCESS == (nErr = apps_std_fopen(path, "r", &fp)));
   VERIFY(AEE_SUCCESS == (nErr = apps_std_flen(fp, &len)));
   // Allocate buffer for reading each line
-  VERIFYC(NULL != (buf = calloc(1, sizeof(byte) * (len + 1))),
-          AEE_ENOMEMORY); // extra 1 byte for null character
+  VERIFYC(NULL != (buf = calloc(1, sizeof(unsigned char) * (len + 1))),
+          AEE_ENOMEMORY); // extra 1 unsigned char for null character
 
   do {
     // Read each line at a time
@@ -143,7 +144,7 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
                0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
-        frpc_config.pddump = TRUE;
+        frpc_config.pddump = true;
         FARF(ALWAYS, "fastrpc config enabling PD dump\n");
       }
     } else if (std_strncmp(param, CONFIG_RPCTIMEOUT,
@@ -158,14 +159,14 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
                            std_strlen(CONFIG_PERF_KERNEL)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
-        frpc_config.perfkernel = TRUE;
+        frpc_config.perfkernel = true;
         FARF(ALWAYS, "fastrpc config enabling profiling on kernel\n");
       }
     } else if (std_strncmp(param, CONFIG_PERF_DSP,
                            std_strlen(CONFIG_PERF_DSP)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
-        frpc_config.perfdsp = TRUE;
+        frpc_config.perfdsp = true;
         FARF(ALWAYS, "fastrpc config enabling profiling on dsp\n");
       }
     } else if (std_strncmp(param, CONFIG_COLLECT_RUNTIME_FARF,
@@ -201,14 +202,14 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
                            std_strlen(CONFIG_LOG_IREGION)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
-        frpc_config.log_iregion = TRUE;
+        frpc_config.log_iregion = true;
         FARF(ALWAYS, "fastrpc config enabling iregion logging\n");
       }
     } else if (std_strncmp(param, CONFIG_QTF_TRACING,
                            std_strlen(CONFIG_QTF_TRACING)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
-        frpc_config.qtf_tracing = TRUE;
+        frpc_config.qtf_tracing = true;
         FARF(ALWAYS, "fastrpc config enabling QTF tracing\n");
       }
     } else if (std_strncmp(param, CONFIG_CALLER_LEVEL,
@@ -223,28 +224,28 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
                            std_strlen(CONFIG_ENABLE_UAF)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
-        frpc_config.uaf_enabled = TRUE;
+        frpc_config.uaf_enabled = true;
         FARF(ALWAYS, "fastrpc config enabling uaf on heap\n");
       }
     } else if (std_strncmp(param, CONFIG_DEBUG_LOGGING,
                            std_strlen(CONFIG_DEBUG_LOGGING)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
-        frpc_config.debug_logging = TRUE;
+        frpc_config.debug_logging = true;
         FARF(ALWAYS, "fastrpc config enabling debug logging\n");
       }
     } else if (std_strncmp(param, CONFIG_DEBUG_SYSMON_LOGGING,
                            std_strlen(CONFIG_DEBUG_SYSMON_LOGGING)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
-        frpc_config.sysmonreservedbit = TRUE;
+        frpc_config.sysmonreservedbit = true;
         FARF(ALWAYS, "fastrpc config enabling sysmon logging \n");
       }
     } else if (std_strncmp(param, CONFIG_LOGPACKET,
                            std_strlen(CONFIG_LOGPACKET)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
-        frpc_config.logPackets = TRUE;
+        frpc_config.logPackets = true;
         FARF(ALWAYS, "fastrpc config enabling Log packets\n");
       }
     } else if (std_strncmp(param, CONFIG_LEAK_DETECT,
@@ -267,7 +268,7 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
 					std_strlen(CONFIG_SETDMABUFNAME)) == 0) {
 			param = strtok_r (NULL, delim, &saveptr);
 			if (param != NULL && atoi(param))
-				frpc_config.setdmabufname = TRUE;
+				frpc_config.setdmabufname = true;
     }
     param = NULL;
   } while (!eof);
@@ -301,13 +302,13 @@ struct err_codes *fastrpc_config_get_errcodes(void) {
 int fastrpc_config_get_rpctimeout(void) { return frpc_config.rpc_timeout; }
 
 // Function to get if PD dump feature is enabled.
-boolean fastrpc_config_is_pddump_enabled(void) { return frpc_config.pddump; }
+bool fastrpc_config_is_pddump_enabled(void) { return frpc_config.pddump; }
 
 // Functions to get if profiling mode is enabled.
-boolean fastrpc_config_is_perfkernel_enabled(void) {
+bool fastrpc_config_is_perfkernel_enabled(void) {
   return frpc_config.perfkernel;
 }
-boolean fastrpc_config_is_perfdsp_enabled(void) { return frpc_config.perfdsp; }
+bool fastrpc_config_is_perfdsp_enabled(void) { return frpc_config.perfdsp; }
 
 // Function to get the file name to collect runtime farf logs.
 char *fastrpc_config_get_runtime_farf_file(void) {
@@ -318,21 +319,21 @@ char *fastrpc_config_get_userspace_runtime_farf_file(void) {
   return frpc_config.farf_log_filename_userspace;
 }
 // Function to get if iregion logging feature is enabled.
-boolean fastrpc_config_is_log_iregion_enabled(void) {
+bool fastrpc_config_is_log_iregion_enabled(void) {
   return frpc_config.log_iregion;
 }
 // Function to get if debug logging feature is enabled.
-boolean fastrpc_config_is_debug_logging_enabled(void) {
+bool fastrpc_config_is_debug_logging_enabled(void) {
   return frpc_config.debug_logging;
 }
 
 // Function to get if debug logging feature is enabled for sysmon reserved bit.
-boolean fastrpc_config_is_sysmon_reserved_bit_enabled(void) {
+bool fastrpc_config_is_sysmon_reserved_bit_enabled(void) {
   return frpc_config.sysmonreservedbit;
 }
 
 // Function to get if QTF tracing is enabled.
-boolean fastrpc_config_is_qtf_tracing_enabled(void) {
+bool fastrpc_config_is_qtf_tracing_enabled(void) {
   return frpc_config.qtf_tracing;
 }
 
@@ -340,10 +341,10 @@ boolean fastrpc_config_is_qtf_tracing_enabled(void) {
 int fastrpc_config_get_caller_level(void) { return frpc_config.caller_level; }
 
 // Function to get if uaf should be enabled in heap
-boolean fastrpc_config_is_uaf_enabled(void) { return frpc_config.uaf_enabled; }
+bool fastrpc_config_is_uaf_enabled(void) { return frpc_config.uaf_enabled; }
 
 // Function to get if Log packet is enabled.
-boolean fastrpc_config_is_logpacket_enabled(void) {
+bool fastrpc_config_is_logpacket_enabled(void) {
   return frpc_config.logPackets;
 }
 
@@ -355,7 +356,7 @@ int fastrpc_config_get_caller_stack_num(void) {
   return frpc_config.num_call_stack;
 }
 
-boolean fastrpc_config_is_setdmabufname_enabled(void) {
+bool fastrpc_config_is_setdmabufname_enabled(void) {
 	return frpc_config.setdmabufname;
 }
 
@@ -367,9 +368,9 @@ int fastrpc_config_init() {
   char *data_paths = NULL;
   char *config_file = NULL;
   _cstring1_t *paths = NULL;
-  uint32 len = 0;
-  uint16 maxPathLen = 0;
-  uint32 numPaths = 0;
+  uint32_t len = 0;
+  uint16_t maxPathLen = 0;
+  uint32_t numPaths = 0;
   int file_found = 0;
 
   VERIFYC(NULL != (name = std_basename(__progname)), AEE_EINVALIDPROCNAME);

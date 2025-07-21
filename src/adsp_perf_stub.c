@@ -337,7 +337,7 @@ struct SequenceType {
    uint32_t               routSizePrimROut;
 };
 
-//byte offset from the start of the case values for
+//unsigned char offset from the start of the case values for
 //this unions case value array.  it MUST be aligned
 //at the alignment requrements for the descriptor
 //
@@ -580,7 +580,7 @@ static __inline int _stub_method_1(remote_handle _handle, uint32_t _mid, char* _
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_perf_get_usecs)(int64* dst, int dstLen) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_perf_get_usecs)(int64_t* dst, int dstLen) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 1;
    remote_handle _handle = _adsp_perf_handle();
    if (_handle != (remote_handle)-1)
