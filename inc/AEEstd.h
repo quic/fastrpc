@@ -48,14 +48,6 @@ DESCRIPTION:  Standard library; general-purpose utility functions.
 extern "C" {
 #endif /* #ifdef __cplusplus */
 
-//Version function
-extern int           std_memscpy(void *dst, int dst_size, const void *src, int src_size);
-extern int           std_memsmove(void *dst, int dst_size, const void *src, int src_size);
-extern void *        std_memrchrbegin(const void* p, int c, int nLen);
-
-//Other String functions
-extern char *        std_strbegins(const char* cpsz, const char* cpszPrefix);
-
 //Path functions
 extern int           std_makepath(const char *cpszDir,
                                   const char *cpszFile,

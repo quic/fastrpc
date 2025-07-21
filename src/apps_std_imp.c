@@ -549,10 +549,11 @@ __QAIC_IMPL(apps_std_fread)(apps_std_FILE sin, unsigned char *buf, int bufLen,
     }
     *bytesRead = out;
   } else {
-    *bytesRead =
-        std_memscpy(buf, bufLen, sinfo->u.binfo.fbuf + sinfo->u.binfo.pos,
+    unsigned int read = STD_MIN(bufLen,
                     sinfo->u.binfo.flen - sinfo->u.binfo.pos);
-    sinfo->u.binfo.pos += *bytesRead;
+    memcpy(buf, sinfo->u.binfo.fbuf + sinfo->u.binfo.pos, read);
+    *bytesRead = read;
+    sinfo->u.binfo.pos += read;
     *bEOF = sinfo->u.binfo.pos == sinfo->u.binfo.flen ? true : false;
   }
   FARF(RUNTIME_RPC_HIGH, "fread returning %d %d\n", out, bufLen);
