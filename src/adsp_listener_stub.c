@@ -337,7 +337,7 @@ struct SequenceType {
    uint32_t               routSizePrimROut;
 };
 
-//byte offset from the start of the case values for
+//unsigned char offset from the start of the case values for
 //this unions case value array.  it MUST be aligned
 //at the alignment requrements for the descriptor
 //
@@ -700,7 +700,7 @@ static __inline int _stub_method(remote_handle _handle, uint32_t _mid, uint32_t 
    _allocator_deinit(_al);
    return _nErr;
 }
-__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_listener_next_invoke)(adsp_listener_invoke_ctx prevCtx, int prevResult, const adsp_listener_buffer* outBufs, int outBufsLen, adsp_listener_invoke_ctx* ctx, adsp_listener_remote_handle* handle, uint32* sc, adsp_listener_buffer* inBuffers, int inBuffersLen, int* inBufLenReq, int inBufLenReqLen, int* routBufLenReq, int routBufLenReqLen) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_listener_next_invoke)(adsp_listener_invoke_ctx prevCtx, int prevResult, const adsp_listener_buffer* outBufs, int outBufsLen, adsp_listener_invoke_ctx* ctx, adsp_listener_remote_handle* handle, uint32_t* sc, adsp_listener_buffer* inBuffers, int inBuffersLen, int* inBufLenReq, int inBufLenReqLen, int* routBufLenReq, int routBufLenReqLen) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 0;
    remote_handle _handle = _adsp_listener_handle();
    if (_handle != (remote_handle)-1)
@@ -882,7 +882,7 @@ static __inline int _stub_method_3(remote_handle _handle, uint32_t _mid, uint32_
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_listener_next2)(adsp_listener_invoke_ctx prevCtx, int prevResult, const uint8* prevbufs, int prevbufsLen, adsp_listener_invoke_ctx* ctx, adsp_listener_remote_handle* handle, uint32* sc, uint8* bufs, int bufsLen, int* bufsLenReq) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_listener_next2)(adsp_listener_invoke_ctx prevCtx, int prevResult, const uint8_t* prevbufs, int prevbufsLen, adsp_listener_invoke_ctx* ctx, adsp_listener_remote_handle* handle, uint32_t* sc, uint8_t* bufs, int bufsLen, int* bufsLenReq) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 4;
    remote_handle _handle = _adsp_listener_handle();
    if (_handle != (remote_handle)-1)
@@ -919,7 +919,7 @@ static __inline int _stub_method_4(remote_handle _handle, uint32_t _mid, uint32_
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_listener_get_in_bufs2)(adsp_listener_invoke_ctx ctx, int offset, uint8* bufs, int bufsLen, int* bufsLenReq) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT int __QAIC_STUB(adsp_listener_get_in_bufs2)(adsp_listener_invoke_ctx ctx, int offset, uint8_t* bufs, int bufsLen, int* bufsLenReq) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 5;
    remote_handle _handle = _adsp_listener_handle();
    if (_handle != (remote_handle)-1)

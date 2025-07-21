@@ -77,7 +77,7 @@ extern "C" {
  */
 #define _const_adsp_perf_handle 6
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf_enable)(int ix) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf_get_usecs)(int64* dst, int dstLen) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf_get_usecs)(int64_t* dst, int dstLen) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_perf_get_keys)(char* keys, int keysLen, int* maxLen, int* numKeys) __QAIC_HEADER_ATTRIBUTE;
 #ifdef __cplusplus
 }

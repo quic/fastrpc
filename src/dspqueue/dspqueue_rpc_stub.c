@@ -338,7 +338,7 @@ struct SequenceType {
    uint32_t               routSizePrimROut;
 };
 
-//byte offset from the start of the case values for
+//unsigned char offset from the start of the case values for
 //this unions case value array.  it MUST be aligned
 //at the alignment requrements for the descriptor
 //
@@ -465,7 +465,7 @@ static __inline int _stub_method(remote_handle64 _handle, uint32_t _mid, uint32_
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_init_process_state)(remote_handle64 _handle, int32 process_state_fd) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_init_process_state)(remote_handle64 _handle, int32_t process_state_fd) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 2;
    return _stub_method(_handle, _mid, (uint32_t*)&process_state_fd);
 }
@@ -488,7 +488,7 @@ static __inline int _stub_method_1(remote_handle64 _handle, uint32_t _mid, uint3
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_create_queue)(remote_handle64 _handle, uint32 id, int32 queue_fd, uint32 count, uint64* queue_id) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_create_queue)(remote_handle64 _handle, uint32_t id, int32_t queue_fd, uint32_t count, uint64_t* queue_id) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 3;
    return _stub_method_1(_handle, _mid, (uint32_t*)&id, (uint32_t*)&queue_fd, (uint32_t*)&count, (uint64_t*)queue_id);
 }
@@ -503,7 +503,7 @@ static __inline int _stub_method_2(remote_handle64 _handle, uint32_t _mid, uint6
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_destroy_queue)(remote_handle64 _handle, uint64 queue_id) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_destroy_queue)(remote_handle64 _handle, uint64_t queue_id) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 4;
    return _stub_method_2(_handle, _mid, (uint64_t*)&queue_id);
 }
@@ -524,7 +524,7 @@ static __inline int _stub_method_3(remote_handle64 _handle, uint32_t _mid, uint6
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_is_imported)(remote_handle64 _handle, uint64 queue_id, int32* imported) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_is_imported)(remote_handle64 _handle, uint64_t queue_id, int32_t* imported) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 5;
    return _stub_method_3(_handle, _mid, (uint64_t*)&queue_id, (uint32_t*)imported);
 }
@@ -541,7 +541,7 @@ static __inline int _stub_method_4(remote_handle64 _handle, uint32_t _mid, uint3
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_wait_signal)(remote_handle64 _handle, int32* signal) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT AEEResult __QAIC_STUB(dspqueue_rpc_wait_signal)(remote_handle64 _handle, int32_t* signal) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 6;
    return _stub_method_4(_handle, _mid, (uint32_t*)signal);
 }

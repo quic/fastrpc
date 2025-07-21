@@ -10,6 +10,8 @@ FILE:         std_path.c
 =======================================================================
 */
 
+/* To get memrchr on GNU/Linux */
+#define _GNU_SOURCE
 #include "AEEstd.h"
 #include "AEEBufBound.h"
 #include <string.h>
@@ -26,7 +28,7 @@ int std_makepath(const char* cpszDir, const char* cpszFile,
    BufBound_Puts(&bb, cpszDir);
 
    if (('\0' != cpszDir[0]) &&    /* non-empty dir */
-       ('/' != cpszDir[std_strlen(cpszDir)-1])) { /* no slash at end of dir */
+       ('/' != cpszDir[strlen(cpszDir)-1])) { /* no slash at end of dir */
       BufBound_Putc(&bb, '/');
    }
    if ('/' == cpszFile[0]) {
@@ -75,7 +77,7 @@ char* std_cleanpath(char* pszPath)
 {
    char* pszStart = pszPath;
    char* pc;
-   char* pcEnd = pszStart+std_strlen(pszStart);
+   char* pcEnd = pszStart+strlen(pszStart);
 
    /* preserve leading slash */
    if ('/' == pszStart[0]) {
@@ -84,7 +86,7 @@ char* std_cleanpath(char* pszPath)
 
    pc = pszStart;
 
-   while ((char*)0 != (pc = std_strstr(pc, "/."))) {
+   while ((char*)0 != (pc = strstr(pc, "/."))) {
       char* pcDelFrom;
 
       if ('/' == pc[2] || '\0' == pc[2]) {
@@ -93,26 +95,28 @@ char* std_cleanpath(char* pszPath)
          pc += 2;
       } else if ('.' == pc[2] && ('/' == pc[3] || '\0' == pc[3])) {
             /*  delete  "/element/.." */
-         pcDelFrom = std_memrchrbegin(pszStart, '/', pc - pszStart);
+         pcDelFrom = memrchr(pszStart, '/', pc - pszStart);
+         if (!pcDelFrom)
+            pcDelFrom = pszStart;
          pc += 3;
       } else {
          pc += 2;
          continue;
       }
 
-      std_memmove(pcDelFrom, pc, pcEnd-pcDelFrom);
+      memmove(pcDelFrom, pc, pcEnd-pcDelFrom);
 
       pc = pcDelFrom;
    }
 
    /* eliminate leading "../" */
-   while (pszStart == std_strstr(pszStart, "../")) {
-      std_memmove(pszStart, pszStart+2, pcEnd-pszStart);
+   while (pszStart == strstr(pszStart, "../")) {
+      memmove(pszStart, pszStart+2, pcEnd-pszStart);
    }
 
    /* eliminate leading "./" */
-   while (pszStart == std_strstr(pszStart, "./")) {
-      std_memmove(pszStart, pszStart+1, pcEnd-pszStart);
+   while (pszStart == strstr(pszStart, "./")) {
+      memmove(pszStart, pszStart+1, pcEnd-pszStart);
    }
 
    if (!strncmp(pszStart,"..",2) || !strncmp(pszStart,".",1)) {
@@ -120,8 +124,8 @@ char* std_cleanpath(char* pszPath)
    }
 
    /* whack double '/' */
-   while ((char*)0 != (pc = std_strstr(pszPath, "//"))) {
-      std_memmove(pc, pc+1, pcEnd-pc);
+   while ((char*)0 != (pc = strstr(pszPath, "//"))) {
+      memmove(pc, pc+1, pcEnd-pc);
    }
 
    return pszPath;
@@ -131,7 +135,7 @@ char* std_basename(const char* cpszFile)
 {
    const char* cpsz;
 
-   if ((char*)0 != (cpsz = std_strrchr(cpszFile,'/'))) {
+   if ((char*)0 != (cpsz = strrchr(cpszFile,'/'))) {
       cpszFile = cpsz+1;
    }
 

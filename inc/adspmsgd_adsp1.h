@@ -66,8 +66,8 @@ __QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_open)(const char* uri, rem
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_close)(remote_handle64 h) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_init2)(remote_handle64 _h) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_deinit)(remote_handle64 _h) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_init3)(remote_handle64 _h, int heapid, uint32 ion_flags, uint32 filter, uint64 buf_size, uint64* buff_addr) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_wait)(remote_handle64 _h, uint64* bytes_to_read) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_init3)(remote_handle64 _h, int heapid, uint32_t ion_flags, uint32_t filter, uint64_t buf_size, uint64_t* buff_addr) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(adspmsgd_adsp1_wait)(remote_handle64 _h, uint64_t* bytes_to_read) __QAIC_HEADER_ATTRIBUTE;
 #ifndef adspmsgd_adsp1_URI
 #define adspmsgd_adsp1_URI "file:///libadspmsgd_adsp1_skel.so?adspmsgd_adsp1_skel_handle_invoke&_modver=1.0"
 #endif /*adspmsgd_adsp1_URI*/

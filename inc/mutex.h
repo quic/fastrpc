@@ -43,7 +43,7 @@
 
 #include "AEEstd.h"
 
-#define RW_MUTEX_T uint32
+#define RW_MUTEX_T uint32_t
 #define RW_MUTEX_CTOR(mut) mut = 0
 #define RW_MUTEX_LOCK_READ(mut) \
    do {\

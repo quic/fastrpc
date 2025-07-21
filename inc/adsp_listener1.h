@@ -254,17 +254,17 @@ __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_close)(remote_handle64 h) 
 typedef struct _adsp_listener1_buffer__seq_uint8 _adsp_listener1_buffer__seq_uint8;
 typedef _adsp_listener1_buffer__seq_uint8 adsp_listener1_buffer;
 struct _adsp_listener1_buffer__seq_uint8 {
-   uint8* data;
+   uint8_t* data;
    int dataLen;
 };
-typedef uint32 adsp_listener1_remote_handle;
-typedef uint32 adsp_listener1_invoke_ctx;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_next_invoke)(remote_handle64 _h, adsp_listener1_invoke_ctx prevCtx, int prevResult, const adsp_listener1_buffer* outBufs, int outBufsLen, adsp_listener1_invoke_ctx* ctx, adsp_listener1_remote_handle* handle, uint32* sc, adsp_listener1_buffer* inBuffers, int inBuffersLen, int* inBufLenReq, int inBufLenReqLen, int* routBufLenReq, int routBufLenReqLen) __QAIC_HEADER_ATTRIBUTE;
+typedef uint32_t adsp_listener1_remote_handle;
+typedef uint32_t adsp_listener1_invoke_ctx;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_next_invoke)(remote_handle64 _h, adsp_listener1_invoke_ctx prevCtx, int prevResult, const adsp_listener1_buffer* outBufs, int outBufsLen, adsp_listener1_invoke_ctx* ctx, adsp_listener1_remote_handle* handle, uint32_t* sc, adsp_listener1_buffer* inBuffers, int inBuffersLen, int* inBufLenReq, int inBufLenReqLen, int* routBufLenReq, int routBufLenReqLen) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_invoke_get_in_bufs)(remote_handle64 _h, adsp_listener1_invoke_ctx ctx, adsp_listener1_buffer* inBuffers, int inBuffersLen) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_init)(remote_handle64 _h) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_init2)(remote_handle64 _h) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_next2)(remote_handle64 _h, adsp_listener1_invoke_ctx prevCtx, int prevResult, const uint8* prevbufs, int prevbufsLen, adsp_listener1_invoke_ctx* ctx, adsp_listener1_remote_handle* handle, uint32* sc, uint8* bufs, int bufsLen, int* bufsLenReq) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_get_in_bufs2)(remote_handle64 _h, adsp_listener1_invoke_ctx ctx, int offset, uint8* bufs, int bufsLen, int* bufsLenReq) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_next2)(remote_handle64 _h, adsp_listener1_invoke_ctx prevCtx, int prevResult, const uint8_t* prevbufs, int prevbufsLen, adsp_listener1_invoke_ctx* ctx, adsp_listener1_remote_handle* handle, uint32_t* sc, uint8_t* bufs, int bufsLen, int* bufsLenReq) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(adsp_listener1_get_in_bufs2)(remote_handle64 _h, adsp_listener1_invoke_ctx ctx, int offset, uint8_t* bufs, int bufsLen, int* bufsLenReq) __QAIC_HEADER_ATTRIBUTE;
 #ifndef adsp_listener1_URI
 #define adsp_listener1_URI "file:///libadsp_listener1_skel.so?adsp_listener1_skel_handle_invoke&_modver=1.0"
 #endif /*adsp_listener1_URI*/

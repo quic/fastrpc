@@ -58,7 +58,7 @@ int fastrpc_save_async_job(int domain, struct fastrpc_async_job *asyncjob, fastr
  * returns 0 on success
  *
  */
-int fastrpc_remove_async_job(fastrpc_async_jobid jobid, boolean dsp_invoke_done);
+int fastrpc_remove_async_job(fastrpc_async_jobid jobid, bool dsp_invoke_done);
 
 /*
  * API to initialize async module data strcutures and globals

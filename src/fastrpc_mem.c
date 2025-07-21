@@ -124,7 +124,7 @@ int fastrpc_mem_init(void) {
 
   pthread_mutex_init(&fdlist.mut, 0);
   QList_Ctor(&fdlist.ql);
-  std_memset(dhandles, 0, sizeof(dhandles));
+  memset(dhandles, 0, sizeof(dhandles));
   FOR_EACH_EFFECTIVE_DOMAIN_ID(ii) {
     QList_Ctor(&smaplst[ii].ql);
     pthread_mutex_init(&smaplst[ii].mut, 0);

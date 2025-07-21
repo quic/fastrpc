@@ -32,7 +32,7 @@
  */
 #define MAX_REV_HANDLES 20
 #define REV_HANDLE_SIZE 256
-static uint8 rev_handle_table[MAX_REV_HANDLES][REV_HANDLE_SIZE];
+static uint8_t rev_handle_table[MAX_REV_HANDLES][REV_HANDLE_SIZE];
 RW_MUTEX_T rev_handle_table_lock;
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #ifdef WINNT
@@ -96,7 +96,7 @@ struct static_mod_table {
   struct static_mod *staticModOverrides;
   struct static_mod *staticMods;
   struct const_mod *constMods;
-  boolean bInit;
+  bool bInit;
 };
 
 struct open_mod_table {
@@ -105,8 +105,8 @@ struct open_mod_table {
   struct static_mod_table *smt;
 };
 
-typedef int (*invoke_fn)(uint32, remote_arg *);
-typedef int (*handle_invoke_fn)(remote_handle64, uint32, remote_arg *);
+typedef int (*invoke_fn)(uint32_t, remote_arg *);
+typedef int (*handle_invoke_fn)(remote_handle64, uint32_t, remote_arg *);
 struct static_mod {
   invoke_fn invoke;
   handle_invoke_fn handle_invoke;
@@ -117,7 +117,7 @@ struct static_mod {
 struct const_mod {
   invoke_fn invoke;
   handle_invoke_fn handle_invoke;
-  uint32 key;
+  uint32_t key;
   remote_handle64 h64;
   UT_hash_handle hh;
   char uri[1];
@@ -136,7 +136,7 @@ struct open_mod {
   void *dlhandle;
   invoke_fn invoke;
   handle_invoke_fn handle_invoke;
-  uint64 key;
+  uint64_t key;
   UT_hash_handle hh;
   remote_handle64 h64;
   struct parsed_uri vals;
@@ -218,7 +218,7 @@ static void open_mod_table_dtor_imp(void *data) {
         DLCLOSE(dm->dlhandle);
       }
       FARF(ALWAYS, "%s: closed reverse module %s with handle 0x%x", __func__,
-           dm->uri, (uint32)dm->key);
+           dm->uri, (uint32_t)dm->key);
       dm->key = 0;
     }
     RW_MUTEX_UNLOCK_WRITE(me->mut);
@@ -247,16 +247,16 @@ static int open_mod_table_open_static(struct open_mod_table *me,
 
 static int static_mod_add(struct static_mod_table *me, struct static_mod **tbl,
                           const char *uri,
-                          int (*invoke)(uint32 sc, remote_arg *pra),
-                          int (*handle_invoke)(remote_handle64, uint32 sc,
+                          int (*invoke)(uint32_t sc, remote_arg *pra),
+                          int (*handle_invoke)(remote_handle64, uint32_t sc,
                                                remote_arg *pra)) {
   int nErr = AEE_SUCCESS;
   struct static_mod *sm = 0;
-  int len = std_strlen(uri) + 1;
+  int len = strlen(uri) + 1;
   VERIFYC(NULL != (sm = ((struct static_mod *)calloc(
                        1, sizeof(struct static_mod) + len))),
           AEE_ENOMEMORY);
-  std_strlcpy(sm->uri, uri, len);
+  strlcpy(sm->uri, uri, len);
   sm->invoke = invoke;
   sm->handle_invoke = handle_invoke;
   RW_MUTEX_LOCK_WRITE(me->mut);
@@ -275,31 +275,31 @@ bail:
 
 static int static_mod_table_register_static_override(
     struct static_mod_table *me, const char *uri,
-    int (*pfn)(uint32 sc, remote_arg *pra)) {
+    int (*pfn)(uint32_t sc, remote_arg *pra)) {
   return static_mod_add(me, &me->staticModOverrides, uri, pfn, 0);
 }
 static int static_mod_table_register_static_override1(
     struct static_mod_table *me, const char *uri,
-    int (*pfn)(remote_handle64, uint32 sc, remote_arg *pra)) {
+    int (*pfn)(remote_handle64, uint32_t sc, remote_arg *pra)) {
   return static_mod_add(me, &me->staticModOverrides, uri, 0, pfn);
 }
 static int
 static_mod_table_register_static(struct static_mod_table *me, const char *uri,
-                                 int (*pfn)(uint32 sc, remote_arg *pra)) {
+                                 int (*pfn)(uint32_t sc, remote_arg *pra)) {
   return static_mod_add(me, &me->staticMods, uri, pfn, 0);
 }
 static int static_mod_table_register_static1(
     struct static_mod_table *me, const char *uri,
-    int (*pfn)(remote_handle64, uint32 sc, remote_arg *pra)) {
+    int (*pfn)(remote_handle64, uint32_t sc, remote_arg *pra)) {
   return static_mod_add(me, &me->staticMods, uri, 0, pfn);
 }
 
 static int static_mod_table_register_const_handle(
     struct static_mod_table *me, remote_handle local, remote_handle64 remote,
-    const char *uri, int (*invoke)(uint32 sc, remote_arg *pra),
-    int (*handle_invoke)(remote_handle64, uint32 sc, remote_arg *pra)) {
+    const char *uri, int (*invoke)(uint32_t sc, remote_arg *pra),
+    int (*handle_invoke)(remote_handle64, uint32_t sc, remote_arg *pra)) {
   int nErr = AEE_SUCCESS;
-  int len = std_strlen(uri) + 1;
+  int len = strlen(uri) + 1;
   struct const_mod *dm = 0, *dmOld;
   VERIFYC(NULL != (dm = ((struct const_mod *)calloc(1, sizeof(struct open_mod) +
                                                            len))),
@@ -308,7 +308,7 @@ static int static_mod_table_register_const_handle(
   dm->invoke = invoke;
   dm->handle_invoke = handle_invoke;
   dm->h64 = remote;
-  std_strlcpy(dm->uri, uri, len);
+  strlcpy(dm->uri, uri, len);
 
   RW_MUTEX_LOCK_WRITE(me->mut);
   HASH_FIND_INT(me->constMods, &local, dmOld);
@@ -409,7 +409,7 @@ static int parse_uri(const char *uri, int urilen, struct parsed_uri *out) {
       }
       // expect '&' or end
       sbuf_char(&buf, '&');
-      if (!std_strncmp(name, "_modver", nameLen)) {
+      if (!strncmp(name, "_modver", nameLen)) {
         out->ver = value;
         out->verlen = valueLen;
       }
@@ -439,7 +439,7 @@ bail:
  * handle is free. Returns 0 if it found a free handle, otherwise return -1 if
  * it fails.
  */
-static inline int next_available_rev_handle(uint32 *handle_idx) {
+static inline int next_available_rev_handle(uint32_t *handle_idx) {
   int nErr = AEE_EUNKNOWN;
   struct open_mod *dm = 0;
   unsigned int ii;
@@ -459,16 +459,16 @@ static inline int next_available_rev_handle(uint32 *handle_idx) {
   return nErr;
 }
 
-uint32 is_reverse_handle_opened(struct open_mod_table *me,
+uint32_t is_reverse_handle_opened(struct open_mod_table *me,
                                 remote_handle *handle, const char *uri) {
   int ii = 0;
-  uint32 keyfound = 0;
+  uint32_t keyfound = 0;
   struct open_mod *dmOld;
   RW_MUTEX_LOCK_WRITE(me->mut);
   for (ii = 0; ii < MAX_REV_HANDLES; ++ii) {
     dmOld = (struct open_mod *)&(rev_handle_table[ii][0]);
     if (dmOld->key != 0) {
-      if (!std_strncmp(dmOld->uri, uri, MAX(strlen(dmOld->uri), strlen(uri)))) {
+      if (!strncmp(dmOld->uri, uri, MAX(strlen(dmOld->uri), strlen(uri)))) {
         keyfound = 1;
         break;
       }
@@ -497,7 +497,7 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
                sizeof("file:///lib_skel.so?_skel_handle_invoke&_modver=1.0") +
                1;
   char *tmp = 0;
-  uint32 handle_idx = 0, keyfound = 0;
+  uint32_t handle_idx = 0, keyfound = 0;
   int lock = 0;
 
   FARF(RUNTIME_RPC_HIGH, "open_mod_table_open_dynamic uri %s", uri);
@@ -515,18 +515,18 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
   VERIFYC(handle_idx < MAX_REV_HANDLES, AEE_EINVHANDLE);
   dm = (struct open_mod *)&(rev_handle_table[handle_idx][0]);
   memset(dm, 0, REV_HANDLE_SIZE);
-  std_memmove(dm->uri, uri, len + 1);
+  memmove(dm->uri, uri, len + 1);
   FARF(RUNTIME_RPC_HIGH, "calling parse_uri");
   (void)parse_uri(dm->uri, len, &dm->vals);
   FARF(RUNTIME_RPC_HIGH, "done calling parse_uri");
   FARF(RUNTIME_RPC_HIGH, "vals %d %d %d", dm->vals.filelen, dm->vals.symlen,
        dm->vals.verlen);
   if (dm->vals.filelen) {
-    int rv = std_snprintf(tmp, tmplen, "%.*s", dm->vals.filelen, dm->vals.file);
+    int rv = snprintf(tmp, tmplen, "%.*s", dm->vals.filelen, dm->vals.file);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   } else {
     int rv;
-    rv = std_snprintf(tmp, tmplen, "lib%s_skel.so", uri);
+    rv = snprintf(tmp, tmplen, "lib%s_skel.so", uri);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   }
 
@@ -549,7 +549,7 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
         break;
       }
     }
-    rv = std_snprintf(tmp, tmplen, "%s_system.so", tmp);
+    rv = snprintf(tmp, tmplen, "%s_system.so", tmp);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
     FARF(RUNTIME_RPC_HIGH, "calling dlopen for %s", tmp);
     dm->dlhandle = DLOPEN(tmp, RTLD_NOW);
@@ -561,16 +561,16 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
   VERIFY(!(nErr = dlErr));
 
   if (dm->vals.symlen) {
-    int rv = std_snprintf(tmp, tmplen, "%.*s", dm->vals.symlen, dm->vals.sym);
+    int rv = snprintf(tmp, tmplen, "%.*s", dm->vals.symlen, dm->vals.sym);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   } else {
-    int rv = std_snprintf(tmp, tmplen, "%s_skel_invoke", uri);
+    int rv = snprintf(tmp, tmplen, "%s_skel_invoke", uri);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   }
 
   FARF(RUNTIME_RPC_HIGH, "calling dlsym for %s", tmp);
   if (dm->vals.verlen &&
-      0 == std_strncmp(dm->vals.ver, "1.0", dm->vals.verlen)) {
+      0 == strncmp(dm->vals.ver, "1.0", dm->vals.verlen)) {
     dm->handle_invoke = (handle_invoke_fn)DLSYM(dm->dlhandle, tmp);
   } else {
     dm->invoke = (invoke_fn)DLSYM(dm->dlhandle, tmp);
@@ -579,7 +579,7 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
   VERIFYC(!(dlErr = dm->invoke || dm->handle_invoke ? 0 : AEE_ENOSUCHSYMBOL),
           AEE_ENOSUCHSYMBOL);
 
-  dm->key = (uint32)(uintptr_t)dm;
+  dm->key = (uint32_t)(uintptr_t)dm;
   dm->refs = 1;
   if (dm->handle_invoke) {
     VERIFY(AEE_SUCCESS == (nErr = open_mod_handle_open(dm, uri, &dm->h64)));
@@ -618,7 +618,7 @@ bail:
     if (dlErr) {
       const char *dlerr = DLERROR();
       if (dlerr != 0) {
-        std_strlcpy(dlStr, dlerr, dlerrorLen);
+        strlcpy(dlStr, dlerr, dlerrorLen);
       }
       FARF(RUNTIME_RPC_HIGH, "dlerror:0x%x:%s", dlErr, dlerr == 0 ? "" : dlerr);
       nErr = 0;
@@ -657,10 +657,10 @@ static int open_mod_table_open_from_static(struct open_mod_table *me,
   int nErr = AEE_SUCCESS;
   struct static_mod *sm = 0;
   struct open_mod *dm = 0;
-  int len = std_strlen(uri);
+  int len = strlen(uri);
   int sz = len * 2 +
            sizeof("file:///lib_skel.so?_skel_handle_invoke&_modver=1.0") + 1;
-  uint32 handle_idx = 0, keyfound = 0;
+  uint32_t handle_idx = 0, keyfound = 0;
   int lock = 0;
 
   VERIFYC((REV_HANDLE_SIZE >= sizeof(struct open_mod) + sz), AEE_ENOMEMORY);
@@ -678,7 +678,7 @@ static int open_mod_table_open_from_static(struct open_mod_table *me,
   RW_MUTEX_LOCK_READ(me->mut);
   HASH_FIND_STR(*tbl, uri, sm);
   RW_MUTEX_UNLOCK_READ(me->mut);
-  std_memmove(dm->uri, uri, len);
+  memmove(dm->uri, uri, len);
   if (sm == 0) {
     VERIFY(AEE_SUCCESS == (nErr = parse_uri(uri, len, &dm->vals)));
     FARF(RUNTIME_RPC_HIGH, "file %.*s %d", dm->vals.filelen, dm->vals.file,
@@ -688,12 +688,12 @@ static int open_mod_table_open_from_static(struct open_mod_table *me,
     FARF(RUNTIME_RPC_HIGH, "version %.*s %d", dm->vals.verlen, dm->vals.ver,
          dm->vals.verlen);
     if (dm->vals.verlen) {
-      int rv = std_snprintf(dm->uri, sz, "file:///%.*s?%.*s&_modver=%.*s",
+      int rv = snprintf(dm->uri, sz, "file:///%.*s?%.*s&_modver=%.*s",
                             dm->vals.filelen, dm->vals.file, dm->vals.symlen,
                             dm->vals.sym, dm->vals.verlen, dm->vals.ver);
       VERIFYC((rv > 0) && (sz >= rv), AEE_EBADPARM);
     } else {
-      int rv = std_snprintf(dm->uri, sz, "file://%.*s?%.*s", dm->vals.filelen,
+      int rv = snprintf(dm->uri, sz, "file://%.*s?%.*s", dm->vals.filelen,
                             dm->vals.file, dm->vals.symlen, dm->vals.sym);
       VERIFYC((rv > 0) && (sz >= rv), AEE_EBADPARM);
     }
@@ -708,7 +708,7 @@ static int open_mod_table_open_from_static(struct open_mod_table *me,
   assert(sm->handle_invoke || sm->invoke);
   dm->handle_invoke = sm->handle_invoke;
   dm->invoke = sm->invoke;
-  dm->key = (uint32)(uintptr_t)dm;
+  dm->key = (uint32_t)(uintptr_t)dm;
   dm->refs = 1;
   if (dm->handle_invoke) {
     VERIFY(AEE_SUCCESS == (nErr = open_mod_handle_open(dm, uri, &dm->h64)));
@@ -789,7 +789,7 @@ static void open_mod_close(struct open_mod_table *me, struct open_mod *dm) {
       DLCLOSE(dm->dlhandle);
     }
     FARF(ALWAYS, "%s: closed reverse module %s with handle 0x%x", __func__,
-         dm->uri, (uint32)dm->key);
+         dm->uri, (uint32_t)dm->key);
     dm->key = 0;
     dm = NULL;
   }
@@ -828,7 +828,7 @@ static int open_mod_table_close(struct open_mod_table *me,
       dlErr = DLCLOSE(del->dlhandle);
     }
     FARF(ALWAYS, "%s: closed reverse module %s with handle 0x%x", __func__,
-         del->uri, (uint32)handle);
+         del->uri, (uint32_t)handle);
     del = NULL;
   }
 bail:
@@ -840,7 +840,7 @@ bail:
     const char *error = DLERROR();
     nErr = dlErr;
     if (error != 0) {
-      std_strlcpy(errStr, error, errStrLen);
+      strlcpy(errStr, error, errStrLen);
     }
     VERIFY_EPRINTF("Error %x: open modtable close failed. dlerr %s\n", nErr,
                    error);
@@ -874,7 +874,7 @@ static struct const_mod *open_mod_table_get_const(struct open_mod_table *me,
 }
 
 static int open_mod_table_handle_invoke(struct open_mod_table *me,
-                                        remote_handle handle, uint32 sc,
+                                        remote_handle handle, uint32_t sc,
                                         remote_arg *pra) {
   int nErr = AEE_SUCCESS;
   struct open_mod *om = 0;
@@ -938,7 +938,7 @@ static struct static_mod_table static_mod_table_obj;
  *
  */
 int mod_table_register_static_override(const char *name,
-                                       int (*pfn)(uint32 sc, remote_arg *pra)) {
+                                       int (*pfn)(uint32_t sc, remote_arg *pra)) {
   if (0 == static_mod_table_ctor(&static_mod_table_obj)) {
     return static_mod_table_register_static_override(&static_mod_table_obj,
                                                      name, pfn);
@@ -947,7 +947,7 @@ int mod_table_register_static_override(const char *name,
 }
 
 int mod_table_register_static_override1(const char *name,
-                                        int (*pfn)(remote_handle64, uint32 sc,
+                                        int (*pfn)(remote_handle64, uint32_t sc,
                                                    remote_arg *pra)) {
   if (0 == static_mod_table_ctor(&static_mod_table_obj)) {
     return static_mod_table_register_static_override1(&static_mod_table_obj,
@@ -970,7 +970,7 @@ int mod_table_register_static_override1(const char *name,
  *
  */
 int mod_table_register_static(const char *name,
-                              int (*pfn)(uint32 sc, remote_arg *pra)) {
+                              int (*pfn)(uint32_t sc, remote_arg *pra)) {
   if (0 == static_mod_table_ctor(&static_mod_table_obj)) {
     return static_mod_table_register_static(&static_mod_table_obj, name, pfn);
   }
@@ -978,7 +978,7 @@ int mod_table_register_static(const char *name,
 }
 
 int mod_table_register_static1(const char *name,
-                               int (*pfn)(remote_handle64, uint32 sc,
+                               int (*pfn)(remote_handle64, uint32_t sc,
                                           remote_arg *pra)) {
   if (0 == static_mod_table_ctor(&static_mod_table_obj)) {
     return static_mod_table_register_static1(&static_mod_table_obj, name, pfn);
@@ -1027,7 +1027,7 @@ bail:
  * sc, scalars, see remote.h for documentation.
  * pra, args, see remote.h for documentation.
  */
-int mod_table_invoke(remote_handle handle, uint32 sc, remote_arg *pra) {
+int mod_table_invoke(remote_handle handle, uint32_t sc, remote_arg *pra) {
   int nErr = AEE_SUCCESS;
   struct open_mod_table *pomt = 0;
   VERIFY(AEE_SUCCESS ==
@@ -1072,7 +1072,7 @@ bail:
  * internal use only
  */
 int mod_table_register_const_handle(remote_handle remote, const char *uri,
-                                    int (*pfn)(uint32 sc, remote_arg *pra)) {
+                                    int (*pfn)(uint32_t sc, remote_arg *pra)) {
   if (0 == static_mod_table_ctor(&static_mod_table_obj)) {
     return static_mod_table_register_const_handle(&static_mod_table_obj, remote,
                                                   0, uri, pfn, 0);
@@ -1081,7 +1081,7 @@ int mod_table_register_const_handle(remote_handle remote, const char *uri,
 }
 int mod_table_register_const_handle1(remote_handle remote,
                                      remote_handle64 local, const char *uri,
-                                     int (*pfn)(remote_handle64, uint32 sc,
+                                     int (*pfn)(remote_handle64, uint32_t sc,
                                                 remote_arg *pra)) {
   if (0 == static_mod_table_ctor(&static_mod_table_obj)) {
     return static_mod_table_register_const_handle(&static_mod_table_obj, remote,

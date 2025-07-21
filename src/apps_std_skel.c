@@ -339,7 +339,7 @@ struct SequenceType {
    uint32_t               routSizePrimROut;
 };
 
-//byte offset from the start of the case values for
+//unsigned char offset from the start of the case values for
 //this unions case value array.  it MUST be aligned
 //at the alignment requrements for the descriptor
 //
@@ -842,7 +842,7 @@ static __inline int _skel_method_12(int (*_pfn)(apps_std_FILE), uint32_t _sc, re
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_13(int (*_pfn)(const char*, boolean*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_13(int (*_pfn)(const char*, bool*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    char* _in0[1] = {0};
    uint32_t _in0Len[1] = {0};
@@ -868,7 +868,7 @@ static __inline int _skel_method_13(int (*_pfn)(const char*, boolean*), uint32_t
    _ASSERT(_nErr, ((_praIn[0].buf.nLen / 1)) >= (size_t)(_in0Len[0]));
    _in0[0] = _praIn[0].buf.pv;
    _ASSERT(_nErr, (_in0Len[0] > 0) && (_in0[0][(_in0Len[0] - 1)] == 0));
-   _TRY(_nErr, _pfn((const char*)*_in0, (boolean*)_rout1));
+   _TRY(_nErr, _pfn((const char*)*_in0, (bool*)_rout1));
    _COPY(_primROut, 0, _rout1, 0, 1);
    _CATCH(_nErr) {}
    return _nErr;
@@ -897,7 +897,7 @@ static __inline int _skel_unpack(_ATTRIBUTE_UNUSED _allocator* _al, _ATTRIBUTE_U
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_14(int (*_pfn)(const char*, const char*, _cstring1_t*, int, uint32*, uint16*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_14(int (*_pfn)(const char*, const char*, _cstring1_t*, int, uint32_t*, uint16_t*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    char* _in0[1] = {0};
    uint32_t _in0Len[1] = {0};
@@ -965,7 +965,7 @@ static __inline int _skel_method_14(int (*_pfn)(const char*, const char*, _cstri
    {
       _TRY(_nErr, _skel_unpack(_al, (_praIn + 3), _ppraIn, (_praROut + 0), _ppraROut, _praHIn, _ppraHIn, _praHROut, _ppraHROut, _seq_primIn2, 0, SLIM_IFPTR32((char**)&(((uint32_t*)_seq_nat2)[0]), (char**)&(((uint64_t*)_seq_nat2)[0])), SLIM_IFPTR32((uint32_t*)&(((uint32_t*)_seq_nat2)[1]), (uint32_t*)&(((uint32_t*)_seq_nat2)[2]))));
    }
-   _TRY(_nErr, _pfn((const char*)*_in0, (const char*)*_in1, (_cstring1_t*)*_rout2, (int)*_rout2Len, (uint32*)_rout3, (uint16*)_rout4));
+   _TRY(_nErr, _pfn((const char*)*_in0, (const char*)*_in1, (_cstring1_t*)*_rout2, (int)*_rout2Len, (uint32_t*)_rout3, (uint16_t*)_rout4));
    for(_ii = 0, _seq_nat2 = (char*)_rout2[0];_ii < (int)_rout2Len[0];++_ii, _seq_nat2 = (_seq_nat2 + SLIM_IFPTR32(8, 16)))
    {
       _TRY(_nErr, _skel_pack((_praROutPost + 0), _ppraROutPost, 0, SLIM_IFPTR32((char**)&(((uint32_t*)_seq_nat2)[0]), (char**)&(((uint64_t*)_seq_nat2)[0])), SLIM_IFPTR32((uint32_t*)&(((uint32_t*)_seq_nat2)[1]), (uint32_t*)&(((uint32_t*)_seq_nat2)[2]))));
@@ -976,7 +976,7 @@ static __inline int _skel_method_14(int (*_pfn)(const char*, const char*, _cstri
    _allocator_deinit(_al);
    return _nErr;
 }
-static __inline int _skel_method_15(int (*_pfn)(apps_std_FILE, byte*, int, int*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_15(int (*_pfn)(apps_std_FILE, unsigned char*, int, int*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    char* _rout1[1] = {0};
@@ -1005,7 +1005,7 @@ static __inline int _skel_method_15(int (*_pfn)(apps_std_FILE, byte*, int, int*)
    _praROut = (_praIn + _numIn[0] + 1);
    _ASSERT(_nErr, ((_praROut[0].buf.nLen / 1)) >= (size_t)(_rout1Len[0]));
    _rout1[0] = _praROut[0].buf.pv;
-   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (byte*)*_rout1, (int)*_rout1Len, (int*)_rout2));
+   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (unsigned char*)*_rout1, (int)*_rout1Len, (int*)_rout2));
    _COPY(_primROut, 0, _rout2, 0, 4);
    _CATCH(_nErr) {}
    return _nErr;
@@ -1154,7 +1154,7 @@ static __inline int _skel_method_19(int (*_pfn)(apps_std_FILE, int*), uint32_t _
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_20(int (*_pfn)(apps_std_FILE, uint64*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_20(int (*_pfn)(apps_std_FILE, uint64_t*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    uint64_t _rout1[1] = {0};
@@ -1174,7 +1174,7 @@ static __inline int _skel_method_20(int (*_pfn)(apps_std_FILE, uint64*), uint32_
    _ASSERT(_nErr, _pra[(_numIn[0] + 1)].buf.nLen >= 8);
    _primROut = _pra[(_numIn[0] + 1)].buf.pv;
    _COPY(_in0, 0, _primIn, 0, 4);
-   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (uint64*)_rout1));
+   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (uint64_t*)_rout1));
    _COPY(_primROut, 0, _rout1, 0, 8);
    _CATCH(_nErr) {}
    return _nErr;
@@ -1201,7 +1201,7 @@ static __inline int _skel_method_21(int (*_pfn)(apps_std_FILE, int, apps_std_SEE
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_22(int (*_pfn)(apps_std_FILE, const byte*, int), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_22(int (*_pfn)(apps_std_FILE, const unsigned char*, int), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    char* _in1[1] = {0};
@@ -1222,11 +1222,11 @@ static __inline int _skel_method_22(int (*_pfn)(apps_std_FILE, const byte*, int)
    _praIn = (_pra + 1);
    _ASSERT(_nErr, ((_praIn[0].buf.nLen / 1)) >= (size_t)(_in1Len[0]));
    _in1[0] = _praIn[0].buf.pv;
-   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (const byte*)*_in1, (int)*_in1Len));
+   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (const unsigned char*)*_in1, (int)*_in1Len));
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_23(int (*_pfn)(apps_std_FILE, const byte*, int, int*, int*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_23(int (*_pfn)(apps_std_FILE, const unsigned char*, int, int*, int*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    char* _in1[1] = {0};
@@ -1254,13 +1254,13 @@ static __inline int _skel_method_23(int (*_pfn)(apps_std_FILE, const byte*, int,
    _praIn = (_pra + 1);
    _ASSERT(_nErr, ((_praIn[0].buf.nLen / 1)) >= (size_t)(_in1Len[0]));
    _in1[0] = _praIn[0].buf.pv;
-   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (const byte*)*_in1, (int)*_in1Len, (int*)_rout2, (int*)_rout3));
+   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (const unsigned char*)*_in1, (int)*_in1Len, (int*)_rout2, (int*)_rout3));
    _COPY(_primROut, 0, _rout2, 0, 4);
    _COPY(_primROut, 4, _rout3, 0, 4);
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_24(int (*_pfn)(apps_std_FILE, byte*, int, int*, int*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_24(int (*_pfn)(apps_std_FILE, unsigned char*, int, int*, int*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    char* _rout1[1] = {0};
@@ -1290,7 +1290,7 @@ static __inline int _skel_method_24(int (*_pfn)(apps_std_FILE, byte*, int, int*,
    _praROut = (_praIn + _numIn[0] + 1);
    _ASSERT(_nErr, ((_praROut[0].buf.nLen / 1)) >= (size_t)(_rout1Len[0]));
    _rout1[0] = _praROut[0].buf.pv;
-   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (byte*)*_rout1, (int)*_rout1Len, (int*)_rout2, (int*)_rout3));
+   _TRY(_nErr, _pfn((apps_std_FILE)*_in0, (unsigned char*)*_rout1, (int)*_rout1Len, (int*)_rout2, (int*)_rout3));
    _COPY(_primROut, 0, _rout2, 0, 4);
    _COPY(_primROut, 4, _rout3, 0, 4);
    _CATCH(_nErr) {}

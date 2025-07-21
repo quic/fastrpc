@@ -45,26 +45,26 @@
 #define PERF_NS_TO_US(n) ((n) / 1000)
 
 #define IS_KEY_ENABLED(name)                                                   \
-  (!std_strncmp((name), "perf_invoke_count", 17) ||                            \
-   !std_strncmp((name), "perf_mod_invoke", 15) ||                              \
-   !std_strncmp((name), "perf_rsp", 8) ||                                      \
-   !std_strncmp((name), "perf_hdr_sync_flush", 19) ||                          \
-   !std_strncmp((name), "perf_sync_flush", 15) ||                              \
-   !std_strncmp((name), "perf_hdr_sync_inv", 17) ||                            \
-   !std_strncmp((name), "perf_clean_cache", 16) ||                             \
-   !std_strncmp((name), "perf_sync_inv", 13))
+  (!strncmp((name), "perf_invoke_count", 17) ||                            \
+   !strncmp((name), "perf_mod_invoke", 15) ||                              \
+   !strncmp((name), "perf_rsp", 8) ||                                      \
+   !strncmp((name), "perf_hdr_sync_flush", 19) ||                          \
+   !strncmp((name), "perf_sync_flush", 15) ||                              \
+   !strncmp((name), "perf_hdr_sync_inv", 17) ||                            \
+   !strncmp((name), "perf_clean_cache", 16) ||                             \
+   !strncmp((name), "perf_sync_inv", 13))
 
 #define PERF_CAPABILITY_CHECK (1 << 1)
 
 
-extern boolean fastrpc_config_is_perfkernel_enabled(void);
-extern boolean fastrpc_config_is_perfdsp_enabled(void);
+extern bool fastrpc_config_is_perfkernel_enabled(void);
+extern bool fastrpc_config_is_perfdsp_enabled(void);
 
 int perf_v2_kernel = 0;
 int perf_v2_dsp = 0;
 
 struct perf_keys {
-  int64 data[PERF_MAX_NUM_KEYS];
+  int64_t data[PERF_MAX_NUM_KEYS];
   int numKeys;
   int maxLen;
   int enable;
@@ -195,7 +195,7 @@ static void get_perf_adsp(remote_handle handle, uint32_t sc) {
     VERIFYC(token, AEE_ERPC);
     if (!pdsp->data[ii])
       continue;
-    if (!std_strncmp(token, "perf_invoke_count", 17)) {
+    if (!strncmp(token, "perf_invoke_count", 17)) {
       FARF(ALWAYS, "fastrpc.dsp.%-20s : %" PRId64 " \n", token, pdsp->data[ii]);
     } else {
       FARF(ALWAYS, "fastrpc.dsp.%-20s : %" PRId64 " us\n", token,
@@ -237,7 +237,7 @@ static int perf_dsp_enable(int domain) {
   keys =
       (char *)rpcmem_alloc_internal(0, RPCMEM_HEAP_DEFAULT, PERF_KEY_STR_MAX);
   VERIFYC(gperf.dsp.keys = keys, AEE_ERPC);
-  std_memset(keys, 0, PERF_KEY_STR_MAX);
+  memset(keys, 0, PERF_KEY_STR_MAX);
 
   VERIFY(0 == (nErr = adsp_perf_get_keys(keys, PERF_KEY_STR_MAX, &maxLen,
                                          &numKeys)));
