@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,7 +40,6 @@
 
 #include "AEEQList.h"
 #include "AEEStdErr.h"
-#include "AEEatomic.h"
 #include "AEEstd.h"
 #include "HAP_farf.h"
 #include "adsp_current_process.h"
@@ -338,7 +338,7 @@ extern int apps_mem_table_init(void);
 extern void apps_mem_table_deinit(void);
 
 static uint32_t crc_table[256];
-uint32_t timer_expired = 0;
+static atomic_bool timer_expired = false;
 
 void set_thread_context(int domain) {
   if (tlsKey != INVALID_KEY) {
@@ -1094,10 +1094,11 @@ static void fastrpc_timer_callback(void *ptr) {
   fastrpc_timer *frpc_timer = (fastrpc_timer *)ptr;
   int nErr = AEE_SUCCESS;
   remote_rpc_process_exception data;
+  bool expected = false;
 
-  if (1 == atomic_CompareAndExchange(&timer_expired, 1, 0)) {
+  atomic_compare_exchange_strong(&timer_expired, &expected, true);
+  if (expected == true)
     return;
-  }
 
   FARF(ALWAYS,
        "%s fastrpc time out of %d ms on thread %d on domain %d sc 0x%x handle 0x%x\n",

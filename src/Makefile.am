@@ -29,8 +29,6 @@ LIBDSPRPC_SOURCES = \
 		std_path.c \
 		std_dtoa.c \
 		BufBound.c \
-		atomic.c \
-		cae.c \
 		platform_libs.c \
 		pl_list.c \
 		gpls.c \

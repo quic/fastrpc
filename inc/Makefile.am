@@ -8,7 +8,6 @@ noinst_HEADERS = \
 	AEEBufBound.h \
 	AEEQList.h \
 	AEEStdDef.h \
-	AEEatomic.h \
 	AEEstd.h \
 	HAP_debug.h \
 	HAP_farf.h \
