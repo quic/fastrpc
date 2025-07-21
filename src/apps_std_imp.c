@@ -28,7 +28,6 @@
 
 #include "AEEQList.h"
 #include "AEEStdErr.h"
-#include "AEEatomic.h"
 #include "AEEstd.h"
 #include "HAP_farf.h"
 #include "apps_std.h"

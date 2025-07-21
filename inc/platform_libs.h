@@ -54,11 +54,11 @@ bail:
 libraryB does not need to appear in the platform library list.
 */
 
-#include <stdint.h>
+#include <stdatomic.h>
 
 struct platform_lib {
   const char* name;
-  uint32_t uRefs;
+  atomic_uint uRefs;
   int nErr;
   int (*init)(void);
   void (*deinit)(void);
