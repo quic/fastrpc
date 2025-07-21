@@ -617,7 +617,7 @@ __QAIC_IMPL(apps_std_fgetpos)(apps_std_FILE sin, unsigned char *pos, int posLen,
   VERIFY(0 == (nErr = apps_std_FILE_get(sin, &sinfo)));
   if (sinfo->type == APPS_STD_STREAM_FILE) {
     if (0 == fgetpos(sinfo->u.stream, &fpos)) {
-      std_memmove(pos, &fpos, STD_MIN((int)sizeof(fpos), posLen));
+      memmove(pos, &fpos, STD_MIN((int)sizeof(fpos), posLen));
       *posLenReq = sizeof(fpos);
     } else {
       nErr = ERRNO;
@@ -652,7 +652,7 @@ __QAIC_IMPL(apps_std_fsetpos)(apps_std_FILE sin, const unsigned char *pos,
       nErr = EBADF;
       goto bail;
     }
-    std_memmove(&fpos, pos, sizeof(fpos));
+    memmove(&fpos, pos, sizeof(fpos));
     VERIFYC(0 == fsetpos(sinfo->u.stream, &fpos), ERRNO);
   } else {
     nErr = EBADF;
@@ -878,8 +878,8 @@ __QAIC_IMPL(apps_std_getenv)(const char *name, char *val, int valLen,
   errno = 0;
   char *vv = getenv(name);
   if (vv) {
-    *valLenReq = std_strlen(vv) + 1;
-    std_strlcpy(val, vv, STD_MIN(valLen, *valLenReq));
+    *valLenReq = strlen(vv) + 1;
+    strlcpy(val, vv, STD_MIN(valLen, *valLenReq));
     return AEE_SUCCESS;
   }
   nErr = ERRNO;
@@ -936,7 +936,7 @@ static int get_dirlist_from_env(const char *envvarname, char **ppDirList) {
   int envListLen = 0;
   int envListPrependLen = 0;
   int listLen = 0;
-  int envLenGuess = STD_MAX(ENV_LEN_GUESS, 1 + std_strlen(DSP_SEARCH_PATH));
+  int envLenGuess = STD_MAX(ENV_LEN_GUESS, 1 + strlen(DSP_SEARCH_PATH));
 
   FARF(RUNTIME_RPC_LOW, "Entering %s", __func__);
   VERIFYC(NULL != ppDirList, AEE_ERPC);
@@ -946,12 +946,12 @@ static int get_dirlist_from_env(const char *envvarname, char **ppDirList) {
   envList = envListBuf;
   *envList = '\0';
   if (0 == apps_std_getenv(envvarname, envList, envLenGuess, &envListLen)) {
-    if (std_strncmp(envvarname, ADSP_LIBRARY_PATH,
-                    std_strlen(ADSP_LIBRARY_PATH)) == 0 ||
-        std_strncmp(envvarname, DSP_LIBRARY_PATH,
-                    std_strlen(DSP_LIBRARY_PATH)) == 0) {
+    if (strncmp(envvarname, ADSP_LIBRARY_PATH,
+                    strlen(ADSP_LIBRARY_PATH)) == 0 ||
+        strncmp(envvarname, DSP_LIBRARY_PATH,
+                    strlen(DSP_LIBRARY_PATH)) == 0) {
       // Calculate total length of env and DSP_SEARCH_PATH
-      envListPrependLen = envListLen + std_strlen(DSP_SEARCH_PATH);
+      envListPrependLen = envListLen + strlen(DSP_SEARCH_PATH);
       if (envLenGuess < envListPrependLen) {
         FREEIF(envListBuf);
         VERIFYC(envListBuf =
@@ -962,11 +962,11 @@ static int get_dirlist_from_env(const char *envvarname, char **ppDirList) {
                                             envListPrependLen, &listLen)));
       }
       // Append default DSP_SEARCH_PATH to user defined env
-      std_strlcat(envList, DSP_SEARCH_PATH, envListPrependLen);
+      strlcat(envList, DSP_SEARCH_PATH, envListPrependLen);
       envListLen = envListPrependLen;
-    } else if (std_strncmp(envvarname, ADSP_AVS_PATH,
-                           std_strlen(ADSP_AVS_PATH)) == 0) {
-      envListPrependLen = envListLen + std_strlen(ADSP_AVS_CFG_PATH);
+    } else if (strncmp(envvarname, ADSP_AVS_PATH,
+                           strlen(ADSP_AVS_PATH)) == 0) {
+      envListPrependLen = envListLen + strlen(ADSP_AVS_CFG_PATH);
       if (envLenGuess < envListPrependLen) {
         FREEIF(envListBuf);
         VERIFYC(envListBuf =
@@ -976,21 +976,21 @@ static int get_dirlist_from_env(const char *envvarname, char **ppDirList) {
         VERIFY(0 == (nErr = apps_std_getenv(envvarname, envList,
                                             envListPrependLen, &listLen)));
       }
-      std_strlcat(envList, ADSP_AVS_CFG_PATH, envListPrependLen);
+      strlcat(envList, ADSP_AVS_CFG_PATH, envListPrependLen);
       envListLen = envListPrependLen;
     } else {
       envListLen = listLen;
     }
-  } else if (std_strncmp(envvarname, ADSP_LIBRARY_PATH,
-                         std_strlen(ADSP_LIBRARY_PATH)) == 0 ||
-             std_strncmp(envvarname, DSP_LIBRARY_PATH,
-                         std_strlen(DSP_LIBRARY_PATH)) == 0) {
+  } else if (strncmp(envvarname, ADSP_LIBRARY_PATH,
+                         strlen(ADSP_LIBRARY_PATH)) == 0 ||
+             strncmp(envvarname, DSP_LIBRARY_PATH,
+                         strlen(DSP_LIBRARY_PATH)) == 0) {
     envListLen = listLen =
-        1 + std_strlcpy(envListBuf, DSP_SEARCH_PATH, envLenGuess);
-  } else if (std_strncmp(envvarname, ADSP_AVS_PATH,
-                         std_strlen(ADSP_AVS_PATH)) == 0) {
+        1 + strlcpy(envListBuf, DSP_SEARCH_PATH, envLenGuess);
+  } else if (strncmp(envvarname, ADSP_AVS_PATH,
+                         strlen(ADSP_AVS_PATH)) == 0) {
     envListLen = listLen =
-        1 + std_strlcpy(envListBuf, ADSP_AVS_CFG_PATH, envLenGuess);
+        1 + strlcpy(envListBuf, ADSP_AVS_CFG_PATH, envLenGuess);
   }
 
   /*
@@ -999,13 +999,13 @@ static int get_dirlist_from_env(const char *envvarname, char **ppDirList) {
   if ('\0' != *envList) {
     srcStr = envList;
   } else {
-    envListLen = std_strlen(EMTPY_STR) + 1;
+    envListLen = strlen(EMTPY_STR) + 1;
   }
   VERIFYC(dirListBuf = (char *)malloc(sizeof(char) * envListLen),
           AEE_ENOMEMORY);
   dirList = dirListBuf;
   VERIFYC(srcStr != NULL, AEE_EBADPARM);
-  std_strlcpy(dirList, srcStr, envListLen);
+  strlcpy(dirList, srcStr, envListLen);
   *ppDirList = dirListBuf;
 bail:
   FREEIF(envListBuf);
@@ -1040,8 +1040,8 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env)(
   FASTRPC_ATRACE_BEGIN_L("%s for %s in %s mode from path in environment "
                          "variable %s delimited with %s",
                          __func__, name, mode, envvarname, delim);
-  if (std_strncmp(envvarname, ADSP_LIBRARY_PATH,
-                  std_strlen(ADSP_LIBRARY_PATH)) == 0) {
+  if (strncmp(envvarname, ADSP_LIBRARY_PATH,
+                  strlen(ADSP_LIBRARY_PATH)) == 0) {
     if (getenv(DSP_LIBRARY_PATH)) {
       envVar = DSP_LIBRARY_PATH;
     } else {
@@ -1060,24 +1060,24 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env)(
     dirName = dirList;
     if (pos) {
       *pos = '\0';
-      dirList = pos + std_strlen(delim);
+      dirList = pos + strlen(delim);
     } else {
       dirList = 0;
     }
 
     // Append domain to path
     absNameLen =
-        std_strlen(dirName) + std_strlen(name) + 2 + std_strlen("adsp") + 1;
+        strlen(dirName) + strlen(name) + 2 + strlen("adsp") + 1;
     VERIFYC(NULL != (absName = (char *)malloc(sizeof(char) * absNameLen)),
             AEE_ENOMEMORY);
     if ('\0' != *dirName) {
-      std_strlcpy(absName, dirName, absNameLen);
-      std_strlcat(absName, "/", absNameLen);
-      std_strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
-      std_strlcat(absName, "/", absNameLen);
-      std_strlcat(absName, name, absNameLen);
+      strlcpy(absName, dirName, absNameLen);
+      strlcat(absName, "/", absNameLen);
+      strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
+      strlcat(absName, "/", absNameLen);
+      strlcat(absName, name, absNameLen);
     } else {
-      std_strlcpy(absName, name, absNameLen);
+      strlcpy(absName, name, absNameLen);
     }
 
     nErr = apps_std_fopen(absName, mode, psout);
@@ -1089,25 +1089,25 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env)(
     FREEIF(absName);
 
     // fallback: If not found in domain path /vendor/dsp/adsp try in /vendor/dsp
-    absNameLen = std_strlen(dirName) + std_strlen(name) + 2;
+    absNameLen = strlen(dirName) + strlen(name) + 2;
     VERIFYC(NULL != (absName = (char *)malloc(sizeof(char) * absNameLen)),
             AEE_ENOMEMORY);
     if ('\0' != *dirName) {
-      std_strlcpy(absName, dirName, absNameLen);
-      std_strlcat(absName, "/", absNameLen);
-      std_strlcat(absName, name, absNameLen);
+      strlcpy(absName, dirName, absNameLen);
+      strlcat(absName, "/", absNameLen);
+      strlcat(absName, name, absNameLen);
     } else {
-      std_strlcpy(absName, name, absNameLen);
+      strlcpy(absName, name, absNameLen);
     }
 
     nErr = apps_std_fopen(absName, mode, psout);
     if (AEE_SUCCESS == nErr) {
       // Success
       if (name != NULL &&
-          (std_strncmp(name, OEM_CONFIG_FILE_NAME,
-                       std_strlen(OEM_CONFIG_FILE_NAME)) != 0) &&
-          (std_strncmp(name, TESTSIG_FILE_NAME,
-                       std_strlen(TESTSIG_FILE_NAME)) != 0))
+          (strncmp(name, OEM_CONFIG_FILE_NAME,
+                       strlen(OEM_CONFIG_FILE_NAME)) != 0) &&
+          (strncmp(name, TESTSIG_FILE_NAME,
+                       strlen(TESTSIG_FILE_NAME)) != 0))
         FARF(ALWAYS, "Successfully opened file %s", name);
       goto bail;
     }
@@ -1119,11 +1119,11 @@ bail:
   if (nErr != AEE_SUCCESS) {
     if (ERRNO != ENOENT ||
         (name != NULL &&
-         std_strncmp(name, OEM_CONFIG_FILE_NAME,
-                     std_strlen(OEM_CONFIG_FILE_NAME)) != 0 &&
-         std_strncmp(name, RPC_VERSION_FILE_NAME,
-                     std_strlen(RPC_VERSION_FILE_NAME)) != 0 &&
-         std_strncmp(name, TESTSIG_FILE_NAME, std_strlen(TESTSIG_FILE_NAME)) !=
+         strncmp(name, OEM_CONFIG_FILE_NAME,
+                     strlen(OEM_CONFIG_FILE_NAME)) != 0 &&
+         strncmp(name, RPC_VERSION_FILE_NAME,
+                     strlen(RPC_VERSION_FILE_NAME)) != 0 &&
+         strncmp(name, TESTSIG_FILE_NAME, strlen(TESTSIG_FILE_NAME)) !=
              0))
       VERIFY_WPRINTF(" Warning: %s failed with 0x%x for %s (%s)", __func__,
                      nErr, name, strerror(ERRNO));
@@ -1168,8 +1168,8 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env_fd)(
   FASTRPC_ATRACE_BEGIN_L("%s for %s in %s mode from path in environment "
                          "variable %s delimited with %s",
                          __func__, name, mode, envvarname, delim);
-  if (std_strncmp(envvarname, ADSP_LIBRARY_PATH,
-                  std_strlen(ADSP_LIBRARY_PATH)) == 0) {
+  if (strncmp(envvarname, ADSP_LIBRARY_PATH,
+                  strlen(ADSP_LIBRARY_PATH)) == 0) {
     if (getenv(DSP_LIBRARY_PATH)) {
       envVar = DSP_LIBRARY_PATH;
     } else {
@@ -1187,24 +1187,24 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env_fd)(
     dirName = dirList;
     if (pos) {
       *pos = '\0';
-      dirList = pos + std_strlen(delim);
+      dirList = pos + strlen(delim);
     } else {
       dirList = 0;
     }
 
     // Append domain to path
     absNameLen =
-        std_strlen(dirName) + std_strlen(name) + 2 + std_strlen("adsp") + 1;
+        strlen(dirName) + strlen(name) + 2 + strlen("adsp") + 1;
     VERIFYC(NULL != (absName = (char *)malloc(sizeof(char) * absNameLen)),
             AEE_ENOMEMORY);
     if ('\0' != *dirName) {
-      std_strlcpy(absName, dirName, absNameLen);
-      std_strlcat(absName, "/", absNameLen);
-      std_strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
-      std_strlcat(absName, "/", absNameLen);
-      std_strlcat(absName, name, absNameLen);
+      strlcpy(absName, dirName, absNameLen);
+      strlcat(absName, "/", absNameLen);
+      strlcat(absName, SUBSYSTEM_NAME[domain], absNameLen);
+      strlcat(absName, "/", absNameLen);
+      strlcat(absName, name, absNameLen);
     } else {
-      std_strlcpy(absName, name, absNameLen);
+      strlcpy(absName, name, absNameLen);
     }
 
     err = apps_std_fopen_fd(absName, mode, fd, len);
@@ -1224,15 +1224,15 @@ __QAIC_IMPL_EXPORT int __QAIC_IMPL(apps_std_fopen_with_env_fd)(
     FREEIF(absName);
 
     // fallback: If not found in domain path /vendor/dsp/adsp try in /vendor/dsp
-    absNameLen = std_strlen(dirName) + std_strlen(name) + 2;
+    absNameLen = strlen(dirName) + strlen(name) + 2;
     VERIFYC(NULL != (absName = (char *)malloc(sizeof(char) * absNameLen)),
             AEE_ENOMEMORY);
     if ('\0' != *dirName) {
-      std_strlcpy(absName, dirName, absNameLen);
-      std_strlcat(absName, "/", absNameLen);
-      std_strlcat(absName, name, absNameLen);
+      strlcpy(absName, dirName, absNameLen);
+      strlcat(absName, "/", absNameLen);
+      strlcat(absName, name, absNameLen);
     } else {
-      std_strlcpy(absName, name, absNameLen);
+      strlcpy(absName, name, absNameLen);
     }
 
     err = apps_std_fopen_fd(absName, mode, fd, len);
@@ -1261,11 +1261,11 @@ bail:
   if (nErr != AEE_SUCCESS) {
     if (ERRNO != ENOENT ||
         (name != NULL &&
-         std_strncmp(name, OEM_CONFIG_FILE_NAME,
-                     std_strlen(OEM_CONFIG_FILE_NAME)) != 0 &&
-         std_strncmp(name, RPC_VERSION_FILE_NAME,
-                     std_strlen(RPC_VERSION_FILE_NAME)) != 0 &&
-         std_strncmp(name, TESTSIG_FILE_NAME, std_strlen(TESTSIG_FILE_NAME)) !=
+         strncmp(name, OEM_CONFIG_FILE_NAME,
+                     strlen(OEM_CONFIG_FILE_NAME)) != 0 &&
+         strncmp(name, RPC_VERSION_FILE_NAME,
+                     strlen(RPC_VERSION_FILE_NAME)) != 0 &&
+         strncmp(name, TESTSIG_FILE_NAME, strlen(TESTSIG_FILE_NAME)) !=
              0)) {
       if (errabsName) {
         VERIFY_WPRINTF(" Warning: %s failed with 0x%x for path %s name %s (%s)",
@@ -1309,8 +1309,8 @@ __QAIC_HEADER_EXPORT int __QAIC_IMPL(apps_std_get_search_paths_with_env)(
   VERIFYC(NULL != delim, AEE_EBADPARM);
   VERIFYC(NULL != maxPathLen, AEE_EBADPARM);
 
-  if (std_strncmp(envvarname, ADSP_LIBRARY_PATH,
-                  std_strlen(ADSP_LIBRARY_PATH)) == 0) {
+  if (strncmp(envvarname, ADSP_LIBRARY_PATH,
+                  strlen(ADSP_LIBRARY_PATH)) == 0) {
     if (getenv(DSP_LIBRARY_PATH)) {
       envVar = DSP_LIBRARY_PATH;
     } else {
@@ -1328,26 +1328,26 @@ __QAIC_HEADER_EXPORT int __QAIC_IMPL(apps_std_get_search_paths_with_env)(
   // Get the number of folders
   path = strtok_r(dirListBuf, delim, &saveptr);
   while (path != NULL) {
-    pathDomainLen = std_strlen(path) + 1 + std_strlen("adsp") + 1;
+    pathDomainLen = strlen(path) + 1 + strlen("adsp") + 1;
     VERIFYC(pathDomain = (char *)malloc(sizeof(char) * (pathDomainLen)),
             AEE_ENOMEMORY);
-    std_strlcpy(pathDomain, path, pathDomainLen);
-    std_strlcat(pathDomain, "/", pathDomainLen);
-    std_strlcat(pathDomain, SUBSYSTEM_NAME[domain], pathDomainLen);
+    strlcpy(pathDomain, path, pathDomainLen);
+    strlcat(pathDomain, "/", pathDomainLen);
+    strlcat(pathDomain, SUBSYSTEM_NAME[domain], pathDomainLen);
     // If the path exists, add it to the return
     if ((stat(pathDomain, &st) == 0) && (S_ISDIR(st.st_mode))) {
-      *maxPathLen = STD_MAX(*maxPathLen, std_strlen(pathDomain) + 1);
+      *maxPathLen = STD_MAX(*maxPathLen, strlen(pathDomain) + 1);
       if (paths && i < pathsLen && paths[i].data &&
-          paths[i].dataLen >= (int)std_strlen(path)) {
-        std_strlcpy(paths[i].data, pathDomain, paths[i].dataLen);
+          paths[i].dataLen >= (int)strlen(path)) {
+        strlcpy(paths[i].data, pathDomain, paths[i].dataLen);
       }
       i++;
     }
     if ((stat(path, &st) == 0) && (S_ISDIR(st.st_mode))) {
-      *maxPathLen = STD_MAX(*maxPathLen, std_strlen(path) + 1);
+      *maxPathLen = STD_MAX(*maxPathLen, strlen(path) + 1);
       if (paths && i < pathsLen && paths[i].data &&
-          paths[i].dataLen >= (int)std_strlen(path)) {
-        std_strlcpy(paths[i].data, path, paths[i].dataLen);
+          paths[i].dataLen >= (int)strlen(path)) {
+        strlcpy(paths[i].data, path, paths[i].dataLen);
       }
       i++;
     }
@@ -1624,7 +1624,7 @@ __QAIC_HEADER(apps_std_readdir)(const apps_std_DIR *dir,
   odirent = readdir((DIR *)dir->handle);
   if (odirent != NULL) {
     dirent->ino = (int)odirent->d_ino;
-    std_strlcpy(dirent->name, odirent->d_name, sizeof(dirent->name));
+    strlcpy(dirent->name, odirent->d_name, sizeof(dirent->name));
   } else {
     if (errno == 0) {
       *bEOF = 1;

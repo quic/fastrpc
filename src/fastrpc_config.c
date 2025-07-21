@@ -83,9 +83,9 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
   uint64_t logFileNameLen = 0;
   frpc_config.err_codes_to_crash.num_err_codes = 0;
 
-  len = std_snprintf(0, 0, "%s/%s", base, file) + 1;
+  len = snprintf(0, 0, "%s/%s", base, file) + 1;
   VERIFYC(NULL != (path = calloc(1, sizeof(char) * len)), AEE_ENOMEMORY);
-  std_snprintf(path, (int)len, "%s/%s", base, file);
+  snprintf(path, (int)len, "%s/%s", base, file);
   VERIFY(AEE_SUCCESS == (nErr = apps_std_fileExists(path, &fileExists)));
   if (fileExists == false) {
     nErr = AEE_ENOSUCHFILE;
@@ -109,7 +109,7 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
       continue;
     }
 
-    if (std_strncmp(param, CONFIG_ERR_CODES, std_strlen(CONFIG_ERR_CODES)) ==
+    if (strncmp(param, CONFIG_ERR_CODES, strlen(CONFIG_ERR_CODES)) ==
         0) {
       int ii = 0, num_err_codes = 0;
       unsigned int err_code = 0;
@@ -140,132 +140,132 @@ int fastrpc_read_config_file_from_path(const char *base, const char *file) {
       } while (param != NULL);
       num_err_codes = ii;
       frpc_config.err_codes_to_crash.num_err_codes = num_err_codes;
-    } else if (std_strncmp(param, CONFIG_PDDUMP, std_strlen(CONFIG_PDDUMP)) ==
+    } else if (strncmp(param, CONFIG_PDDUMP, strlen(CONFIG_PDDUMP)) ==
                0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.pddump = true;
         FARF(ALWAYS, "fastrpc config enabling PD dump\n");
       }
-    } else if (std_strncmp(param, CONFIG_RPCTIMEOUT,
-                           std_strlen(CONFIG_RPCTIMEOUT)) == 0) {
+    } else if (strncmp(param, CONFIG_RPCTIMEOUT,
+                           strlen(CONFIG_RPCTIMEOUT)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
         frpc_config.rpc_timeout = atoi(param);
         FARF(ALWAYS, "fastrpc config set rpc timeout with %d\n",
              frpc_config.rpc_timeout);
       }
-    } else if (std_strncmp(param, CONFIG_PERF_KERNEL,
-                           std_strlen(CONFIG_PERF_KERNEL)) == 0) {
+    } else if (strncmp(param, CONFIG_PERF_KERNEL,
+                           strlen(CONFIG_PERF_KERNEL)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.perfkernel = true;
         FARF(ALWAYS, "fastrpc config enabling profiling on kernel\n");
       }
-    } else if (std_strncmp(param, CONFIG_PERF_DSP,
-                           std_strlen(CONFIG_PERF_DSP)) == 0) {
+    } else if (strncmp(param, CONFIG_PERF_DSP,
+                           strlen(CONFIG_PERF_DSP)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.perfdsp = true;
         FARF(ALWAYS, "fastrpc config enabling profiling on dsp\n");
       }
-    } else if (std_strncmp(param, CONFIG_COLLECT_RUNTIME_FARF,
-                           std_strlen(CONFIG_COLLECT_RUNTIME_FARF)) == 0) {
+    } else if (strncmp(param, CONFIG_COLLECT_RUNTIME_FARF,
+                           strlen(CONFIG_COLLECT_RUNTIME_FARF)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
-        logFileNameLen = std_strlen(param) + 1;
+        logFileNameLen = strlen(param) + 1;
         VERIFYC(NULL != (frpc_config.farf_log_filename =
                              (char *)malloc(sizeof(char) * logFileNameLen)),
                 AEE_ENOMEMORY);
-        std_strlcpy(frpc_config.farf_log_filename, param, logFileNameLen);
+        strlcpy(frpc_config.farf_log_filename, param, logFileNameLen);
         FARF(ALWAYS,
              "fastrpc config enabling farf logs collection into file %s",
              frpc_config.farf_log_filename);
       }
-    } else if (std_strncmp(param, CONFIG_COLLECT_RUNTIME_FARF_USERSPACE,
-                           std_strlen(CONFIG_COLLECT_RUNTIME_FARF_USERSPACE)) ==
+    } else if (strncmp(param, CONFIG_COLLECT_RUNTIME_FARF_USERSPACE,
+                           strlen(CONFIG_COLLECT_RUNTIME_FARF_USERSPACE)) ==
                0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
-        logFileNameLen = std_strlen(param) + 1;
+        logFileNameLen = strlen(param) + 1;
         VERIFYC(NULL != (frpc_config.farf_log_filename_userspace =
                              (char *)malloc(sizeof(char) * logFileNameLen)),
                 AEE_ENOMEMORY);
-        std_strlcpy(frpc_config.farf_log_filename_userspace, param,
+        strlcpy(frpc_config.farf_log_filename_userspace, param,
                     logFileNameLen);
         FARF(ALWAYS,
              "fastrpc config enabling userspace farf logs collection into file "
              "%s",
              frpc_config.farf_log_filename_userspace);
       }
-    } else if (std_strncmp(param, CONFIG_LOG_IREGION,
-                           std_strlen(CONFIG_LOG_IREGION)) == 0) {
+    } else if (strncmp(param, CONFIG_LOG_IREGION,
+                           strlen(CONFIG_LOG_IREGION)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
         frpc_config.log_iregion = true;
         FARF(ALWAYS, "fastrpc config enabling iregion logging\n");
       }
-    } else if (std_strncmp(param, CONFIG_QTF_TRACING,
-                           std_strlen(CONFIG_QTF_TRACING)) == 0) {
+    } else if (strncmp(param, CONFIG_QTF_TRACING,
+                           strlen(CONFIG_QTF_TRACING)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.qtf_tracing = true;
         FARF(ALWAYS, "fastrpc config enabling QTF tracing\n");
       }
-    } else if (std_strncmp(param, CONFIG_CALLER_LEVEL,
-                           std_strlen(CONFIG_CALLER_LEVEL)) == 0) {
+    } else if (strncmp(param, CONFIG_CALLER_LEVEL,
+                           strlen(CONFIG_CALLER_LEVEL)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.caller_level = atoi(param);
         FARF(ALWAYS, "fastrpc config setting heap caller level with %d\n",
              frpc_config.caller_level);
       }
-    } else if (std_strncmp(param, CONFIG_ENABLE_UAF,
-                           std_strlen(CONFIG_ENABLE_UAF)) == 0) {
+    } else if (strncmp(param, CONFIG_ENABLE_UAF,
+                           strlen(CONFIG_ENABLE_UAF)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.uaf_enabled = true;
         FARF(ALWAYS, "fastrpc config enabling uaf on heap\n");
       }
-    } else if (std_strncmp(param, CONFIG_DEBUG_LOGGING,
-                           std_strlen(CONFIG_DEBUG_LOGGING)) == 0) {
+    } else if (strncmp(param, CONFIG_DEBUG_LOGGING,
+                           strlen(CONFIG_DEBUG_LOGGING)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
         frpc_config.debug_logging = true;
         FARF(ALWAYS, "fastrpc config enabling debug logging\n");
       }
-    } else if (std_strncmp(param, CONFIG_DEBUG_SYSMON_LOGGING,
-                           std_strlen(CONFIG_DEBUG_SYSMON_LOGGING)) == 0) {
+    } else if (strncmp(param, CONFIG_DEBUG_SYSMON_LOGGING,
+                           strlen(CONFIG_DEBUG_SYSMON_LOGGING)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
         frpc_config.sysmonreservedbit = true;
         FARF(ALWAYS, "fastrpc config enabling sysmon logging \n");
       }
-    } else if (std_strncmp(param, CONFIG_LOGPACKET,
-                           std_strlen(CONFIG_LOGPACKET)) == 0) {
+    } else if (strncmp(param, CONFIG_LOGPACKET,
+                           strlen(CONFIG_LOGPACKET)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL) {
         frpc_config.logPackets = true;
         FARF(ALWAYS, "fastrpc config enabling Log packets\n");
       }
-    } else if (std_strncmp(param, CONFIG_LEAK_DETECT,
-                           std_strlen(CONFIG_LEAK_DETECT)) == 0) {
+    } else if (strncmp(param, CONFIG_LEAK_DETECT,
+                           strlen(CONFIG_LEAK_DETECT)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.leak_detect = atoi(param);
         FARF(ALWAYS, "fastrpc config enabling leak detect with %d\n",
              frpc_config.leak_detect);
       }
-    } else if (std_strncmp(param, CONFIG_CALL_STACK_NUM,
-                           std_strlen(CONFIG_CALL_STACK_NUM)) == 0) {
+    } else if (strncmp(param, CONFIG_CALL_STACK_NUM,
+                           strlen(CONFIG_CALL_STACK_NUM)) == 0) {
       param = strtok_r(NULL, delim, &saveptr);
       if (param != NULL && atoi(param)) {
         frpc_config.num_call_stack = atoi(param);
         FARF(ALWAYS, "fastrpc config setting call stack num with %d\n",
              frpc_config.num_call_stack);
       }
- 		} else if (std_strncmp(param, CONFIG_SETDMABUFNAME,
-					std_strlen(CONFIG_SETDMABUFNAME)) == 0) {
+ 		} else if (strncmp(param, CONFIG_SETDMABUFNAME,
+					strlen(CONFIG_SETDMABUFNAME)) == 0) {
 			param = strtok_r (NULL, delim, &saveptr);
 			if (param != NULL && atoi(param))
 				frpc_config.setdmabufname = true;
@@ -405,9 +405,9 @@ int fastrpc_config_init() {
               ADSP_LIBRARY_PATH, ";", paths, numPaths, &len, &maxPathLen)));
   maxPathLen += 1;
   for (i = 0; i < (int)numPaths; ++i) {
-    std_strlcat(data_paths, paths[i].data,
+    strlcat(data_paths, paths[i].data,
                 sizeof(char) * maxPathLen * numPaths);
-    std_strlcat(data_paths, ", ", sizeof(char) * maxPathLen * numPaths);
+    strlcat(data_paths, ", ", sizeof(char) * maxPathLen * numPaths);
     if (0 == fastrpc_read_config_file_from_path(paths[i].data, config_file)) {
       file_found = 1;
       FARF(ALWAYS, "Read fastrpc config file %s found at %s\n", config_file,

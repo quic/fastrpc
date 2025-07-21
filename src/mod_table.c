@@ -252,11 +252,11 @@ static int static_mod_add(struct static_mod_table *me, struct static_mod **tbl,
                                                remote_arg *pra)) {
   int nErr = AEE_SUCCESS;
   struct static_mod *sm = 0;
-  int len = std_strlen(uri) + 1;
+  int len = strlen(uri) + 1;
   VERIFYC(NULL != (sm = ((struct static_mod *)calloc(
                        1, sizeof(struct static_mod) + len))),
           AEE_ENOMEMORY);
-  std_strlcpy(sm->uri, uri, len);
+  strlcpy(sm->uri, uri, len);
   sm->invoke = invoke;
   sm->handle_invoke = handle_invoke;
   RW_MUTEX_LOCK_WRITE(me->mut);
@@ -299,7 +299,7 @@ static int static_mod_table_register_const_handle(
     const char *uri, int (*invoke)(uint32_t sc, remote_arg *pra),
     int (*handle_invoke)(remote_handle64, uint32_t sc, remote_arg *pra)) {
   int nErr = AEE_SUCCESS;
-  int len = std_strlen(uri) + 1;
+  int len = strlen(uri) + 1;
   struct const_mod *dm = 0, *dmOld;
   VERIFYC(NULL != (dm = ((struct const_mod *)calloc(1, sizeof(struct open_mod) +
                                                            len))),
@@ -308,7 +308,7 @@ static int static_mod_table_register_const_handle(
   dm->invoke = invoke;
   dm->handle_invoke = handle_invoke;
   dm->h64 = remote;
-  std_strlcpy(dm->uri, uri, len);
+  strlcpy(dm->uri, uri, len);
 
   RW_MUTEX_LOCK_WRITE(me->mut);
   HASH_FIND_INT(me->constMods, &local, dmOld);
@@ -409,7 +409,7 @@ static int parse_uri(const char *uri, int urilen, struct parsed_uri *out) {
       }
       // expect '&' or end
       sbuf_char(&buf, '&');
-      if (!std_strncmp(name, "_modver", nameLen)) {
+      if (!strncmp(name, "_modver", nameLen)) {
         out->ver = value;
         out->verlen = valueLen;
       }
@@ -468,7 +468,7 @@ uint32_t is_reverse_handle_opened(struct open_mod_table *me,
   for (ii = 0; ii < MAX_REV_HANDLES; ++ii) {
     dmOld = (struct open_mod *)&(rev_handle_table[ii][0]);
     if (dmOld->key != 0) {
-      if (!std_strncmp(dmOld->uri, uri, MAX(strlen(dmOld->uri), strlen(uri)))) {
+      if (!strncmp(dmOld->uri, uri, MAX(strlen(dmOld->uri), strlen(uri)))) {
         keyfound = 1;
         break;
       }
@@ -515,18 +515,18 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
   VERIFYC(handle_idx < MAX_REV_HANDLES, AEE_EINVHANDLE);
   dm = (struct open_mod *)&(rev_handle_table[handle_idx][0]);
   memset(dm, 0, REV_HANDLE_SIZE);
-  std_memmove(dm->uri, uri, len + 1);
+  memmove(dm->uri, uri, len + 1);
   FARF(RUNTIME_RPC_HIGH, "calling parse_uri");
   (void)parse_uri(dm->uri, len, &dm->vals);
   FARF(RUNTIME_RPC_HIGH, "done calling parse_uri");
   FARF(RUNTIME_RPC_HIGH, "vals %d %d %d", dm->vals.filelen, dm->vals.symlen,
        dm->vals.verlen);
   if (dm->vals.filelen) {
-    int rv = std_snprintf(tmp, tmplen, "%.*s", dm->vals.filelen, dm->vals.file);
+    int rv = snprintf(tmp, tmplen, "%.*s", dm->vals.filelen, dm->vals.file);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   } else {
     int rv;
-    rv = std_snprintf(tmp, tmplen, "lib%s_skel.so", uri);
+    rv = snprintf(tmp, tmplen, "lib%s_skel.so", uri);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   }
 
@@ -549,7 +549,7 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
         break;
       }
     }
-    rv = std_snprintf(tmp, tmplen, "%s_system.so", tmp);
+    rv = snprintf(tmp, tmplen, "%s_system.so", tmp);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
     FARF(RUNTIME_RPC_HIGH, "calling dlopen for %s", tmp);
     dm->dlhandle = DLOPEN(tmp, RTLD_NOW);
@@ -561,16 +561,16 @@ static int open_mod_table_open_dynamic(struct open_mod_table *me,
   VERIFY(!(nErr = dlErr));
 
   if (dm->vals.symlen) {
-    int rv = std_snprintf(tmp, tmplen, "%.*s", dm->vals.symlen, dm->vals.sym);
+    int rv = snprintf(tmp, tmplen, "%.*s", dm->vals.symlen, dm->vals.sym);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   } else {
-    int rv = std_snprintf(tmp, tmplen, "%s_skel_invoke", uri);
+    int rv = snprintf(tmp, tmplen, "%s_skel_invoke", uri);
     VERIFYC((rv > 0) && (tmplen >= rv), AEE_EBADPARM);
   }
 
   FARF(RUNTIME_RPC_HIGH, "calling dlsym for %s", tmp);
   if (dm->vals.verlen &&
-      0 == std_strncmp(dm->vals.ver, "1.0", dm->vals.verlen)) {
+      0 == strncmp(dm->vals.ver, "1.0", dm->vals.verlen)) {
     dm->handle_invoke = (handle_invoke_fn)DLSYM(dm->dlhandle, tmp);
   } else {
     dm->invoke = (invoke_fn)DLSYM(dm->dlhandle, tmp);
@@ -618,7 +618,7 @@ bail:
     if (dlErr) {
       const char *dlerr = DLERROR();
       if (dlerr != 0) {
-        std_strlcpy(dlStr, dlerr, dlerrorLen);
+        strlcpy(dlStr, dlerr, dlerrorLen);
       }
       FARF(RUNTIME_RPC_HIGH, "dlerror:0x%x:%s", dlErr, dlerr == 0 ? "" : dlerr);
       nErr = 0;
@@ -657,7 +657,7 @@ static int open_mod_table_open_from_static(struct open_mod_table *me,
   int nErr = AEE_SUCCESS;
   struct static_mod *sm = 0;
   struct open_mod *dm = 0;
-  int len = std_strlen(uri);
+  int len = strlen(uri);
   int sz = len * 2 +
            sizeof("file:///lib_skel.so?_skel_handle_invoke&_modver=1.0") + 1;
   uint32_t handle_idx = 0, keyfound = 0;
@@ -678,7 +678,7 @@ static int open_mod_table_open_from_static(struct open_mod_table *me,
   RW_MUTEX_LOCK_READ(me->mut);
   HASH_FIND_STR(*tbl, uri, sm);
   RW_MUTEX_UNLOCK_READ(me->mut);
-  std_memmove(dm->uri, uri, len);
+  memmove(dm->uri, uri, len);
   if (sm == 0) {
     VERIFY(AEE_SUCCESS == (nErr = parse_uri(uri, len, &dm->vals)));
     FARF(RUNTIME_RPC_HIGH, "file %.*s %d", dm->vals.filelen, dm->vals.file,
@@ -688,12 +688,12 @@ static int open_mod_table_open_from_static(struct open_mod_table *me,
     FARF(RUNTIME_RPC_HIGH, "version %.*s %d", dm->vals.verlen, dm->vals.ver,
          dm->vals.verlen);
     if (dm->vals.verlen) {
-      int rv = std_snprintf(dm->uri, sz, "file:///%.*s?%.*s&_modver=%.*s",
+      int rv = snprintf(dm->uri, sz, "file:///%.*s?%.*s&_modver=%.*s",
                             dm->vals.filelen, dm->vals.file, dm->vals.symlen,
                             dm->vals.sym, dm->vals.verlen, dm->vals.ver);
       VERIFYC((rv > 0) && (sz >= rv), AEE_EBADPARM);
     } else {
-      int rv = std_snprintf(dm->uri, sz, "file://%.*s?%.*s", dm->vals.filelen,
+      int rv = snprintf(dm->uri, sz, "file://%.*s?%.*s", dm->vals.filelen,
                             dm->vals.file, dm->vals.symlen, dm->vals.sym);
       VERIFYC((rv > 0) && (sz >= rv), AEE_EBADPARM);
     }
@@ -840,7 +840,7 @@ bail:
     const char *error = DLERROR();
     nErr = dlErr;
     if (error != 0) {
-      std_strlcpy(errStr, error, errStrLen);
+      strlcpy(errStr, error, errStrLen);
     }
     VERIFY_EPRINTF("Error %x: open modtable close failed. dlerr %s\n", nErr,
                    error);

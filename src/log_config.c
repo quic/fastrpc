@@ -100,14 +100,14 @@ static int parseLogConfig(int dom, unsigned int mask, char *filenames) {
   VERIFYC(filenames != NULL, AEE_ERPC);
 
   VERIFYC(NULL !=
-              (tempFiles = malloc(sizeof(char) * (std_strlen(filenames) + 1))),
+              (tempFiles = malloc(sizeof(char) * (strlen(filenames) + 1))),
           AEE_ENOMEMORY);
-  std_strlcpy(tempFiles, filenames, std_strlen(filenames) + 1);
+  strlcpy(tempFiles, filenames, strlen(filenames) + 1);
 
   // Get the number of folders and max size needed
   path = strtok_r(tempFiles, delim, &saveptr);
   while (path != NULL) {
-    maxPathLen = STD_MAX(maxPathLen, (int)std_strlen(path)) + 1;
+    maxPathLen = STD_MAX(maxPathLen, (int)strlen(path)) + 1;
     filesToLogLen++;
     path = strtok_r(NULL, delim, &saveptr);
   }
@@ -126,14 +126,14 @@ static int parseLogConfig(int dom, unsigned int mask, char *filenames) {
   }
 
   // Get the number of folders and max size needed
-  std_strlcpy(tempFiles, filenames, std_strlen(filenames) + 1);
+  strlcpy(tempFiles, filenames, strlen(filenames) + 1);
   i = 0;
   path = strtok_r(tempFiles, delim, &saveptr);
   while (path != NULL) {
     VERIFYC((filesToLog != NULL) && (filesToLog[i].data != NULL) &&
                 filesToLog[i].dataLen >= (int)strlen(path),
             AEE_ERPC);
-    std_strlcpy(filesToLog[i].data, path, filesToLog[i].dataLen);
+    strlcpy(filesToLog[i].data, path, filesToLog[i].dataLen);
     VERIFY_IPRINTF("%s: %s\n", log_config_watcher[dom].fileToWatch,
                    filesToLog[i].data);
     path = strtok_r(NULL, delim, &saveptr);
@@ -194,9 +194,9 @@ static int readLogConfigFromPath(int dom, const char *base, const char *file) {
   remote_handle64 handle;
   uint64_t farf_logmask = 0;
 
-  len = std_snprintf(0, 0, "%s/%s", base, file) + 1;
+  len = snprintf(0, 0, "%s/%s", base, file) + 1;
   VERIFYC(NULL != (path = malloc(sizeof(char) * len)), AEE_ENOMEMORY);
-  std_snprintf(path, (int)len, "%s/%s", base, file);
+  snprintf(path, (int)len, "%s/%s", base, file);
   VERIFY(AEE_SUCCESS == (nErr = apps_std_fileExists(path, &fileExists)));
   if (fileExists == false) {
     FARF(RUNTIME_RPC_HIGH, "%s: Couldn't find file: %s\n",
@@ -322,14 +322,14 @@ static int readLogConfigFromEvent(int dom, struct inotify_event *event) {
   // Ensure we are looking at the right file
   for (i = 0; i < (int)log_config_watcher[dom].numPaths; ++i) {
     if (log_config_watcher[dom].wd[i] == event->wd) {
-      if (std_strcmp(log_config_watcher[dom].fileToWatch, event->name) == 0) {
+      if (strcmp(log_config_watcher[dom].fileToWatch, event->name) == 0) {
         return readLogConfigFromPath(dom, log_config_watcher[dom].paths[i].data,
                                      log_config_watcher[dom].fileToWatch);
-      } else if (std_strcmp(log_config_watcher[dom].asidFileToWatch,
+      } else if (strcmp(log_config_watcher[dom].asidFileToWatch,
                             event->name) == 0) {
         return readLogConfigFromPath(dom, log_config_watcher[dom].paths[i].data,
                                      log_config_watcher[dom].asidFileToWatch);
-      } else if (std_strcmp(log_config_watcher[dom].pidFileToWatch,
+      } else if (strcmp(log_config_watcher[dom].pidFileToWatch,
                             event->name) == 0) {
         return readLogConfigFromPath(dom, log_config_watcher[dom].paths[i].data,
                                      log_config_watcher[dom].pidFileToWatch);
@@ -349,10 +349,10 @@ static int resetLogConfigFromEvent(int dom, struct inotify_event *event) {
   // Ensure we are looking at the right file
   for (i = 0; i < (int)log_config_watcher[dom].numPaths; ++i) {
     if (log_config_watcher[dom].wd[i] == event->wd) {
-      if ((std_strcmp(log_config_watcher[dom].fileToWatch, event->name) == 0) ||
-          (std_strcmp(log_config_watcher[dom].asidFileToWatch, event->name) ==
+      if ((strcmp(log_config_watcher[dom].fileToWatch, event->name) == 0) ||
+          (strcmp(log_config_watcher[dom].asidFileToWatch, event->name) ==
            0) ||
-          (std_strcmp(log_config_watcher[dom].pidFileToWatch, event->name) ==
+          (strcmp(log_config_watcher[dom].pidFileToWatch, event->name) ==
            0)) {
         if (log_config_watcher[dom].adspmsgdEnabled == true) {
           adspmsgd_stop(dom);
@@ -416,7 +416,7 @@ static void *file_watcher_thread(void *arg) {
       errno = current_errno;
       // User has not set the env variable. Get default search paths.
       if (ret != 0)
-        std_memmove(data_paths, DSP_SEARCH_PATH, std_strlen(DSP_SEARCH_PATH));
+        memmove(data_paths, DSP_SEARCH_PATH, strlen(DSP_SEARCH_PATH));
       VERIFY_WPRINTF("%s: Couldn't find file %s, errno (%s) at %s\n", __func__,
                      log_config_watcher[dom].fileToWatch, strerror(errno),
                      data_paths);

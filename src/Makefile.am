@@ -30,10 +30,7 @@ LIBDSPRPC_SOURCES = \
 		std_path.c \
 		std_mem.c \
 		std_dtoa.c \
-		std_strlprintf.c \
 		BufBound.c \
-		std_SwapBytes.c \
-		smath.c \
 		atomic.c \
 		cae.c \
 		platform_libs.c \

@@ -22,27 +22,6 @@ SERVICES:     apiOne std lib memory operations stuff
 #pragma weak memsmove
 #endif /*__hexagon__*/
 
-void* std_memset(void* p, int c, int nLen)
-{
-   if (nLen < 0) {
-      return p;
-   }
-   return memset(p, c, (size_t)nLen);
-}
-
-void* std_memmove(void* pTo, const void* cpFrom, int nLen)
-{
-   if (nLen <= 0) {
-      return pTo;
-   }
-#ifdef __hexagon__
-   std_memsmove(pTo, (size_t)nLen, cpFrom, (size_t)nLen);
-   return pTo;
-#else
-   return memmove(pTo, cpFrom, (size_t)nLen);
-#endif
-}
-
 int std_memscpy(void *dst, int dst_size, const void *src, int src_size){
     size_t copy_size = 0;
 
