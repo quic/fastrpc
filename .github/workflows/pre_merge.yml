@@ -21,7 +21,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      docker_image: kmake-image:ver.1.0
+      docker_image: fastrpc-image:latest
       build_matrix: ${{ needs.loading.outputs.build_matrix }}
 
   test:
@@ -29,6 +29,6 @@ jobs:
     uses: ./.github/workflows/test.yml
     secrets: inherit
     with:
-      docker_image: kmake-image:ver.1.0
+      docker_image: fastrpc-image:latest
       build_matrix: ${{ needs.loading.outputs.build_matrix }}
       full_matrix: ${{ needs.loading.outputs.full_matrix }}

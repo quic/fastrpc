@@ -6,7 +6,6 @@ on:
         description: Docker image
         type: string
         required: true
-
       build_matrix:
         description: Build matrix for multi target builds
         type: string
@@ -15,18 +14,24 @@ on:
 jobs:
   build:
     runs-on:
-      group: GHA-FastRPC-Stg-SelfHosted-RG
-      labels: [ self-hosted, fastrpc-stg-u2204-x64-large-od-ephem ] 
+      group: GHA-fastrpc-Prd-SelfHosted-RG
+      labels: ["self-hosted", "fastrpc-prd-u2404-x64-large-od-ephem"]
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Pull docker image
-        uses: ./.github/actions/pull_docker_image
+      - name: Build fatrpc docker image
+        uses: ./.github/actions/build_docker_image
         with:
           image: ${{ inputs.docker_image }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+      - name: Sync codebase
+        id: sync
+        uses: ./.github/actions/sync
 
       - name: Build workspace
         id: build_workspace
@@ -38,30 +43,33 @@ jobs:
       - name: Create file list for artifacts upload
         run: |
           workspace=${{ steps.sync.outputs.workspace_path }}
-          touch $workspace/../artifacts/file_list.txt
-          cd $workspace/../kobj/tar-install
+          touch $workspace/artifacts/file_list.txt
+          ls -la $workspace/artifacts
+          cd $workspace/kobj/tar-install
           tar -cJf ${{ github.workspace }}/modules.tar.xz lib/modules/
           
-          echo "${{ github.workspace }}/modules.tar.xz" >> $workspace/../artifacts/file_list.txt
-          echo "$workspace/../kobj/arch/arm64/boot/Image" >> $workspace/../artifacts/file_list.txt
-          echo "$workspace/../kobj/vmlinux" >> $workspace/../artifacts/file_list.txt
+          echo "${{ github.workspace }}/modules.tar.xz" >> $workspace/artifacts/file_list.txt
+          echo "$workspace/kobj/arch/arm64/boot/Image" >> $workspace/artifacts/file_list.txt
+          echo "$workspace/kobj/vmlinux" >> $workspace/artifacts/file_list.txt
 
           # Loop through all machines from the build_matrix input
           machines='${{ inputs.build_matrix }}'
           for machine in $(echo "$machines" | jq -r '.[].machine'); do
-            echo "$workspace/../kobj/arch/arm64/boot/dts/qcom/${machine}.dtb" >> $workspace/../artifacts/file_list.txt
+            echo "$workspace/kobj/arch/arm64/boot/dts/qcom/${machine}.dtb" >> $workspace/artifacts/file_list.txt
           done
 
       - name: Upload artifacts
         uses: ./.github/actions/aws_s3_helper
         with:
-          s3_bucket: qli-stg-fastrpc-gh-artifacts
-          local_file: ${{ steps.sync.outputs.workspace_path }}/../artifacts/file_list.txt
+          s3_bucket: qli-prd-fastrpc-gh-artifacts
+          local_file: ${{ steps.sync.outputs.workspace_path }}/artifacts/file_list.txt
           mode: multi-upload
 
       - name: Clean up
         run: |
           rm -rf artifacts
+          rm -rf fastrpc_libs
+          rm -rf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu
           rm -rf kobj
           rm -rf modules.tar.xz
 
