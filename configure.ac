@@ -7,7 +7,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
 
-AM_INIT_AUTOMAKE(1.10 foreign)
+AM_INIT_AUTOMAKE(1.10 foreign subdir-objects)
 LT_INIT(disable-static)
 
 AS_CASE([$host],
