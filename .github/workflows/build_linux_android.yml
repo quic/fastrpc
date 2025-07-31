@@ -3,11 +3,11 @@ name: CI - Linux Android Compilation
 on:
   push:
     branches:
-    - 'development'
+    - 'main'
 
   pull_request:
     branches:
-    - 'development'
+    - 'main'
 
   workflow_dispatch:
 

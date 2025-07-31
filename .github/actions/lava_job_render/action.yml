@@ -35,6 +35,7 @@ runs:
           const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
           // Extract URLs into variables
           const modulesTarUrl = findUrlByFilename('modules.tar.xz');
+          const ramdiskUrl = findUrlByFilename('ramdisk.gz');
           const imageUrl = findUrlByFilename('Image');
           const vmlinuxUrl = findUrlByFilename('vmlinux');
           const dtbFilename = `${process.env.MACHINE}.dtb`;
@@ -43,6 +44,7 @@ runs:
           core.setOutput('modules_url', modulesTarUrl);
           core.setOutput('image_url', imageUrl);
           core.setOutput('vmlinux_url', vmlinuxUrl);
+          core.setOutput('ramdisk_url', ramdiskUrl);
           core.setOutput('dtb_url', dtbUrl);
           console.log(`Modules URL: ${modulesTarUrl}`);
           console.log(`Image URL: ${imageUrl}`);
@@ -78,6 +80,7 @@ runs:
         echo "Creating job definition"
         metadata_url="${{ steps.upload_metadata.outputs.presigned_url }}"
         vmlinux_url="${{ steps.process_urls.outputs.vmlinux_url }}"
+        ramdisk_url="${{ steps.process_urls.outputs.ramdisk_url }}"
         image_url="${{ steps.process_urls.outputs.image_url }}"
         modules_url="${{ steps.process_urls.outputs.modules_url }}"
         # Create the job definition using the processed URLs
@@ -155,4 +158,4 @@ runs:
           sh -c 'export BOOT_METHOD=fastboot && \
             export TARGET=${TARGET} && \
             export TARGET_DTB=${TARGET_DTB} && \
-            python3 lava_Job_definition_generator.py --localjson ./data/cloudData.json --qcom-next-ci-premerge'
+            python3 lava_Job_definition_generator.py --localjson ./data/cloudData.json --fastrpc-premerge'

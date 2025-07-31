@@ -3,11 +3,11 @@ name: CI - Linux GNU Compilation
 on:
   push:
     branches:
-    - 'development'
+    - 'main'
 
   pull_request:
     branches:
-    - 'development'
+    - 'main'
 
   workflow_dispatch:
 
