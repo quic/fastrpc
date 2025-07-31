@@ -109,6 +109,14 @@ runs:
           -e vmlinux_url="$vmlinux_url" \
           ${{ inputs.docker_image }} \
           jq '.artifacts.vmlinux = env.vmlinux_url' data/cloudData.json > temp.json && mv temp.json data/cloudData.json
+        # using ramdisk_url
+        docker run -i --rm \
+          --user "$(id -u):$(id -g)" \
+          --workdir="$PWD" \
+          -v "$(dirname "$PWD")":"$(dirname "$PWD")" \
+          -e ramdisk_url="$ramdisk_url" \
+          ${{ inputs.docker_image }} \
+          jq '.artifacts.ramdisk = env.ramdisk_url' data/cloudData.json > temp.json && mv temp.json data/cloudData.json
         # using modules_url
         docker run -i --rm \
           --user "$(id -u):$(id -g)" \
@@ -118,20 +126,11 @@ runs:
           ${{ inputs.docker_image }} \
           jq '.artifacts.modules = env.modules_url' data/cloudData.json > temp.json && mv temp.json data/cloudData.json
 
-    - name: Update firmware and ramdisk
+    - name: Update firmware 
       shell: bash
       run: |
         cd ../job_render
-        ramdisk_url="$(aws s3 presign s3://qli-prd-fastrpc-gh-artifacts/meta-qcom/initramfs-kerneltest-full-image-qcom-armv8a.cpio.gz --expires 7600)"
         firmware_url="$(aws s3 presign s3://qli-prd-fastrpc-gh-artifacts/meta-qcom/initramfs-firmware-${{ env.FIRMWARE }}-image-qcom-armv8a.cpio.gz --expires 7600)"
-        # using ramdisk_url
-        docker run -i --rm \
-          --user "$(id -u):$(id -g)" \
-          --workdir="$PWD" \
-          -v "$(dirname "$PWD")":"$(dirname "$PWD")" \
-          -e ramdisk_url="$ramdisk_url" \
-          ${{ inputs.docker_image }} \
-          jq '.artifacts.ramdisk = env.ramdisk_url' data/cloudData.json > temp.json && mv temp.json data/cloudData.json
 
         # using firmware_url
         docker run -i --rm \

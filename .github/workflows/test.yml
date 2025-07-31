@@ -19,8 +19,6 @@ on:
         description: Full matrix containing lava description
         type: string
         required: true
-
-
 jobs:
   test:
     runs-on:
