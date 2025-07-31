@@ -1,4 +1,4 @@
-name: CI - Linux Android Compilation
+name: CI - Linux GNU Compilation / ARM64
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Git checkout
@@ -24,26 +24,25 @@ jobs:
       run: |
         sudo apt-get install automake
     
-    - name: Download Android NDK and unzip 
+    - name: Download Linaro tools and untar
       run: |
-        wget -q https://dl.google.com/android/repository/android-ndk-r27-linux.zip
-        unzip -q android-ndk-r27-linux.zip
+        wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+        tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
 
-    - name: Set Up Build Environment, compile code for Android platform
+    - name: Set Up Build Environment and compile code for LE platform
       run: |
-        echo "Set Up Build Environment"
-        export ANDROID_NDK_HOME="$PWD/android-ndk-r27" 
-        export PATH="$PATH:$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/"        
-        export CC=aarch64-linux-android34-clang
-        export CXX=aarch64-linux-android34-clang++
-        export AS=llvm-as
-        export LD=ld
-        export RANLIB=llvm-ranlib
-        export STRIP=llvm-strip
-
-        echo "Compile the source code"
-        make -v
-        ./gitcompile --host=aarch64-linux-android
+  
+        # Set Up Build Environment
+        export PATH="$PWD/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu/bin/:$PATH"
+        export CC=aarch64-linux-gnu-gcc
+        export CXX=aarch64-linux-gnu-g++
+        export AS=aarch64-linux-gnu-as
+        export LD=aarch64-linux-gnu-ld
+        export RANLIB=aarch64-linux-gnu-ranlib
+        export STRIP=aarch64-linux-gnu-strip
+        
+        # Compile the source code
+        ./gitcompile --host=aarch64-linux-gnu
 
     - name: Verify the compiled binaries
       run: |
@@ -61,4 +60,3 @@ jobs:
         do 
          if [ -f $File ] ; then echo $File " - Exists" ; else echo $File " - Not Exists" && exit -1 ; fi
         done
-

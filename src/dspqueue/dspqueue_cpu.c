@@ -138,8 +138,13 @@ static void *dspqueue_packet_callback_thread(void *arg);
 #define cache_flush_word(x)
 #define cache_invalidate_line(x)
 #define cache_flush_line(x)
+#ifdef __ARM_ARCH
 #define barrier_full() __asm__ __volatile__("dmb sy" : : : "memory")
 #define barrier_store() __asm__ __volatile__("dmb st" : : : "memory");
+#else
+#define barrier_full() /* FIXME */
+#define barrier_store() /* FIXME */
+#endif
 #define cache_flush(a, l)
 #define cache_invalidate(a, l)
 #define cache_flush_invalidate(a, l)

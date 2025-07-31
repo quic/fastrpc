@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([libadsprpc.so], [0.0.1])
+AC_INIT([fastrpc], [0.0.1])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -45,6 +45,7 @@ AM_PROG_CC_C_O
 
 AC_CONFIG_FILES([
 Makefile
+inc/Makefile
 src/Makefile
 test/Makefile
 ])
