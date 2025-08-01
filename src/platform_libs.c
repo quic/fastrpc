@@ -4,7 +4,6 @@
 #define FARF_ERROR 1
 #include "platform_libs.h"
 #include "AEEStdErr.h"
-#include "AEEatomic.h"
 #include "AEEstd.h"
 #include "HAP_farf.h"
 #include "verify.h"
@@ -12,13 +11,11 @@
 #include <stdio.h>
 
 extern struct platform_lib *(*pl_list[])(void);
-static uint32 atomic_IfNotThenAdd(uint32 *volatile puDest, uint32 uCompare,
-                                  int nAdd);
 
 int pl_lib_init(struct platform_lib *(*plf)(void)) {
   int nErr = AEE_SUCCESS;
   struct platform_lib *pl = plf();
-  if (1 == atomic_Add(&pl->uRefs, 1)) {
+  if (!atomic_fetch_add(&pl->uRefs, 1)) {
     if (pl->init) {
       FARF(RUNTIME_RPC_HIGH, "calling init for %s", pl->name);
       nErr = pl->init();
@@ -34,7 +31,7 @@ int pl_lib_init(struct platform_lib *(*plf)(void)) {
 
 void pl_lib_deinit(struct platform_lib *(*plf)(void)) {
   struct platform_lib *pl = plf();
-  if (1 == atomic_IfNotThenAdd(&pl->uRefs, 0, -1)) {
+  if (1 == atomic_fetch_sub(&pl->uRefs, 1)) {
     if (pl->deinit && pl->nErr == 0) {
       pl->deinit();
     }
@@ -75,25 +72,4 @@ static void pl_deinit_lst(struct platform_lib *(*lst[])(void)) {
 void pl_deinit(void) {
   pl_deinit_lst(pl_list);
   return;
-}
-
-static uint32 atomic_IfNotThenAdd(uint32 *volatile puDest, uint32 uCompare,
-                                  int nAdd) {
-  uint32 uPrev;
-  uint32 uCurr;
-  uint32 sum;
-  do {
-    // check puDest
-    uCurr = *puDest;
-    uPrev = uCurr;
-    // see if we need to update it
-    if (uCurr != uCompare) {
-      // update it
-      __builtin_add_overflow(uCurr, nAdd, &sum);
-      uPrev = atomic_CompareAndExchange(puDest, sum, uCurr);
-    }
-    // verify that the value was the same during the update as when we decided
-    // to update
-  } while (uCurr != uPrev);
-  return uPrev;
 }

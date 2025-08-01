@@ -13,87 +13,13 @@ DESCRIPTION:  definition of basic types, constants,
 
 =======================================================================
 */
-#include <stdint.h>
 
-#if defined(COMDEF_H) /* guards against a known re-definer */
-#define _BOOLEAN_DEFINED
-#define _UINT32_DEFINED
-#define _UINT16_DEFINED
-#define _UINT8_DEFINED
-#define _INT32_DEFINED
-#define _INT16_DEFINED
-#define _INT8_DEFINED
-#define _UINT64_DEFINED
-#define _INT64_DEFINED
-#define _BYTE_DEFINED
-#endif /* #if !defined(COMDEF_H) */
+#include <stdbool.h>
+#include <stdint.h>
 
 /* -----------------------------------------------------------------------
 ** Standard Types
 ** ----------------------------------------------------------------------- */
-
-/* The following definitions are the same accross platforms.  This first
-** group are the sanctioned types.
-*/
-/** @defgroup  stddef standard data type definitions
-*  @{
-*/
-#ifndef _BOOLEAN_DEFINED
-typedef  unsigned char      boolean;     /**<  Boolean value type. */
-#define _BOOLEAN_DEFINED
-#endif
-
-#ifndef _UINT32_DEFINED
-typedef  uint32_t           uint32;      /**<  Unsigned 32-bit value */
-#define _UINT32_DEFINED
-#endif
-
-#ifndef _UINT16_DEFINED
-typedef  unsigned short     uint16;      /**< Unsigned 16-bit value */
-#define _UINT16_DEFINED
-#endif
-
-#ifndef _UINT8_DEFINED
-typedef  unsigned char      uint8;       /**< Unsigned 8-bit value */
-#define _UINT8_DEFINED
-#endif
-
-#ifndef _INT32_DEFINED
-typedef  int32_t            int32;       /**< Signed 32-bit value */
-#define _INT32_DEFINED
-#endif
-
-#ifndef _INT16_DEFINED
-typedef  signed short       int16;       /**< Signed 16-bit value */
-#define _INT16_DEFINED
-#endif
-
-#ifndef _INT8_DEFINED
-typedef  signed char        int8;        /**< Signed 8-bit value */
-#define _INT8_DEFINED
-#endif
-
-#ifndef _INT64_DEFINED
-#if defined(__GNUC__)
-#define __int64 long long
-#endif
-typedef  __int64            int64;       /**< Signed 64-bit value */
-#define _INT64_DEFINED
-#endif
-
-#ifndef _UINT64_DEFINED
-typedef  unsigned __int64   uint64;      /**< Unsigned 64-bit value */
-#define _UINT64_DEFINED
-#endif
-
-#ifndef _BYTE_DEFINED
-typedef  unsigned char      byte;        /**< byte type */
-#define  _BYTE_DEFINED
-#endif
-
-/**
- * @}
- */
 
  /** @defgroup  stdret standard return values
 *  @{
@@ -101,27 +27,27 @@ typedef  unsigned char      byte;        /**< byte type */
 
 //! @cond Doxygen_Suppress
 #ifndef _AEEUID_DEFINED
-typedef uint32             AEEUID;
+typedef uint32_t             AEEUID;
 #define _AEEUID_DEFINED
 #endif
 
 #ifndef _AEEIID_DEFINED
-typedef uint32             AEEIID;
+typedef uint32_t             AEEIID;
 #define _AEEIID_DEFINED
 #endif
 
 #ifndef _AEECLSID_DEFINED
-typedef uint32             AEECLSID;
+typedef uint32_t             AEECLSID;
 #define _AEECLSID_DEFINED
 #endif
 
 #ifndef _AEEPRIVID_DEFINED
-typedef uint32             AEEPRIVID;
+typedef uint32_t             AEEPRIVID;
 #define _AEEPRIVID_DEFINED
 #endif
 
 #ifndef _AECHAR_DEFINED
-typedef uint16             AECHAR;
+typedef uint16_t             AECHAR;
 #define _AECHAR_DEFINED
 #endif
 //! @endcond
@@ -158,57 +84,6 @@ typedef int                AEEResult;
 *  @{
 */
 
-#ifndef TRUE
-#define TRUE   1   /**< Boolean true value. */
-#endif
-
-#ifndef FALSE
-#define FALSE  0   /**< Boolean false value. */
-#endif
-
-#ifndef NULL
-#define NULL  0     /**< NULL = 0. */
-#endif
-
-#ifndef MIN_INT8
-#define MIN_INT8 -128           /**< MIN 8-bit integer */
-#endif
-#ifndef MIN_INT16
-#define MIN_INT16 -32768        /**< MIN 16-bit integer */
-#endif
-#ifndef MIN_INT32
-#define MIN_INT32 (~0x7fffffff)   /**<  MIN 32-bit unsigned */
-#endif
-#ifndef MIN_INT64
-#define MIN_INT64 (~0x7fffffffffffffffLL) /**< MIN 64-bit integer */
-#endif
-
-#ifndef MAX_INT8
-#define MAX_INT8 127                /**< MAX 8-bit integer */
-#endif
-#ifndef MAX_INT16
-#define MAX_INT16 32767             /**< MAX 16-bit integer */
-#endif
-#ifndef MAX_INT32
-#define MAX_INT32 2147483647        /**< MAX 32-bit integer */
-#endif
-#ifndef MAX_INT64
-#define MAX_INT64 9223372036854775807LL     /**< MAX 64-bit integer */
-#endif
-
-#ifndef MAX_UINT8
-#define MAX_UINT8 255                   /**< MAX 8-bit unsigned integer */
-#endif
-#ifndef MAX_UINT16
-#define MAX_UINT16 65535                /**< MAX 16-bit unsigned integer */
-#endif
-#ifndef MAX_UINT32
-#define MAX_UINT32 4294967295u          /**< MAX 32-bit unsigned integer */
-#endif
-#ifndef MAX_UINT64
-#define MAX_UINT64 18446744073709551615uLL      /**< MAX 64-bit unsigned integer */
-#endif
-
 //! @cond Doxygen_Suppress
 #ifndef MIN_AECHAR
 #define MIN_AECHAR 0
@@ -241,7 +116,7 @@ typedef int                AEEResult;
 //! @cond Doxygen_Suppress
 #ifndef __QIDL_WCHAR_T_DEFINED__
 #define __QIDL_WCHAR_T_DEFINED__
-typedef uint16 _wchar_t;
+typedef uint16_t _wchar_t;
 #endif
 
 
@@ -293,7 +168,7 @@ Description:
      or AEEPRIVID.
 
 Definition:
-    typedef uint32             AEEUID
+    typedef uint32_t             AEEUID
 
 =======================================================================
 
@@ -304,7 +179,7 @@ Description:
      of AEEUID.
 
 Definition:
-    typedef uint32             AEEIID
+    typedef uint32_t             AEEIID
 
 =======================================================================
 
@@ -315,7 +190,7 @@ Description:
      of AEEUID.
 
 Definition:
-    typedef uint32             AEECLSID
+    typedef uint32_t             AEECLSID
 
 =======================================================================
 
@@ -326,7 +201,7 @@ Description:
      of AEEUID.
 
 Definition:
-    typedef uint32             AEEPRIVID
+    typedef uint32_t             AEEPRIVID
 
 =======================================================================
 
@@ -336,7 +211,7 @@ Description:
    This is a 16-bit character type.
 
 Definition:
-   typedef uint16             AECHAR
+   typedef uint16_t             AECHAR
 
 =======================================================================
 
@@ -357,7 +232,7 @@ Description:
    type.
 
 Definition:
-   typedef uint16             _wchar_t
+   typedef uint16_t             _wchar_t
 
 See Also:
    _cstring_t

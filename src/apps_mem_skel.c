@@ -338,7 +338,7 @@ struct SequenceType {
    uint32_t               routSizePrimROut;
 };
 
-//byte offset from the start of the case values for
+//unsigned char offset from the start of the case values for
 //this unions case value array.  it MUST be aligned
 //at the alignment requrements for the descriptor
 //
@@ -490,7 +490,7 @@ static __inline int _skel_method_1(int (*_pfn)(int, int, int), uint32_t _sc, rem
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_2(int (*_pfn)(uint64, int), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_2(int (*_pfn)(uint64_t, int), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint64_t _in0[1] = {0};
    uint32_t _in1[1] = {0};
@@ -506,11 +506,11 @@ static __inline int _skel_method_2(int (*_pfn)(uint64, int), uint32_t _sc, remot
    _primIn = _pra[0].buf.pv;
    _COPY(_in0, 0, _primIn, 0, 8);
    _COPY(_in1, 0, _primIn, 8, 4);
-   _TRY(_nErr, _pfn((uint64)*_in0, (int)*_in1));
+   _TRY(_nErr, _pfn((uint64_t)*_in0, (int)*_in1));
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_3(int (*_pfn)(int, int, uint64*, uint64*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_3(int (*_pfn)(int, int, uint64_t*, uint64_t*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    uint32_t _in1[1] = {0};
@@ -533,13 +533,13 @@ static __inline int _skel_method_3(int (*_pfn)(int, int, uint64*, uint64*), uint
    _primROut = _pra[(_numIn[0] + 1)].buf.pv;
    _COPY(_in0, 0, _primIn, 0, 4);
    _COPY(_in1, 0, _primIn, 4, 4);
-   _TRY(_nErr, _pfn((int)*_in0, (int)*_in1, (uint64*)_rout2, (uint64*)_rout3));
+   _TRY(_nErr, _pfn((int)*_in0, (int)*_in1, (uint64_t*)_rout2, (uint64_t*)_rout3));
    _COPY(_primROut, 0, _rout2, 0, 8);
    _COPY(_primROut, 8, _rout3, 0, 8);
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_4(int (*_pfn)(uint64, int64), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_4(int (*_pfn)(uint64_t, int64_t), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint64_t _in0[1] = {0};
    uint64_t _in1[1] = {0};
@@ -555,11 +555,11 @@ static __inline int _skel_method_4(int (*_pfn)(uint64, int64), uint32_t _sc, rem
    _primIn = _pra[0].buf.pv;
    _COPY(_in0, 0, _primIn, 0, 8);
    _COPY(_in1, 0, _primIn, 8, 8);
-   _TRY(_nErr, _pfn((uint64)*_in0, (int64)*_in1));
+   _TRY(_nErr, _pfn((uint64_t)*_in0, (int64_t)*_in1));
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_5(int (*_pfn)(int, uint32, uint32, uint64, int64, uint64*, uint64*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_5(int (*_pfn)(int, uint32_t, uint32_t, uint64_t, int64_t, uint64_t*, uint64_t*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    uint32_t _in1[1] = {0};
@@ -588,13 +588,13 @@ static __inline int _skel_method_5(int (*_pfn)(int, uint32, uint32, uint64, int6
    _COPY(_in2, 0, _primIn, 8, 4);
    _COPY(_in3, 0, _primIn, 16, 8);
    _COPY(_in4, 0, _primIn, 24, 8);
-   _TRY(_nErr, _pfn((int)*_in0, (uint32)*_in1, (uint32)*_in2, (uint64)*_in3, (int64)*_in4, (uint64*)_rout5, (uint64*)_rout6));
+   _TRY(_nErr, _pfn((int)*_in0, (uint32_t)*_in1, (uint32_t)*_in2, (uint64_t)*_in3, (int64_t)*_in4, (uint64_t*)_rout5, (uint64_t*)_rout6));
    _COPY(_primROut, 0, _rout5, 0, 8);
    _COPY(_primROut, 8, _rout6, 0, 8);
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_6(int (*_pfn)(uint32, int32), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_6(int (*_pfn)(uint32_t, int32_t), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    uint32_t _in1[1] = {0};
@@ -610,11 +610,11 @@ static __inline int _skel_method_6(int (*_pfn)(uint32, int32), uint32_t _sc, rem
    _primIn = _pra[0].buf.pv;
    _COPY(_in0, 0, _primIn, 0, 4);
    _COPY(_in1, 0, _primIn, 4, 4);
-   _TRY(_nErr, _pfn((uint32)*_in0, (int32)*_in1));
+   _TRY(_nErr, _pfn((uint32_t)*_in0, (int32_t)*_in1));
    _CATCH(_nErr) {}
    return _nErr;
 }
-static __inline int _skel_method_7(int (*_pfn)(int, uint32, uint32, uint32, int32, uint32*, uint32*), uint32_t _sc, remote_arg* _pra) {
+static __inline int _skel_method_7(int (*_pfn)(int, uint32_t, uint32_t, uint32_t, int32_t, uint32_t*, uint32_t*), uint32_t _sc, remote_arg* _pra) {
    remote_arg* _praEnd = 0;
    uint32_t _in0[1] = {0};
    uint32_t _in1[1] = {0};
@@ -643,7 +643,7 @@ static __inline int _skel_method_7(int (*_pfn)(int, uint32, uint32, uint32, int3
    _COPY(_in2, 0, _primIn, 8, 4);
    _COPY(_in3, 0, _primIn, 12, 4);
    _COPY(_in4, 0, _primIn, 16, 4);
-   _TRY(_nErr, _pfn((int)*_in0, (uint32)*_in1, (uint32)*_in2, (uint32)*_in3, (int32)*_in4, (uint32*)_rout5, (uint32*)_rout6));
+   _TRY(_nErr, _pfn((int)*_in0, (uint32_t)*_in1, (uint32_t)*_in2, (uint32_t)*_in3, (int32_t)*_in4, (uint32_t*)_rout5, (uint32_t*)_rout6));
    _COPY(_primROut, 0, _rout5, 0, 4);
    _COPY(_primROut, 4, _rout6, 0, 4);
    _CATCH(_nErr) {}

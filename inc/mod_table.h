@@ -16,7 +16,7 @@ extern "C"
  * multi-domain support
  *
  * multi domain modules return remote_handl64 on open/close, but mod_table
- * creates uint32 handles as the "remote" facing handle.  These fit nicely
+ * creates uint32_t handles as the "remote" facing handle.  These fit nicely
  * into the transport layer.
  *
  */
@@ -34,12 +34,12 @@ extern "C"
   *   }
   *
   */
-int mod_table_register_static(const char* name, int (*pfn)(uint32 sc, remote_arg* pra));
+int mod_table_register_static(const char* name, int (*pfn)(uint32_t sc, remote_arg* pra));
 
 /**
   * same as register_static, but module with user defined handle lifetimes.
   */
-int mod_table_register_static1(const char* uri, int (*pfn)(remote_handle64 h,uint32 sc, remote_arg* pra));
+int mod_table_register_static1(const char* uri, int (*pfn)(remote_handle64 h,uint32_t sc, remote_arg* pra));
 
 /**
   * register a static component for invocations
@@ -58,12 +58,12 @@ int mod_table_register_static1(const char* uri, int (*pfn)(remote_handle64 h,uin
   *   }
   *
   */
-int mod_table_register_static_override(const char* name, int(*pfn)(uint32 sc, remote_arg* pra));
+int mod_table_register_static_override(const char* name, int(*pfn)(uint32_t sc, remote_arg* pra));
 
 /**
   * same as register_static, but module with user defined handle lifetimes.
   */
-int mod_table_register_static_override1(const char* uri, int(*pfn)(remote_handle64,uint32 sc, remote_arg* pra));
+int mod_table_register_static_override1(const char* uri, int(*pfn)(remote_handle64,uint32_t sc, remote_arg* pra));
 
 /**
  * Open a module and get a handle to it
@@ -83,7 +83,7 @@ int mod_table_open(const char* in_name, remote_handle* handle, char* dlerr, int 
  * sc, scalars, see remote.h for documentation.
  * pra, args, see remote.h for documentation.
  */
-int mod_table_invoke(remote_handle handle, uint32 sc, remote_arg* pra);
+int mod_table_invoke(remote_handle handle, uint32_t sc, remote_arg* pra);
 
 /**
  * Closes a handle in the mod table
@@ -98,12 +98,12 @@ int mod_table_close(remote_handle handle, char* errStr, int errStrLen, int* pdlE
 /**
  * internal use only
  */
-int mod_table_register_const_handle(remote_handle handle, const char* in_name, int (*pfn)(uint32 sc, remote_arg* pra));
+int mod_table_register_const_handle(remote_handle handle, const char* in_name, int (*pfn)(uint32_t sc, remote_arg* pra));
 /**
  * @param remote, the handle we should expect from the transport layer
  * @param local, the local handle that will be passed to pfn
  */
-int mod_table_register_const_handle1(remote_handle remote, remote_handle64 local, const char* uri, int (*pfn)(remote_handle64 h, uint32 sc, remote_arg* pra));
+int mod_table_register_const_handle1(remote_handle remote, remote_handle64 local, const char* uri, int (*pfn)(remote_handle64 h, uint32_t sc, remote_arg* pra));
 
 #ifdef __cplusplus
 }

@@ -51,7 +51,7 @@ void rpcmem_deinit_internal();
  * Returns NULL if allocation fails
  *
  */
-void* rpcmem_alloc_internal(int heapid, uint32 flags, size_t size);
+void* rpcmem_alloc_internal(int heapid, uint32_t flags, size_t size);
 
 /*
  * API to free internally allocated ION memory
@@ -125,7 +125,7 @@ int close_reverse_handle(remote_handle64 handle, char* errStr, int errStrLen, in
  * @unsigned_module: PD Attribute for unsigned module
  * @returns: 0 on success, valid non-zero error code on failure
  */
-int get_unsigned_pd_attribute(uint32 domain, int *unsigned_module);
+int get_unsigned_pd_attribute(uint32_t domain, int *unsigned_module);
 
 /*
  * Check whether userspace memory allocation is supported or not.

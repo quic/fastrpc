@@ -338,7 +338,7 @@ struct SequenceType {
    uint32_t               routSizePrimROut;
 };
 
-//byte offset from the start of the case values for
+//unsigned char offset from the start of the case values for
 //this unions case value array.  it MUST be aligned
 //at the alignment requrements for the descriptor
 //
@@ -628,7 +628,7 @@ static __inline int _stub_method_2(remote_handle _handle, uint32_t _mid, uint32_
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT int __QAIC_STUB(remotectl_grow_heap)(uint32 phyAddr, uint32 nSize) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT int __QAIC_STUB(remotectl_grow_heap)(uint32_t phyAddr, uint32_t nSize) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 2;
    remote_handle _handle = _remotectl_handle();
    if (_handle != (remote_handle)-1)
@@ -656,7 +656,7 @@ static __inline int _stub_method_3(remote_handle _handle, uint32_t _mid, uint32_
    _CATCH(_nErr) {}
    return _nErr;
 }
-__QAIC_STUB_EXPORT int __QAIC_STUB(remotectl_set_param)(int reqID, const uint32* params, int paramsLen) __QAIC_STUB_ATTRIBUTE {
+__QAIC_STUB_EXPORT int __QAIC_STUB(remotectl_set_param)(int reqID, const uint32_t* params, int paramsLen) __QAIC_STUB_ATTRIBUTE {
    uint32_t _mid = 3;
    remote_handle _handle = _remotectl_handle();
    if (_handle != (remote_handle)-1)

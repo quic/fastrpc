@@ -28,7 +28,7 @@ REVISION HISTORY:
 // and pcEnd are assumed to be valid pointers in the address space.  But
 // pcWrite is not ... it is a theoretical value that can exceed pcEnd, and
 // may in fact wrap around the end of the address space.  In that case the
-// test for (pcWrite < pcEnd) will yield TRUE, although pcWrite is outside
+// test for (pcWrite < pcEnd) will yield true, although pcWrite is outside
 // the buffer.  Use (pcEnd-pcWrite) > 0 to be accurate.
 //
 // In order to ensure this works in all cases, we need to avoid integer
@@ -106,7 +106,7 @@ void BufBound_Putnc(BufBound *me, char c, int nLen)
 
 void BufBound_Advance(BufBound *me, int nLen)
 {
-   uint32 uOffset = (uint32)((me->pcWrite - me->pcBuf) + nLen);
+   uint32_t uOffset = (uint32_t)((me->pcWrite - me->pcBuf) + nLen);
 
    if (uOffset > INT_MAX) {
       uOffset = INT_MAX;
@@ -152,7 +152,7 @@ void BufBound_ForceNullTerm(BufBound *me)
 
 void BufBound_Puts(BufBound *me, const char* cpsz)
 {
-   BufBound_Write(me, cpsz, std_strlen(cpsz));
+   BufBound_Write(me, cpsz, strlen(cpsz));
 }
 
 int BufBound_BufSize(BufBound* me)
@@ -173,28 +173,4 @@ int BufBound_ReallyWrote(BufBound* me)
 int BufBound_Wrote(BufBound* me)
 {
    return (me->pcWrite - me->pcBuf);
-}
-
-void BufBound_WriteLE(BufBound *me,
-                      const void *pvSrc, int nSrcSize,
-                      const char *pszFields)
-{
-   if (nSrcSize > 0) {
-      int nLen = nSrcSize;
-      char *pcDest = BufBound_ValidateWrite(me, &nLen);
-
-      (void)std_CopyLE(pcDest, nLen, pvSrc, nSrcSize, pszFields);
-   }
-}
-
-void BufBound_WriteBE(BufBound *me,
-                      const void *pvSrc, int nSrcSize,
-                      const char *pszFields)
-{
-   if (nSrcSize > 0) {
-      int nLen = nSrcSize;
-      char *pcDest = BufBound_ValidateWrite(me, &nLen);
-
-      (void)std_CopyBE(pcDest, nLen, pvSrc, nSrcSize, pszFields);
-   }
 }

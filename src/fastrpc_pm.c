@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
@@ -20,7 +21,6 @@
 
 #include "AEEstd.h"
 #include "AEEStdErr.h"
-#include "AEEatomic.h"
 #include "HAP_farf.h"
 #include "verify.h"
 
@@ -41,7 +41,7 @@ struct wake_lock {
 };
 
 static struct wake_lock wakelock;
-static uint32 wakelock_wmut_int = 0;
+static atomic_bool wakelock_wmut_int = false;
 
 int fastrpc_wake_lock() {
   int nErr = AEE_SUCCESS, ret = 0;
@@ -116,15 +116,16 @@ int fastrpc_wake_lock_init() {
   int nErr = AEE_SUCCESS, ret = 0;
   const unsigned int TMPSTR_LEN = WAKELOCK_NAME_LEN / 2;
   char pid_str[TMPSTR_LEN], prog_name_str[TMPSTR_LEN];
+  bool expected = false;
 
   if (wakelock.init_done)
     return nErr;
 
   wakelock.deinit_started = 0;
 
-  if (1 == atomic_CompareAndExchange(&wakelock_wmut_int, 1, 0)) {
+  if (atomic_compare_exchange_strong(&wakelock_wmut_int, &expected, true))
     VERIFY(AEE_SUCCESS == (nErr = pthread_mutex_init(&wakelock.wmut, 0)));
-  }
+
   pthread_mutex_lock(&wakelock.wmut);
 
   VERIFYC(0 < (ret = snprintf(pid_str, TMPSTR_LEN, ":%d", getpid())), AEE_ERPC);
@@ -133,8 +134,8 @@ int fastrpc_wake_lock_init() {
     goto bail;
   }
 
-  std_strlcpy(wakelock.wake_lock_name, prog_name_str, WAKELOCK_NAME_LEN);
-  std_strlcat(wakelock.wake_lock_name, pid_str, WAKELOCK_NAME_LEN);
+  strlcpy(wakelock.wake_lock_name, prog_name_str, WAKELOCK_NAME_LEN);
+  strlcat(wakelock.wake_lock_name, pid_str, WAKELOCK_NAME_LEN);
 
   VERIFYC(0 < (wakelock.lock = open(WAKE_LOCK_FILE, O_RDWR | O_CLOEXEC)),
           AEE_ERPC);

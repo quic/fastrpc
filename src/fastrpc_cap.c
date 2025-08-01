@@ -45,7 +45,6 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 	const char *search_string = NULL;
 	uint32_t domain_supported = 0;
 	int dir_index = 0, nErr = AEE_SUCCESS;
-	struct stat dir_stat;
 	char *buffer = NULL;
 
 	if (domain < ADSP_DOMAIN_ID || domain > CDSP1_DOMAIN_ID) {
@@ -59,7 +58,7 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 	while (1) {
 		memset(buffer, 0, BUF_SIZE);
 		snprintf(buffer, BUF_SIZE, "%s%d", dir_base_path, dir_index);
-		std_strlcat(buffer, "/name", BUF_SIZE);
+		strlcat(buffer, "/name", BUF_SIZE);
 		int fd = open(buffer, O_RDONLY);
 		if (fd == -1) {
 			break;
@@ -69,7 +68,7 @@ static inline uint32_t fastrpc_check_if_dsp_present_rproc(uint32_t domain) {
 			memset(buffer, 0, BUF_SIZE);
 			if (fgets(buffer, BUF_SIZE, file) != NULL) {
 				buffer[BUF_SIZE - 1] = '\0';
-				if (std_strstr(buffer, search_string) != NULL) {
+				if (strstr(buffer, search_string) != NULL) {
 					domain_supported = 1;
 					fclose(file);
 					break;

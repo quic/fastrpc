@@ -39,12 +39,6 @@ extern void BufBound_Putnc(BufBound *me, char c, int nCount);
 extern void BufBound_ForceNullTerm(BufBound *me);
 extern void BufBound_Puts(BufBound *me, const char* cpsz);
 extern void BufBound_Advance(BufBound *me, int nLen);
-extern void BufBound_WriteLE(BufBound* me,
-                             const void *pvSrc, int nSrcSize,
-                             const char *pszFields);
-extern void BufBound_WriteBE(BufBound* me,
-                             const void *pvSrc, int nSrcSize,
-                             const char *pszFields);
 extern int BufBound_BufSize(BufBound *me);
 extern int BufBound_Left(BufBound* me);
 extern int BufBound_ReallyWrote(BufBound* me);
@@ -470,71 +464,6 @@ Side Effects:
 
 See Also:
    None
-
-=======================================================================
-
-BufBound_WriteLE()
-
-Description:
-
-   Writes data while translating numeric values between host byte ordering and
-   "little endian" byte ordering.
-
-   The input buffer is treated as an array of structures.  The 'abySizes'
-   parameter describes the sizes of fields in the structure.
-
-   When the host byte ordering matches the target byte ordering (little
-   endian) this operation is equivalent to BufBound_Write().
-
-Prototype:
-
-   void BufBound_WriteLE(BufBound* me,
-                         const void *pvSrc, int nSrcSize,
-                         const unsigned char *pszFields);
-
-Parameters:
-   me:        the BufBound
-   pvSrc:     the source buffer
-   nSrcSize:  number of bytes to copy from the source buffer
-   pszFields: Description of the fields that comprise the source data,
-              as defined in std_CopyLE.
-
-Return Value:
-   None
-
-See Also:
-   BufBound_WriteBE, std_CopyLE
-
-=======================================================================
-
-BufBound_WriteBE()
-
-Description:
-
-   BufBounf_WriteBE() has the same semantics as BufBound_WriteLE() except it
-   copies between host byte ordering and big-endian ("network") byte order.
-
-   See BufBound_WriteLE() for more details.
-
-
-Prototype:
-
-   void BufBound_WriteBE(BufBound* me,
-                         const void *pvSrc, int nSrcSize,
-                         const unsigned char *pszFields);
-
-Parameters:
-   me:        the BufBound
-   pvSrc:     the source buffer
-   nSrcSize:  number of bytes to copy from the source buffer
-   pszFields: Description of the fields that comprise the source data,
-              as defined in std_CopyLE.
-
-Return Value:
-   None
-
-See Also:
-   BufBound_WriteLE, std_CopyBE
 
 ======================================================================= */
 #endif /* #ifndef AEEBUFBOUND_H */

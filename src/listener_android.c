@@ -49,7 +49,7 @@ DECLARE_HASH_TABLE(listener, listener_config);
 extern void set_thread_context(int domain);
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_remotectl_open)(const char *name, uint32 *handle, char *dlStr,
+__QAIC_IMPL(apps_remotectl_open)(const char *name, uint32_t *handle, char *dlStr,
                                  int dlerrorLen,
                                  int *dlErr) __QAIC_IMPL_ATTRIBUTE {
   int domain = get_current_domain();
@@ -65,7 +65,7 @@ bail:
 }
 
 __QAIC_IMPL_EXPORT int
-__QAIC_IMPL(apps_remotectl_close)(uint32 handle, char *errStr, int errStrLen,
+__QAIC_IMPL(apps_remotectl_close)(uint32_t handle, char *errStr, int errStrLen,
                                   int *dlErr) __QAIC_IMPL_ATTRIBUTE {
   int domain = get_current_domain();
   int nErr = AEE_SUCCESS;
@@ -94,7 +94,7 @@ bail:
     }                                                                          \
   } while (0)
 
-static __inline void *rpcmem_realloc(int heapid, uint32 flags, void *buf,
+static __inline void *rpcmem_realloc(int heapid, uint32_t flags, void *buf,
                                      int oldsize, size_t size) {
   void *bufnew = rpcmem_alloc_internal(heapid, flags, size);
   if (buf && bufnew) {
@@ -111,17 +111,17 @@ static __inline void *rpcmem_realloc(int heapid, uint32 flags, void *buf,
 static void listener(listener_config *me) {
   int nErr = AEE_SUCCESS, i = 0, domain = me->domain, ref = 0;
   adsp_listener1_invoke_ctx ctx = 0;
-  uint8 *outBufs = 0;
+  uint8_t *outBufs = 0;
   int outBufsLen = 0, outBufsCapacity = 0;
-  uint8 *inBufs = 0;
+  uint8_t *inBufs = 0;
   int inBufsLen = 0, inBufsLenReq = 0;
   int result = -1, bufs_len = 0;
   adsp_listener1_remote_handle handle = -1;
-  uint32 sc = 0;
+  uint32_t sc = 0;
   const char *eheap = getenv("ADSP_LISTENER_HEAP_ID");
   int heapid = eheap == 0 ? -1 : atoi(eheap);
   const char *eflags = getenv("ADSP_LISTENER_HEAP_FLAGS");
-  uint32 flags = eflags == 0 ? 0 : (uint32)atoi(eflags);
+  uint32_t flags = eflags == 0 ? 0 : (uint32_t)atoi(eflags);
   const char *emin = getenv("ADSP_LISTENER_MEM_CACHE_SIZE");
   int cache_size = emin == 0 ? 0 : atoi(emin);
   remote_arg args[512];
@@ -324,9 +324,9 @@ bail:
   dlerror();
 }
 
-extern int apps_remotectl_skel_invoke(uint32 _sc, remote_arg *_pra);
-extern int apps_std_skel_invoke(uint32 _sc, remote_arg *_pra);
-extern int apps_mem_skel_invoke(uint32 _sc, remote_arg *_pra);
+extern int apps_remotectl_skel_invoke(uint32_t _sc, remote_arg *_pra);
+extern int apps_std_skel_invoke(uint32_t _sc, remote_arg *_pra);
+extern int apps_mem_skel_invoke(uint32_t _sc, remote_arg *_pra);
 extern int adspmsgd_apps_skel_invoke(uint32_t _sc, remote_arg *_pra);
 extern int fastrpc_set_remote_uthread_params(int domain);
 
@@ -470,7 +470,7 @@ bail:
 
 int close_reverse_handle(remote_handle64 h, char *dlerr, int dlerrorLen,
                          int *dlErr) {
-  return apps_remotectl_close((uint32)h, dlerr, dlerrorLen, dlErr);
+  return apps_remotectl_close((uint32_t)h, dlerr, dlerrorLen, dlErr);
 }
 
 int listener_android_geteventfd(int domain, int *fd) {

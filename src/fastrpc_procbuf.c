@@ -68,10 +68,10 @@ bail:
 
 static int get_non_preload_lib_names (char** lib_names, size_t* buffer_size, int domain)
 {
-	int nErr = AEE_SUCCESS, env_list_len = 0,  concat_len = 0, new_len = 0;
+	int nErr = AEE_SUCCESS, env_list_len = 0,  concat_len = 0;
 	char* data_paths = NULL;
 	char *saveptr       = NULL;
-	size_t dsp_search_path_len = std_strlen(DSP_LIBRARY_PATH) + 1;
+	size_t dsp_search_path_len = strlen(DSP_LIBRARY_PATH) + 1;
 
 	VERIFYC(*lib_names != NULL, AEE_ENOMEMORY);
 	VERIFYC(NULL != (data_paths = calloc(1, sizeof(char) * dsp_search_path_len)), AEE_ENOMEMORY);
@@ -87,15 +87,15 @@ static int get_non_preload_lib_names (char** lib_names, size_t* buffer_size, int
 		while ((entry = readdir(dir)) != NULL) {
 			if ( entry -> d_type == DT_REG) {
 				char* file = entry->d_name;
-				if (std_strstr(file, FILE_EXT) != NULL) {
-					if (concat_len + std_strlen(file) > MAX_NON_PRELOAD_LIBS_LEN) {
+				if (strstr(file, FILE_EXT) != NULL) {
+					if (concat_len + strlen(file) > MAX_NON_PRELOAD_LIBS_LEN) {
 						FARF(ALWAYS,"ERROR: Failed to pack library names in custom DSP_LIBRARY_PATH as required buffer size exceeds Max limit (%d).", MAX_NON_PRELOAD_LIBS_LEN);
 						nErr = AEE_EBUFFERTOOSMALL;
 						closedir(dir);
 						goto bail;
 					}
-					std_strlcat(*lib_names, file, MAX_NON_PRELOAD_LIBS_LEN);
-					concat_len = std_strlcat(*lib_names, ";", MAX_NON_PRELOAD_LIBS_LEN);
+					strlcat(*lib_names, file, MAX_NON_PRELOAD_LIBS_LEN);
+					concat_len = strlcat(*lib_names, ";", MAX_NON_PRELOAD_LIBS_LEN);
 				}
 			}
 		}
@@ -104,7 +104,7 @@ static int get_non_preload_lib_names (char** lib_names, size_t* buffer_size, int
 		}
 		path = strtok_r(NULL,";", &saveptr);
 	}
-	*buffer_size = std_strlen(*lib_names) + 1;
+	*buffer_size = strlen(*lib_names) + 1;
 
 bail:
 	if (data_paths) {
@@ -187,7 +187,7 @@ static int pack_proc_shared_buf_params(int domain, uint32_t param_id,
 	*buf_write_addr = (*buf_write_addr) + (PROC_ATTR_BUF_ID_SIZE_MASK & align_param_size);
 	buf_write_addr++;
 
-	std_memscpy(buf_write_addr, (buf_last_addr - buf_write_addr), param_addr, param_size);
+	memcpy(buf_write_addr, param_addr, STD_MIN(buf_last_addr - buf_write_addr, param_size));
 	buf_write_addr = (uint32_t*)((char*)buf_write_addr + align_param_size);
 	hlist[domain].proc_sharedbuf_cur_addr = buf_write_addr;
 

@@ -118,7 +118,7 @@ void rpcmem_deinit() {
 }
 
 int rpcmem_set_dmabuf_name(const char *name, int fd, int heapid,
-			void *buf, uint32 rpcflags) {
+			void *buf, uint32_t rpcflags) {
         // Dummy call where DMABUF is not used
         return 0;
 }
@@ -145,7 +145,7 @@ int rpcmem_to_fd_internal(void *po) {
 
 int rpcmem_to_fd(void *po) { return rpcmem_to_fd_internal(po); }
 
-void *rpcmem_alloc_internal(int heapid, uint32 flags, size_t size) {
+void *rpcmem_alloc_internal(int heapid, uint32_t flags, size_t size) {
   struct rpc_info *rinfo;
   int nErr = 0, fd = -1;
   struct dma_heap_allocation_data dmabuf = {
@@ -239,7 +239,7 @@ void rpcmem_free_internal(void *po) {
 
 void rpcmem_free(void *po) { rpcmem_free_internal(po); }
 
-void *rpcmem_alloc(int heapid, uint32 flags, int size) {
+void *rpcmem_alloc(int heapid, uint32_t flags, int size) {
   return rpcmem_alloc_internal(heapid, flags, size);
 }
 

@@ -262,8 +262,8 @@ __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_open)(const char* uri, remote_
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_close)(remote_handle64 h) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_open1)(remote_handle64 _h, const char* name, int* handle, char* dlerror, int dlerrorLen, int* nErr) __QAIC_HEADER_ATTRIBUTE;
 __QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_close1)(remote_handle64 _h, int handle, char* dlerror, int dlerrorLen, int* nErr) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_grow_heap)(remote_handle64 _h, uint32 phyAddr, uint32 nSize) __QAIC_HEADER_ATTRIBUTE;
-__QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_set_param)(remote_handle64 _h, int reqID, const uint32* params, int paramsLen) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_grow_heap)(remote_handle64 _h, uint32_t phyAddr, uint32_t nSize) __QAIC_HEADER_ATTRIBUTE;
+__QAIC_HEADER_EXPORT int __QAIC_HEADER(remotectl1_set_param)(remote_handle64 _h, int reqID, const uint32_t* params, int paramsLen) __QAIC_HEADER_ATTRIBUTE;
 #ifndef remotectl1_URI
 #define remotectl1_URI "file:///libremotectl1_skel.so?remotectl1_skel_handle_invoke&_modver=1.0"
 #endif /*remotectl1_URI*/

@@ -10,14 +10,14 @@
 //
 //  Useful Macros
 //
-#define  FAILED(b)               ( (b) != AEE_SUCCESS ? TRUE : FALSE )
+#define  FAILED(b)               ( (b) != AEE_SUCCESS ? true : false )
 #define  CLEANUP_ON_ERROR(b,l)   if( FAILED( b ) ) { goto l; }
 #define  FP_POW_10(n)            fp_pow_10(n)
 
 static __inline
-uint32 std_dtoa_clz32( uint32 ulVal )
+uint32_t std_dtoa_clz32( uint32_t ulVal )
 //
-// This function returns the number of leading zeroes in a uint32.
+// This function returns the number of leading zeroes in a uint32_t.
 // This is a naive implementation that uses binary search. This could be
 // replaced by an optimized inline assembly code.
 //
@@ -28,8 +28,8 @@ uint32 std_dtoa_clz32( uint32 ulVal )
    }
    else
    {
-      uint32 uRet = 28;
-      uint32 uTmp = 0;
+      uint32_t uRet = 28;
+      uint32_t uTmp = 0;
       uTmp = ( ulVal > 0xFFFF ) * 16; ulVal >>= uTmp, uRet -= uTmp;
       uTmp = ( ulVal > 0xFF ) * 8; ulVal >>= uTmp, uRet -= uTmp;
       uTmp = ( ulVal > 0xF ) * 4; ulVal >>= uTmp, uRet -= uTmp;
@@ -38,12 +38,12 @@ uint32 std_dtoa_clz32( uint32 ulVal )
 }
 
 static __inline
-uint32 std_dtoa_clz64( uint64 ulVal )
+uint32_t std_dtoa_clz64( uint64_t ulVal )
 //
-// This function returns the number of leading zeroes in a uint64.
+// This function returns the number of leading zeroes in a uint64_t.
 //
 {
-    uint32 ulCount = 0;
+    uint32_t ulCount = 0;
 
     if( !( ulVal >> 32 ) )
     {
@@ -54,14 +54,14 @@ uint32 std_dtoa_clz64( uint64 ulVal )
         ulVal >>= 32;
     }
 
-    return ulCount + std_dtoa_clz32( (uint32)ulVal );
+    return ulCount + std_dtoa_clz32( (uint32_t)ulVal );
 }
 
 double fp_pow_10( int nPow )
 {
    double dRet = 1.0;
    int nI = 0;
-   boolean bNegative = FALSE;
+   bool bNegative = false;
    double aTablePos[] = { 0, 1e1, 1e2, 1e4, 1e8, 1e16, 1e32, 1e64, 1e128,
                           1e256 };
    double aTableNeg[] = { 0, 1e-1, 1e-2, 1e-4, 1e-8, 1e-16, 1e-32, 1e-64, 1e-128,
@@ -76,7 +76,7 @@ double fp_pow_10( int nPow )
 
    if( nPow < 0 )
    {
-      bNegative = TRUE;
+      bNegative = true;
       nPow = -nPow;
       pTable = aTableNeg;
       nTableSize = STD_ARRAY_SIZE( aTableNeg );
@@ -95,8 +95,12 @@ double fp_pow_10( int nPow )
    if( nPow )
    {
       // Overflow. Trying to compute a large power value.
-      uint64 ulInf = STD_DTOA_FP_POSITIVE_INF;
-      dRet = bNegative ? 0 : UINT64_TO_DOUBLE( ulInf );
+      union {
+        uint64_t ul;
+        double d;
+      } val;
+      val.ul = STD_DTOA_FP_POSITIVE_INF;
+      dRet = bNegative ? 0 : val.d;
    }
 
    return dRet;
@@ -149,12 +153,18 @@ int fp_check_special_cases( double dNumber, FloatingPointType* pNumberType )
 {
    int nError = AEE_SUCCESS;
    FloatingPointType NumberType = FP_TYPE_UNKOWN;
-   uint64 ullValue = 0;
-   uint64 ullSign = 0;
-   int64 n64Exponent = 0;
-   uint64 ullMantissa = 0;
+   uint64_t ullValue = 0;
+   uint64_t ullSign = 0;
+   int64_t n64Exponent = 0;
+   uint64_t ullMantissa = 0;
 
-   ullValue = DOUBLE_TO_UINT64( dNumber );
+   union {
+     uint64_t ul;
+     double d;
+   } val;
+
+   val.d = dNumber;
+   ullValue = val.ul;
 
    // Extract the sign, exponent and mantissa
    ullSign = FP_SIGN( ullValue );
@@ -209,13 +219,13 @@ int std_dtoa_decimal( double dNumber, int nPrecision,
                       char acFractionPart[ STD_DTOA_FORMAT_FRACTION_SIZE ] )
 {
    int nError = AEE_SUCCESS;
-   boolean bNegativeNumber = FALSE;
+   bool bNegativeNumber = false;
    double dIntegerPart = 0.0;
    double dFractionPart = 0.0;
    double dTempIp = 0.0;
    double dTempFp = 0.0;
    int nMaxIntDigs = STD_DTOA_FORMAT_INTEGER_SIZE;
-   uint32 ulI = 0;
+   uint32_t ulI = 0;
    int nIntStartPos = 0;
 
    // Optimization: Special case an input of 0
@@ -240,7 +250,7 @@ int std_dtoa_decimal( double dNumber, int nPrecision,
       acIntegerPart[0] = '-';
       nIntStartPos = 1;
       dNumber = -dNumber;
-      bNegativeNumber = TRUE;
+      bNegativeNumber = true;
    }
 
    // Split the input number into it's integer and fraction parts
@@ -261,7 +271,7 @@ int std_dtoa_decimal( double dNumber, int nPrecision,
       nIntDigs = fp_log_10( dIntegerPart ) + 1;
 
       // For negative numbers, a '-' sign has already been written.
-      if( TRUE == bNegativeNumber )
+      if( true == bNegativeNumber )
       {
          nIntDigs++;
       }
@@ -351,29 +361,36 @@ int std_dtoa_hex( double dNumber, int nPrecision, char cFormat,
                   int* pnExponent )
 {
    int nError = AEE_SUCCESS;
-   uint64 ullMantissa = 0;
-   uint64 ullSign = 0;
-   int64 n64Exponent = 0;
+   uint64_t ullMantissa = 0;
+   uint64_t ullSign = 0;
+   int64_t n64Exponent = 0;
    static const char HexDigitsU[] = "0123456789ABCDEF";
    static const char HexDigitsL[] = "0123456789abcde";
-   boolean bFirstDigit = TRUE;
+   bool bFirstDigit = true;
    int nI = 0;
    int nF = 0;
-   uint64 ullValue = DOUBLE_TO_UINT64( dNumber );
+   union {
+     uint64_t ul;
+     double d;
+   } val;
+
+   val.d = dNumber;
+   uint64_t ullValue = val.ul;
+
    int nManShift = 0;
    const char *pcDigitArray = ( cFormat == 'A' ) ? HexDigitsU : HexDigitsL;
-   boolean bPrecisionSpecified = TRUE;
+   bool bPrecisionSpecified = true;
 
    // If no precision is specified, then set the precision to be fairly
    // large.
    if( nPrecision < 0 )
    {
       nPrecision = STD_DTOA_FORMAT_FRACTION_SIZE;
-      bPrecisionSpecified = FALSE;
+      bPrecisionSpecified = false;
    }
    else
    {
-      bPrecisionSpecified = TRUE;
+      bPrecisionSpecified = true;
    }
 
    // Extract the sign, exponent and mantissa
@@ -440,16 +457,16 @@ int std_dtoa_hex( double dNumber, int nPrecision, char cFormat,
    n64Exponent++;
 
    // Read the mantissa four bits at a time to form the hex output
-   for( nI = 0, nF = 0, bFirstDigit = TRUE; ullMantissa != 0;
+   for( nI = 0, nF = 0, bFirstDigit = true; ullMantissa != 0;
         ullMantissa <<= 4 )
    {
-      uint64 ulHexVal = ullMantissa & 0xF000000000000000uLL;
+      uint64_t ulHexVal = ullMantissa & 0xF000000000000000uLL;
       ulHexVal >>= 60;
       if( bFirstDigit )
       {
          // Write to the integral part of the number
          acIntegerPart[ nI++ ] = pcDigitArray[ulHexVal];
-         bFirstDigit = FALSE;
+         bFirstDigit = false;
       }
       else if( nF < nPrecision )
       {
