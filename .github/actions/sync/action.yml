@@ -1,0 +1,157 @@
+name: Sync workspace
+
+
+inputs:
+  machine:
+    description: Target machine name
+    type: string
+    required: true
+  firmware:
+    description: Firmware identifier
+    type: string
+    required: true
+
+outputs:
+  workspace_path:
+    description: Sync workspace path
+    value: ${{ steps.set-workspace.outputs.workspace }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clean workspace
+      shell: bash
+      run: |
+        echo "Cleaning up workspace..."
+        rm -rf ${{ github.workspace }}/*
+        echo "Workspace cleaned successfully!"
+
+    - name: Checkout fastrpc code
+      uses: actions/checkout@v4
+
+    - name: Clone FastRPC hexagon DSP binaries repositories and copy Firmware
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        mkdir -p firmware_dir/usr/lib/dsp/
+
+        echo "Cloning FastRPC hexagon DSP binaries..."
+        git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
+        cd hexagon-dsp-binaries
+        git fetch --all --tags --prune
+
+        TARGET="${{ inputs.firmware }}"
+        DSP_REF=""
+        CONFIG="config.txt"
+
+        echo "Searching FastRPC hexagon DSP binaries for target: $TARGET"
+        if [ ! -f "$CONFIG" ]; then
+          echo "Error: $CONFIG file not found in hexagon-dsp-binaries directory."
+          exit 1
+        fi
+        while read -r _ subdir dsp version; do
+          echo "DSP binaries for $dsp in $subdir - $version" 
+          if [[ "${subdir,,}" == */"${TARGET,,}" ]]; then
+            echo "Found matching DSP binaries for target '$TARGET': $subdir - $version"
+            echo "Copying DSP binaries for $dsp in $subdir/$version"
+            mkdir -p "../firmware_dir/usr/lib/dsp/${dsp}"
+            cp -rf "$subdir/$version/"* "../firmware_dir/usr/lib/dsp/${dsp}/"
+            echo "Copied DSP binaries for $dsp in ../firmware_dir/usr/lib/dsp/${dsp}"
+            DSP_REF="$version"
+            echo "${dsp}:${subdir}////${version}"
+          fi
+        done < <(grep "^Install:" "$CONFIG")
+        echo "DSP binaries copied successfully!"
+
+        echo "Extracting Origin URL from WHENCE file...$DSP_REF"
+        if [ -z "$DSP_REF" ]; then
+          echo "Error: DSP reference not found for target '$TARGET'."
+          exit 1
+        fi
+
+        origin_url=$(awk -v ref="$DSP_REF" '
+          BEGIN { found=0 }
+          /^Dir:/ {
+            if ($0 ~ ref) {
+              found=1
+            }
+          }
+          found && /^Origin:/ {
+            print $2
+            exit
+          }
+        ' WHENCE)
+
+        if [ -z "$origin_url" ]; then
+          echo "Error: DSP reference '$DSP_REF' not found in WHENCE file."
+          exit 1
+        fi
+
+        echo "Downloading firmware from $origin_url..."
+        curl -L -o firmware.zip "$origin_url"
+        ls -lts
+
+        echo "Checking if firmware.zip is actually a zip archive..."
+        if unzip -t firmware.zip > /dev/null 2>&1; then
+          echo "Extracting firmware..."
+          unzip firmware.zip -d extracted_firmware
+          search_root="extracted_firmware"
+        else
+          echo "Not a zip archive. Assuming it's already extracted."
+          search_root="$PWD"
+        fi
+
+        echo "Searching for 'usr' directory..."
+        usr_path=$(find "$search_root" -type d -name usr | head -n 1)
+
+        if [ -z "$usr_path" ]; then
+          echo "Error: 'usr' directory not found."
+          exit 1
+        fi
+
+        echo "Copying 'usr' directory to firmware_dir..."
+        mkdir -p firmware_dir
+        cp -rf "$usr_path"/* firmware_dir/
+        echo "Copied 'usr' directory to firmware_dir successfully!"
+        echo "Firmware copied successfully!"
+
+    - name: List all subdirectories and files in firmware_dir
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        echo "Listing contents of firmware_dir recursively..."
+        find firmware_dir -type d -print
+        find firmware_dir -type f -print
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+    - name: Clone kernel repositories
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        git clone https://github.com/qualcomm-linux/kernel.git
+        cd kernel
+        git fetch origin
+        git checkout qcom-next
+
+    - name: Download artifacts
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        echo "Downloading artifacts..."
+        
+        mkdir -p artifacts 
+        wget -O artifacts/ramdisk.gz https://snapshots.linaro.org/member-builds/qcomlt/testimages/arm64/1379/initramfs-test-image-qemuarm64-20230321073831-1379.rootfs.cpio.gz 
+        wget -O artifacts/systemd-boot-efi.deb http://ports.ubuntu.com/pool/universe/s/systemd/systemd-boot-efi_255.4-1ubuntu8_arm64.deb 
+        dpkg-deb -xv artifacts/systemd-boot-efi.deb artifacts/systemd
+        ls -ltr
+
+    - name: Set workspace path
+      id: set-workspace
+      shell: bash
+      run: |
+          echo "workspace=${{ github.workspace }}" >> "$GITHUB_OUTPUT"
