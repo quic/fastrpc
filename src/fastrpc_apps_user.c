@@ -1168,6 +1168,7 @@ int remote_handle_invoke_domain(int domain, remote_handle handle,
   fastrpc_timer frpc_timer;
   int trace_marker_fd = hlist[domain].trace_marker_fd;
   bool trace_enabled = false;
+  struct fastrpc_invoke_args* args = NULL; 
 
   if (IS_QTF_TRACING_ENABLED(hlist[domain].procattrs) &&
       !IS_STATIC_HANDLE(handle) && trace_marker_fd > 0) {
