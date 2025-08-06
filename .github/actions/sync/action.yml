@@ -1,0 +1,85 @@
+name: Sync workspace
+
+outputs:
+  workspace_path:
+    description: Sync workspace path
+    value: ${{ steps.set-workspace.outputs.workspace }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clean workspace
+      shell: bash
+      run: |
+        echo "Cleaning up workspace..."
+        rm -rf ${{ github.workspace }}/*
+        echo "Workspace cleaned successfully!"
+
+    - name: Checkout fastrpc code
+      uses: actions/checkout@v4
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+    - name: Clone kernel repositories
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        git clone https://github.com/qualcomm-linux/kernel.git
+        cd kernel
+        git fetch origin
+        git checkout qcom-next
+        cd ..
+        ls -ltr
+
+    - name: Download Linaro tools and untar
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        wget -c https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+        tar xf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+        ls -ltr
+        rm -rf gcc-linaro-7.5.0-2019.12-i686_aarch64-linux-gnu.tar.xz
+
+    - name: Clone FastRPC hexagon DSP binaries repositories and copy bins
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        git clone https://github.com/linux-msm/hexagon-dsp-binaries.git
+        mkdir -p firmware_dir/usr/lib/dsp/{adsp,cdsp,cdsp1,gdsp0,gdsp1}
+        cp hexagon-dsp-binaries/sa8775p/Qualcomm/SA8775P-RIDE/adsp-DSP.AT.1.0.1-00079.2-LEMANS-1/* firmware_dir/usr/lib/dsp/adsp
+        cp hexagon-dsp-binaries/sa8775p/Qualcomm/SA8775P-RIDE/cdsp-DSP.AT.1.0.1-00079.2-LEMANS-1/* firmware_dir/usr/lib/dsp/cdsp
+        cp hexagon-dsp-binaries/sa8775p/Qualcomm/SA8775P-RIDE/cdsp1-DSP.AT.1.0.1-00079.2-LEMANS-1/* firmware_dir/usr/lib/dsp/cdsp1
+        cp hexagon-dsp-binaries/sa8775p/Qualcomm/SA8775P-RIDE/gdsp0-DSP.AT.1.0.1-00079.2-LEMANS-1/* firmware_dir/usr/lib/dsp/gdsp0
+        cp hexagon-dsp-binaries/sa8775p/Qualcomm/SA8775P-RIDE/gdsp1-DSP.AT.1.0.1-00079.2-LEMANS-1/* firmware_dir/usr/lib/dsp/gdsp1
+        ls -ltr 
+        rm -rf hexagon-dsp-binaries
+
+    - name: Clone FastRPC Firmware repositories and copy bins
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+        mkdir -p firmware_dir/lib/firmware/qcom/sa8775p
+        cp -rf linux-firmware/qcom/sa8775p/* firmware_dir/lib/firmware/qcom/sa8775p/
+        ls -ltr
+        rm -rf linux-firmware
+
+    - name: Download artifacts
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        mkdir -p artifacts 
+        wget -O artifacts/ramdisk.gz https://snapshots.linaro.org/member-builds/qcomlt/testimages/arm64/1379/initramfs-test-image-qemuarm64-20230321073831-1379.rootfs.cpio.gz 
+        wget -O artifacts/systemd-boot-efi.deb http://ports.ubuntu.com/pool/universe/s/systemd/systemd-boot-efi_255.4-1ubuntu8_arm64.deb 
+        dpkg-deb -xv artifacts/systemd-boot-efi.deb artifacts/systemd
+        ls -ltr
+
+    - name: Set workspace path
+      id: set-workspace
+      shell: bash
+      run: |
+          echo "workspace=${{ github.workspace }}" >> "$GITHUB_OUTPUT"
