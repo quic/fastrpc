@@ -14,7 +14,7 @@ After building the application, the following files and directories need to be p
 
 Copy the following files and directories to `/usr/bin` on the target device:
 
-- `/path/to/your/fastrpc/test/.libs/fastrpc_test`
+- `/path/to/your/fastrpc/test/fastrpc_test`
 - `/path/to/your/fastrpc/test/android` (if using Android)
 - `/path/to/your/fastrpc/test/linux` (if using Linux)
 - `/path/to/your/fastrpc/test/v68`
