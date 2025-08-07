@@ -393,7 +393,7 @@ static void *file_watcher_thread(void *arg) {
   int file_found = 0;
   char *data_paths = NULL;
 
-  FARF(ALWAYS, "%s starting for domain %d\n", __func__, dom);
+  FARF(RUNTIME_RPC_HIGH, "%s starting for domain %d\n", __func__, dom);
   // Check for the presence of the <process_name>.farf file at bootup
   for (i = 0; i < (int)log_config_watcher[dom].numPaths; ++i) {
     if (0 == readLogConfigFromPath(dom, log_config_watcher[dom].paths[i].data,
@@ -417,7 +417,7 @@ static void *file_watcher_thread(void *arg) {
       // User has not set the env variable. Get default search paths.
       if (ret != 0)
         memmove(data_paths, DSP_SEARCH_PATH, strlen(DSP_SEARCH_PATH));
-      VERIFY_WPRINTF("%s: Couldn't find file %s, errno (%s) at %s\n", __func__,
+      FARF(RUNTIME_RPC_HIGH, "%s: Couldn't find file %s, errno (%s) at %s\n", __func__,
                      log_config_watcher[dom].fileToWatch, strerror(errno),
                      data_paths);
     } else {
@@ -437,7 +437,7 @@ static void *file_watcher_thread(void *arg) {
                      log_config_watcher[dom].fileToWatch, errno);
       break;
     } else if (pfd[1].revents & POLLIN) { // Check for exit
-      VERIFY_WPRINTF("Warning: %s received exit for domain %d, file %s\n",
+      FARF(RUNTIME_RPC_HIGH, "Warning: %s received exit for domain %d, file %s\n",
                      __func__, dom, log_config_watcher[dom].fileToWatch);
       break;
     } else {
@@ -510,7 +510,7 @@ bail:
                    nErr, __func__, log_config_watcher[dom].fileToWatch,
                    strerror(errno));
   } else {
-    FARF(ALWAYS, "%s exiting for domain %d\n", __func__, dom);
+    FARF(RUNTIME_RPC_HIGH, "%s exiting for domain %d\n", __func__, dom);
   }
   return NULL;
 }

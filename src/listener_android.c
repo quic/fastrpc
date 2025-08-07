@@ -128,7 +128,7 @@ static void listener(listener_config *me) {
   struct sbuf buf;
   eventfd_t event = 0xff;
 
-  FARF(ALWAYS, "%s thread starting\n", __func__);
+  FARF(RUNTIME_RPC_HIGH, "%s thread starting\n", __func__);
   memset(args, 0, sizeof(args));
   if (eheap || eflags || emin) {
     FARF(RUNTIME_RPC_HIGH,
@@ -303,7 +303,7 @@ bail:
   RPC_FREEIF(inBufs);
   if (nErr != AEE_SUCCESS) {
     if(!is_process_exiting(domain)) {
-      FARF(ERROR,
+      FARF(RUNTIME_RPC_ERROR,
           "Error 0x%x: %s response with result 0x%x for ctx 0x%x, handle 0x%x, "
           "sc 0x%x failed : listener thread exited (errno %s)",
           nErr, __func__, result, ctx, handle, sc, strerror(errno));

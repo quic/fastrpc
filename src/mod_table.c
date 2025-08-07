@@ -217,7 +217,7 @@ static void open_mod_table_dtor_imp(void *data) {
       if (dm->dlhandle) {
         DLCLOSE(dm->dlhandle);
       }
-      FARF(ALWAYS, "%s: closed reverse module %s with handle 0x%x", __func__,
+      FARF(RUNTIME_RPC_HIGH, "%s: closed reverse module %s with handle 0x%x", __func__,
            dm->uri, (uint32_t)dm->key);
       dm->key = 0;
     }
@@ -906,7 +906,7 @@ bail:
     open_mod_close(me, om);
   }
   if (nErr != AEE_SUCCESS) {
-    FARF(ERROR, "Error 0x%x: %s failed for handle:0x%x, sc:0x%x", nErr,
+    FARF(RUNTIME_RPC_ERROR, "Error 0x%x: %s failed for handle:0x%x, sc:0x%x", nErr,
          __func__, handle, sc);
   }
   FASTRPC_ATRACE_END();
