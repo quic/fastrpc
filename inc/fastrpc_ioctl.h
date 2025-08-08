@@ -36,26 +36,9 @@
 #define MDSPRPC_SECURE_DEVICE "/dev/fastrpc-mdsp-secure"
 #define CDSPRPC_SECURE_DEVICE "/dev/fastrpc-cdsp-secure"
 #define CDSP1RPC_SECURE_DEVICE "/dev/fastrpc-cdsp1-secure"
+#define INVALID_DEVICE "/dev/null"
 
 #define FASTRPC_ATTR_NOVA (256)
-
-/* Secure and default device nodes */
-#if DEFAULT_DOMAIN_ID==ADSP_DOMAIN_ID
-	#define SECURE_DEVICE "/dev/fastrpc-adsp-secure"
-	#define DEFAULT_DEVICE "/dev/fastrpc-adsp"
-#elif DEFAULT_DOMAIN_ID==MDSP_DOMAIN_ID
-	#define SECURE_DEVICE "/dev/fastrpc-mdsp-secure"
-	#define DEFAULT_DEVICE "/dev/fastrpc-mdsp"
-#elif DEFAULT_DOMAIN_ID==SDSP_DOMAIN_ID
-	#define SECURE_DEVICE "/dev/fastrpc-sdsp-secure"
-	#define DEFAULT_DEVICE "/dev/fastrpc-sdsp"
-#elif DEFAULT_DOMAIN_ID==CDSP_DOMAIN_ID
-	#define SECURE_DEVICE "/dev/fastrpc-cdsp-secure"
-	#define DEFAULT_DEVICE "/dev/fastrpc-cdsp"
-#else
-	#define SECURE_DEVICE ""
-	#define DEFAULT_DEVICE ""
-#endif
 
 #define INITIALIZE_REMOTE_ARGS(total)	struct fastrpc_invoke_args* args = NULL; \
 					int *pfds = NULL; \

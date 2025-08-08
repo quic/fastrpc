@@ -43,6 +43,7 @@
 #define MDSP_DEVICE_NAME "fastrpc-mdsp"
 #define CDSP_DEVICE_NAME "fastrpc-cdsp"
 #define CDSP1_DEVICE_NAME "fastrpc-cdsp1"
+#define INVALID_DEVICE_NAME "null"
 
 // Array of supported domain names and its corresponding ID's.
 static domain_t supported_domains[] = {{ADSP_DOMAIN_ID, ADSP_DOMAIN},
@@ -85,14 +86,15 @@ static const char *get_secure_device_name(int domain_id) {
 		name = CDSP1_SECURE_DEVICE_NAME;
 		break;
 	default:
-		name = DEFAULT_DEVICE;
+		name = INVALID_DEVICE_NAME;
+		FARF(ERROR, "ERROR: %s Invalid domain_id %d", __func__, domain_id);
 		break;
 	}
 
 	return name;
 }
 
-static const char *get_default_device_name(int domain_id) {
+static const char *get_non_secure_device_name(int domain_id) {
 	const char *name;
 	int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
 
@@ -113,7 +115,8 @@ static const char *get_default_device_name(int domain_id) {
 		name = CDSP1_DEVICE_NAME;
 		break;
 	default:
-		name = DEFAULT_DEVICE;
+		name = INVALID_DEVICE_NAME;
+		FARF(ERROR, "ERROR: %s Invalid domain_id %d", __func__, domain_id);
 		break;
 	}
 
@@ -154,13 +157,13 @@ static bool fastrpc_dev_exists(const char* dev_name)
 static int fastrpc_wait_for_device(int domain)
 {
 	int inotify_fd = -1, watch_fd = -1, err = 0;
-	const char *sec_dev_name = NULL, *def_dev_name = NULL;
+	const char *sec_dev_name = NULL, *non_sec_dev_name = NULL;
 	struct pollfd pfd[1];
 
 	sec_dev_name = get_secure_device_name(domain);
-	def_dev_name = get_default_device_name(domain);
+	non_sec_dev_name = get_non_secure_device_name(domain);
 
-	if (fastrpc_dev_exists(sec_dev_name) || fastrpc_dev_exists(def_dev_name))
+	if (fastrpc_dev_exists(sec_dev_name) || fastrpc_dev_exists(non_sec_dev_name))
 		return 0;
 
 	inotify_fd = inotify_init();
@@ -176,7 +179,7 @@ static int fastrpc_wait_for_device(int domain)
 		return AEE_EINVALIDFD;
 	}
 
-	if (fastrpc_dev_exists(sec_dev_name) || fastrpc_dev_exists(def_dev_name))
+	if (fastrpc_dev_exists(sec_dev_name) || fastrpc_dev_exists(non_sec_dev_name))
 		goto bail;
 
 	memset(pfd, 0 , sizeof(pfd));
@@ -213,7 +216,7 @@ static int fastrpc_wait_for_device(int domain)
 			/* Check if the event corresponds to the creation of the device node. */
 			if (event->wd == watch_fd && (event->mask & IN_CREATE) &&
 				((strcmp(sec_dev_name, event->name) == 0) ||
-				(strcmp(def_dev_name, event->name) == 0))) {
+				(strcmp(non_sec_dev_name, event->name) == 0))) {
 				/* Device node created, process proceed to open and use it. */
 				VERIFY_IPRINTF("Device node %s created!\n", event->name);
 				goto bail; /* Exit the loop after device creation is detected. */

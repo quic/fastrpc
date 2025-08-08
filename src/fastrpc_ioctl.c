@@ -41,7 +41,8 @@ const char *get_secure_domain_name(int domain_id) {
     name = CDSP1RPC_SECURE_DEVICE;
     break;
   default:
-    name = DEFAULT_DEVICE;
+    name = INVALID_DEVICE;
+    FARF(ERROR, "ERROR: %s Invalid domain_id %d", __func__, domain_id);
     break;
   }
   return name;
