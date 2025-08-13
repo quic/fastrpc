@@ -1,0 +1,4 @@
+paths:
+  adsp: hexagon-dsp-binaries/sm8250/Thundercomm/RB5/ADSP.HT.5.3.c2-00082-SM8250-1
+  cdsp: hexagon-dsp-binaries/sm8250/Thundercomm/RB5/CDSP.HT.2.3.c1-00076-SM8250-1
+  firmware: linux-firmware/qcom/sm8250

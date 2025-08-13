@@ -1,0 +1,55 @@
+name: load_config
+description: Load required parameters for the subsequent jobs
+
+inputs:
+  DEVICE_TYPE:
+    description: Target device type
+    required: true
+
+outputs:
+  firmware_path:
+    description: Firmware path
+    value: ${{ steps.parse.outputs.firmware }}
+  adsp_path:
+    description: ADSP path
+    value: ${{ steps.parse.outputs.adsp }}
+  cdsp_path:
+    description: CDSP path
+    value: ${{ steps.parse.outputs.cdsp }}
+  device_dtb:
+    description: Target device dtb
+    value: ${{ steps.parse.outputs.device_dtb }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: 1. Install yq and Python tools (without sudo)
+      shell: bash
+      run: |
+        wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
+        chmod +x yq
+        mv yq /usr/local/bin/yq || mv yq ./yq  # fallback if /usr/local/bin is not writable
+        apt-get update && apt-get install -y python3 python3-pip
+        python3 --version
+        pip3 --version
+        # pip3 install intelhex gki
+
+    - name: Parse dynamic DSP paths from YAML
+      id: parse
+      shell: bash
+      run: |
+        FILE=CI/config/${{ inputs.DEVICE_TYPE }}/config.yml
+
+        echo "Parsing paths from $FILE"
+
+        # Extract all keys under 'paths' and loop through them
+        for key in $(yq '.paths | keys | .[]' "$FILE"); do
+          value=$(yq ".paths.\"$key\"" "$FILE" | tr -d '\r\n')
+          key_lower=$(echo "$key" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n ')
+          echo "$key_lower=$value"
+          echo "$key_lower=$value" >> $GITHUB_OUTPUT
+        done
+
