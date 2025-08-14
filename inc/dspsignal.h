@@ -4,7 +4,6 @@
 #ifndef DSPSIGNAL_H
 #define DSPSIGNAL_H
 
-
 /** @file
     Internal FastRPC CPU-DSP signaling API.
 
@@ -63,10 +62,9 @@
     signals can only be used in FastRPC user PDs.
 */
 
-#include <stdlib.h>
-#include <stdint.h>
 #include <AEEStdDef.h>
-
+#include <stdint.h>
+#include <stdlib.h>
 
 /** Infinite timeout */
 #define DSPSIGNAL_TIMEOUT_NONE UINT32_MAX
@@ -80,15 +78,13 @@
 */
 #define DSPSIGNAL_DSPQUEUE_MIN 0
 #define DSPSIGNAL_DSPQUEUE_MAX 255
-#define DSPSIGNAL_RESERVED_MIN (DSPSIGNAL_DSPQUEUE_MAX+1)
+#define DSPSIGNAL_RESERVED_MIN (DSPSIGNAL_DSPQUEUE_MAX + 1)
 #define DSPSIGNAL_RESERVED_MAX 1023
-#define DSPSIGNAL_NUM_SIGNALS (DSPSIGNAL_RESERVED_MAX+1)
-
+#define DSPSIGNAL_NUM_SIGNALS (DSPSIGNAL_RESERVED_MAX + 1)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /**
  * Create a signal instance for use.
@@ -97,19 +93,19 @@ extern "C" {
  *                     with. Use CDSP_DOMAIN_ID for cDSP on the CPU,
  *                     DSPSIGNAL_DOMAIN_CPU for the main application
  *                     CPU on the DSP.
- * @param [in] id Signal ID. The ID must be unique within the process and
- *                           within the range specified above (i.e. <DSPSIGNAL_NUM_SIGNALS)
+ * @param [in] id Signal ID. The ID must be unique within the process
+ * and within the range specified above (i.e. <DSPSIGNAL_NUM_SIGNALS)
  * @param [in] flags Signal flags, currently set to zero
  *
  * @return 0 on success, error code on failure.
  *         - AEE_ENOMEMORY: Not enough memory available
  *         - AEE_EITEMBUSY: Signal ID already in use
- *         - AEE_EUNSUPPORTED: Signals not supported with the given remote endpoint
- *                             or support not present in the FastRPC driver
- *         - AEE_EBADPARM: Bad parameters, e.g. Invalid domain or signal ID
+ *         - AEE_EUNSUPPORTED: Signals not supported with the given
+ * remote endpoint or support not present in the FastRPC driver
+ *         - AEE_EBADPARM: Bad parameters, e.g. Invalid domain or
+ * signal ID
  */
 AEEResult dspsignal_create(int domain, uint32_t id, uint32_t flags);
-
 
 /**
  * Destroys a signal currently in use. This call will cancel all
@@ -126,7 +122,6 @@ AEEResult dspsignal_create(int domain, uint32_t id, uint32_t flags);
  *         - AEE_EBADPARM: Bad parameters, e.g. Invalid domain
  */
 AEEResult dspsignal_destroy(int domain, uint32_t id);
-
 
 /**
  * Send a signal. After the call returns a signal will be delivered
@@ -146,7 +141,6 @@ AEEResult dspsignal_destroy(int domain, uint32_t id);
  */
 AEEResult dspsignal_signal(int domain, uint32_t id);
 
-
 /**
  * Wait for a signal, with an optional timeout.
  *
@@ -158,8 +152,8 @@ AEEResult dspsignal_signal(int domain, uint32_t id);
  *                     DSPSIGNAL_DOMAIN_CPU for the main application
  *                     CPU on the DSP.
  * @param [in] id Signal ID.
- * @param [in] timeout_usec Timeout in microseconds. Use DSPSIGNAL_TIMEOUT_NONE
- *                          for an infinite wait.
+ * @param [in] timeout_usec Timeout in microseconds. Use
+ * DSPSIGNAL_TIMEOUT_NONE for an infinite wait.
  *
  * @return 0 on success, error code on failure.
  *         - AEE_ENOSUCH: Unknown signal ID
@@ -168,7 +162,6 @@ AEEResult dspsignal_signal(int domain, uint32_t id);
  *         - AEE_EINTERRUPTED: Wait interrupted or cancelled
  */
 AEEResult dspsignal_wait(int domain, uint32_t id, uint32_t timeout_usec);
-
 
 /**
  * Cancel all pending wait operations on a signal on the local
@@ -203,4 +196,4 @@ void deinit_process_signals();
 }
 #endif
 
-#endif //DSPSIGNAL_H
+#endif // DSPSIGNAL_H
