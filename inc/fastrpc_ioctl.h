@@ -57,8 +57,7 @@
 	#define DEFAULT_DEVICE ""
 #endif
 
-#define INITIALIZE_REMOTE_ARGS(total)	struct fastrpc_invoke_args* args = NULL; \
-					int *pfds = NULL; \
+#define INITIALIZE_REMOTE_ARGS(total)	int *pfds = NULL; \
 					unsigned *pattrs = NULL; \
 					args = (struct fastrpc_invoke_args*) calloc(sizeof(*args), total);	\
 					if(args==NULL) { 	\
