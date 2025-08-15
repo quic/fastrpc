@@ -73,9 +73,6 @@
 #include "shared.h"
 #include "verify.h"
 #include "fastrpc_context.h"
-#ifndef NO_HAL
-#include "DspClient.h"
-#endif
 #include "fastrpc_process_attributes.h"
 #include "fastrpc_trace.h"
 
@@ -325,11 +322,6 @@ static pthread_key_t tlsKey = INVALID_KEY;
 static bool fastrpc_notif_flag = false;
 static int fastrpc_trace = 0;
 static uint32_t fastrpc_wake_lock_enable[NUM_DOMAINS_EXTEND] = {0};
-
-#ifndef NO_HAL
-static pthread_mutex_t dsp_client_mut;
-static void *dsp_client_instance[NUM_SESSIONS];
-#endif
 
 static int domain_init(int domain, int *dev);
 static void domain_deinit(int domain);
@@ -3321,21 +3313,6 @@ int open_device_node(int domain_id) {
              "falling back to node %s \n",
              get_domain_name(domain), domain, strerror(errno), DEFAULT_DEVICE);
         dev = open(DEFAULT_DEVICE, O_NONBLOCK);
-#ifndef NO_HAL
-        if ((dev < 0) && (errno == EACCES)) {
-          FARF(ALWAYS,
-               "%s: no access to default device of domain %d, open thru HAL, "
-               "(sess_id %d)\n",
-               __func__, domain, sess_id);
-          VERIFYC(sess_id < NUM_SESSIONS, AEE_EBADITEM);
-          pthread_mutex_lock(&dsp_client_mut);
-          if (!dsp_client_instance[sess_id]) {
-            dsp_client_instance[sess_id] = create_dsp_client_instance();
-          }
-          pthread_mutex_unlock(&dsp_client_mut);
-          dev = open_hal_session(dsp_client_instance[sess_id], domain_id);
-        }
-#endif
       }
     }
     break;
@@ -3355,23 +3332,8 @@ int open_device_node(int domain_id) {
 
 static int close_device_node(int domain_id, int dev) {
   int nErr = 0;
-
-#ifndef NO_HAL
-  int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
-  int sess_id = GET_SESSION_ID_FROM_DOMAIN_ID(domain_id);
-  if ((domain == CDSP_DOMAIN_ID) ||
-   (domain == CDSP1_DOMAIN_ID)) &&
-   dsp_client_instance[sess_id]) {
-    nErr = close_hal_session(dsp_client_instance[sess_id], domain_id, dev);
-    FARF(ALWAYS, "%s: close device %d thru HAL on session %d\n", __func__, dev,
-         sess_id);
-  } else {
-#endif
-    nErr = close(dev);
-    FARF(ALWAYS, "%s: closed dev %d on domain %d", __func__, dev, domain_id);
-#ifndef NO_HAL
-  }
-#endif
+  nErr = close(dev);
+  FARF(ALWAYS, "%s: closed dev %d on domain %d", __func__, dev, domain_id);
   return nErr;
 }
 
@@ -4115,13 +4077,6 @@ static void fastrpc_apps_user_deinit(void) {
     free(hlist);
     hlist = NULL;
   }
-#ifndef NO_HAL
-  for (i = 0; i < NUM_SESSIONS; i++) {
-    destroy_dsp_client_instance(dsp_client_instance[i]);
-    dsp_client_instance[i] = NULL;
-  }
-  pthread_mutex_destroy(&dsp_client_mut);
-#endif
   fastrpc_context_table_deinit();
   deinit_process_signals();
   fastrpc_notif_deinit();
@@ -4192,9 +4147,6 @@ static int fastrpc_apps_user_init(void) {
   fastrpc_log_init();
   fastrpc_config_init();
   pthread_mutex_init(&update_notif_list_mut, 0);
-#ifndef NO_HAL
-  pthread_mutex_init(&dsp_client_mut, 0);
-#endif
   VERIFYC(NULL != (hlist = calloc(NUM_DOMAINS_EXTEND, sizeof(*hlist))),
           AEE_ENOMEMORY);
   FOR_EACH_EFFECTIVE_DOMAIN_ID(i) {

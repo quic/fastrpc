@@ -16,9 +16,6 @@
 #ifndef CDSP_DEFAULT_LISTENER_NAME
 #define CDSP_DEFAULT_LISTENER_NAME "libcdsp_default_listener.so"
 #endif
-#ifndef CDSP_LIBHIDL_NAME
-#define CDSP_LIBHIDL_NAME "libhidlbase.so"
-#endif
 
 typedef int (*adsp_default_listener_start_t)(int argc, char *argv[]);
 
@@ -26,16 +23,10 @@ int main(int argc, char *argv[]) {
 
   int nErr = 0;
   void *cdsphandler = NULL;
-#ifndef NO_HAL
-  void *libhidlbaseHandler = NULL;
-#endif
   adsp_default_listener_start_t listener_start;
 
   VERIFY_EPRINTF("cdsp daemon starting");
-#ifndef NO_HAL
-  if (NULL != (libhidlbaseHandler = dlopen(CDSP_LIBHIDL_NAME, RTLD_NOW))) {
-#endif
-    while (1) {
+  while (1) {
       if (NULL !=
           (cdsphandler = dlopen(CDSP_DEFAULT_LISTENER_NAME, RTLD_NOW))) {
         if (NULL != (listener_start = (adsp_default_listener_start_t)dlsym(
@@ -55,13 +46,7 @@ int main(int argc, char *argv[]) {
       }
       VERIFY_EPRINTF("cdsp daemon will restart after 100ms...");
       usleep(100000);
-    }
-#ifndef NO_HAL
-    if (0 != dlclose(libhidlbaseHandler)) {
-      VERIFY_EPRINTF("libhidlbase dlclose failed");
-    }
   }
-#endif
   VERIFY_EPRINTF("cdsp daemon exiting %x", nErr);
 
   return nErr;

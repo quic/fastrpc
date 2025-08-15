@@ -17,9 +17,6 @@
 #ifndef ADSP_DEFAULT_LISTENER_NAME
 #define ADSP_DEFAULT_LISTENER_NAME "libadsp_default_listener.so"
 #endif
-#ifndef ADSP_LIBHIDL_NAME
-#define ADSP_LIBHIDL_NAME "libhidlbase.so"
-#endif
 
 typedef int (*adsp_default_listener_start_t)(int argc, char *argv[]);
 
@@ -27,16 +24,10 @@ int main(int argc, char *argv[]) {
 
   int nErr = 0;
   void *adsphandler = NULL;
-#ifndef NO_HAL
-  void *libhidlbaseHandler = NULL;
-#endif
   adsp_default_listener_start_t listener_start;
 
   VERIFY_EPRINTF("adsp daemon starting");
-#ifndef NO_HAL
-  if(NULL != (libhidlbaseHandler = dlopen(ADSP_LIBHIDL_NAME, RTLD_NOW))) {
-#endif
-	  while (1) {
+  while (1) {
 		if(NULL != (adsphandler = dlopen(ADSP_DEFAULT_LISTENER_NAME, RTLD_NOW))) {
 		  if(NULL != (listener_start =
 		(adsp_default_listener_start_t)dlsym(adsphandler, "adsp_default_listener_start"))) {
@@ -54,13 +45,7 @@ int main(int argc, char *argv[]) {
 		}
 		VERIFY_EPRINTF("adsp daemon will restart after 25ms...");
 		usleep(25000);
-	  }
-#ifndef NO_HAL
-	  if(0 != dlclose(libhidlbaseHandler)) {
-		  VERIFY_EPRINTF("libhidlbase dlclose failed");
-	  }
   }
-#endif
   VERIFY_EPRINTF("adsp daemon exiting %x", nErr);
 
   return nErr;

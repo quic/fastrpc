@@ -1,6 +1,6 @@
 lib_LTLIBRARIES =
 
-LIBDSPRPC_CFLAGS = -fno-short-enums -U_DEBUG -DARM_ARCH_7A -DLE_ENABLE -DNO_HAL -DENABLE_UPSTREAM_DRIVER_INTERFACE -DUSE_SYSLOG -I$(top_srcdir)/inc
+LIBDSPRPC_CFLAGS = -fno-short-enums -U_DEBUG -DARM_ARCH_7A -DLE_ENABLE -DENABLE_UPSTREAM_DRIVER_INTERFACE -DUSE_SYSLOG -I$(top_srcdir)/inc
 
 LIBDSPRPC_SOURCES = \
 		fastrpc_apps_user.c \
@@ -102,19 +102,19 @@ bin_PROGRAMS = adsprpcd cdsprpcd sdsprpcd
 adsprpcddir = $(libdir)
 adsprpcd_SOURCES = adsprpcd.c
 adsprpcd_DEPENDENCIES = libadsp_default_listener.la
-adsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=0 -DUSE_SYSLOG -DNO_HAL
+adsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=0 -DUSE_SYSLOG 
 adsprpcd_LDADD = -ldl $(USE_LOG)
 
 
 cdsprpcddir = $(libdir)
 cdsprpcd_SOURCES = cdsprpcd.c
 cdsprpcd_DEPENDENCIES = libcdsp_default_listener.la
-cdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=3 -DUSE_SYSLOG -DNO_HAL
+cdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=3 -DUSE_SYSLOG 
 cdsprpcd_LDADD =  -ldl $(USE_LOG)
 
 
 sdsprpcddir = $(libdir)
 sdsprpcd_SOURCES = sdsprpcd.c
 sdsprpcd_DEPENDENCIES = libsdsp_default_listener.la
-sdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=2 -DUSE_SYSLOG -DNO_HAL
+sdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=2 -DUSE_SYSLOG
 sdsprpcd_LDADD =  -ldl $(USE_LOG)
