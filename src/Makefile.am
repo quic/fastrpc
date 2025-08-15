@@ -96,25 +96,42 @@ libsdsp_default_listener_la_DEPENDENCIES = libsdsprpc.la
 libsdsp_default_listener_la_LDFLAGS = libsdsprpc.la -shared -module $(USE_LOG) -version-number @LT_VERSION_NUMBER@
 libsdsp_default_listener_la_CFLAGS = $(SDSP_CFLAGS) -DUSE_SYSLOG
 
+GDSP_CFLAGS = $(LIBDSPRPC_CFLAGS) -DDEFAULT_DOMAIN_ID=5
 
-bin_PROGRAMS = adsprpcd cdsprpcd sdsprpcd
+libgdsprpc_la_SOURCES = $(LIBDSPRPC_SOURCES)
+libgdsprpc_la_LDFLAGS = -ldl -lm $(USE_LOG) -version-number @LT_VERSION_NUMBER@
+libgdsprpc_la_CFLAGS = $(GDSP_CFLAGS)
+
+libgdsp_default_listener_la_SOURCES = $(LIBDEFAULT_LISTENER_SOURCES)
+libgdsp_default_listener_la_DEPENDENCIES = libcdsprpc.la
+libgdsp_default_listener_la_LDFLAGS = libcdsprpc.la -shared -module $(USE_LOG) -version-number @LT_VERSION_NUMBER@
+libgdsp_default_listener_la_CFLAGS = $(GDSP_CFLAGS) -DUSE_SYSLOG
+
+bin_PROGRAMS = adsprpcd cdsprpcd sdsprpcd gdsprpcd
 
 adsprpcddir = $(libdir)
-adsprpcd_SOURCES = adsprpcd.c
+adsprpcd_SOURCES = dsprpcd.c
 adsprpcd_DEPENDENCIES = libadsp_default_listener.la
-adsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=0 -DUSE_SYSLOG -DNO_HAL
+adsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=0 -DUSE_SYSLOG -DNO_HAL -DUSE_ADSP
 adsprpcd_LDADD = -ldl $(USE_LOG)
 
 
 cdsprpcddir = $(libdir)
-cdsprpcd_SOURCES = cdsprpcd.c
+cdsprpcd_SOURCES = dsprpcd.c
 cdsprpcd_DEPENDENCIES = libcdsp_default_listener.la
-cdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=3 -DUSE_SYSLOG -DNO_HAL
+cdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=3 -DUSE_SYSLOG -DNO_HAL -DUSE_CDSP
 cdsprpcd_LDADD =  -ldl $(USE_LOG)
 
 
 sdsprpcddir = $(libdir)
-sdsprpcd_SOURCES = sdsprpcd.c
+sdsprpcd_SOURCES = dsprpcd.c
 sdsprpcd_DEPENDENCIES = libsdsp_default_listener.la
-sdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=2 -DUSE_SYSLOG -DNO_HAL
+sdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=2 -DUSE_SYSLOG -DNO_HAL -DUSE_SDSP
 sdsprpcd_LDADD =  -ldl $(USE_LOG)
+
+
+gdsprpcddir = $(libdir)
+gdsprpcd_SOURCES = dsprpcd.c
+gdsprpcd_DEPENDENCIES = libcdsp_default_listener.la
+gdsprpcd_CFLAGS = -I$(top_srcdir)/inc -DDEFAULT_DOMAIN_ID=5 -DUSE_SYSLOG -DNO_HAL -DUSE_GDSP
+gdsprpcd_LDADD =  -ldl $(USE_LOG)
