@@ -3242,7 +3242,7 @@ static void domain_deinit(int domain) {
 }
 
 static const char *get_domain_name(int domain_id) {
-  const char *name;
+  const char *name = NULL;
   int domain = GET_DOMAIN_FROM_EFFEC_DOMAIN_ID(domain_id);
 
   switch (domain) {
@@ -3262,7 +3262,7 @@ static const char *get_domain_name(int domain_id) {
     name = CDSP1RPC_DEVICE;
     break;
   default:
-    name = DEFAULT_DEVICE;
+    FARF(ERROR, "ERROR: %s Invalid domain_id %d", __func__, domain_id);
     break;
   }
   return name;
@@ -3287,20 +3287,9 @@ int open_device_node(int domain_id) {
       dev = open(get_domain_name(domain), O_NONBLOCK);
       if ((dev < 0) && (errno == ENOENT)) {
         FARF(RUNTIME_RPC_HIGH,
-             "Device node %s open failed for domain %d (errno %s),"
-             "falling back to node %s \n",
-             get_domain_name(domain), domain, strerror(errno), DEFAULT_DEVICE);
-        dev = open(DEFAULT_DEVICE, O_NONBLOCK);
+             "Device node %s open failed for domain %d (errno %s)\n",
+             get_domain_name(domain), domain, strerror(errno));
       }
-    } else if ((dev < 0) && (errno == EACCES)) {
-      // Open the default device node if unable to open the
-      // secure device node due to permissions
-      FARF(RUNTIME_RPC_HIGH,
-           "Device node %s open failed for domain %d (errno %s),"
-           "falling back to node %s \n",
-           get_secure_domain_name(domain), domain, strerror(errno),
-           DEFAULT_DEVICE);
-      dev = open(DEFAULT_DEVICE, O_NONBLOCK);
     }
     break;
   case CDSP_DOMAIN_ID:
@@ -3314,27 +3303,21 @@ int open_device_node(int domain_id) {
            get_domain_name(domain));
       dev = open(get_domain_name(domain), O_NONBLOCK);
       if ((dev < 0) && ((errno == ENOENT) || (errno == EACCES))) {
-        // Open the default device node if actual device node
-        // is not present
         FARF(RUNTIME_RPC_HIGH,
-             "Device node %s open failed for domain %d (errno %s),"
-             "falling back to node %s \n",
-             get_domain_name(domain), domain, strerror(errno), DEFAULT_DEVICE);
-        dev = open(DEFAULT_DEVICE, O_NONBLOCK);
+             "Device node %s open failed for domain %d (errno %s)\n",
+             get_domain_name(domain), domain, strerror(errno));
 #ifndef NO_HAL
-        if ((dev < 0) && (errno == EACCES)) {
-          FARF(ALWAYS,
-               "%s: no access to default device of domain %d, open thru HAL, "
-               "(sess_id %d)\n",
-               __func__, domain, sess_id);
-          VERIFYC(sess_id < NUM_SESSIONS, AEE_EBADITEM);
-          pthread_mutex_lock(&dsp_client_mut);
-          if (!dsp_client_instance[sess_id]) {
-            dsp_client_instance[sess_id] = create_dsp_client_instance();
-          }
-          pthread_mutex_unlock(&dsp_client_mut);
-          dev = open_hal_session(dsp_client_instance[sess_id], domain_id);
+        FARF(ALWAYS,
+             "%s: no access to device of domain %d, open thru HAL, "
+             "(sess_id %d)\n",
+             __func__, domain, sess_id);
+        VERIFYC(sess_id < NUM_SESSIONS, AEE_EBADITEM);
+        pthread_mutex_lock(&dsp_client_mut);
+        if (!dsp_client_instance[sess_id]) {
+          dsp_client_instance[sess_id] = create_dsp_client_instance();
         }
+        pthread_mutex_unlock(&dsp_client_mut);
+        dev = open_hal_session(dsp_client_instance[sess_id], domain_id);
 #endif
       }
     }
