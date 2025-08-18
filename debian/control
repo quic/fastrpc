@@ -1,0 +1,28 @@
+Source: qcom-fastrpc1
+Maintainer: Ekansh Gupta <ekangupt@qti.qualcomm.com>
+Standards-Version: 4.6.2
+Section: misc
+Rules-Requires-Root: no
+Build-Depends: debhelper-compat (= 13)
+
+Package: qcom-fastrpc1
+Architecture: arm64
+Description: Qualcomm FastRPC applications and library
+ FastRPC is the Qualcomm-proprietary RPC mechanism used to enable remote
+ function calls between the CPU and aDSP.
+Section: libs
+Priority: optional
+Depends: ${misc:Depends}, libc6 (>= 2.34), qcom-libdmabufheap (>= 1.0.0), firmware-qcom-hlosfw (>= 1.0.r00078.0)
+Breaks: fastrpc
+Replaces: fastrpc
+
+Package: qcom-fastrpc-dev
+Architecture: arm64
+Description: Qualcomm FastRPC - development files
+ FastRPC is the Qualcomm-proprietary RPC mechanism used to enable remote
+ function calls between the CPU and aDSP. Development package.
+Section: libdevel
+Priority: optional
+Depends: ${misc:Depends}, qcom-fastrpc1 (= ${binary:Version} )
+Breaks: fastrpc-dev
+Replaces: fastrpc-dev
