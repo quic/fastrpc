@@ -320,7 +320,7 @@ bail:
          nErr, pk->enable, pd->enable, p->freq);
     p->perf_on = 0;
   } else {
-    FARF(ALWAYS,
+    FARF(RUNTIME_RPC_HIGH,
          "%s: enabled systrace 0x%x and RPC traces (kernel %d, dsp %d) with "
          "frequency %d",
          __func__, p->process_trace_enabled, pk->enable, pd->enable, p->freq);
