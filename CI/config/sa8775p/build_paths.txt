@@ -1,0 +1,3 @@
+ADSP_PATH=hexagon-dsp-binaries/sa8775p/Qualcomm/SA8775P-RIDE/adsp-DSP.AT.1.0.1-00079.2-LEMANS-1
+CDSP_PATH=hexagon-dsp-binaries/sa8775p/Qualcomm/SA8775P-RIDE/cdsp-DSP.AT.1.0.1-00079.2-LEMANS-1
+FIRMWARE_PATH=linux-firmware/qcom/sa8775p
