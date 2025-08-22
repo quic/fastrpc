@@ -50,6 +50,7 @@
 #include "fastrpc_ioctl.h"
 #include "rpcmem.h"
 #include "verify.h"
+#include "fastrpc_mem.h"
 
 #define PAGE_SIZE 4096
 
@@ -202,6 +203,7 @@ void *rpcmem_alloc_internal(int heapid, uint32_t flags, size_t size) {
   pthread_mutex_unlock(&rpcmt);
   FARF(RUNTIME_RPC_HIGH, "Allocted memory from DMA heap fd %d ptr %p orig ptr %p\n",
        rinfo->fd, rinfo->aligned_buf, rinfo->buf);
+  remote_register_buf(rinfo->buf, rinfo->size, rinfo->fd);
   return rinfo->aligned_buf;
 bail:
   if (nErr) {
@@ -230,6 +232,7 @@ void rpcmem_free_internal(void *po) {
   }
   pthread_mutex_unlock(&rpcmt);
   if (rfree) {
+    remote_register_buf(rfree->buf, rfree->size, -1);
     munmap(rfree->buf, rfree->size);
     close(rfree->fd);
     free(rfree);
